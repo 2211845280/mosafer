@@ -1,0 +1,5 @@
+# Staging: production-like, different env vars
+services:
+  backend:
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg://traveler:traveler@db:5432/traveler_db}
