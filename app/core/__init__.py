@@ -1,1 +1,1 @@
-# Core package (configuration, settings)
+"""Core application components."""

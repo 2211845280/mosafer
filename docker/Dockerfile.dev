@@ -1,0 +1,54 @@
+# =============================================================================
+# Development Dockerfile — with hot-reload support
+# Follows the official Astral uv Docker integration guide.
+# =============================================================================
+FROM python:3.12-slim
+
+# ---------------------------------------------------------------------------
+# 1. Install uv — copy the binary directly from the official image.
+# ---------------------------------------------------------------------------
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+
+# ---------------------------------------------------------------------------
+# 2. Environment variables
+# ---------------------------------------------------------------------------
+# Use copy mode instead of hardlinks (avoids warnings inside Docker layers).
+ENV UV_LINK_MODE=copy
+# Compile Python bytecode at install time for faster cold starts.
+ENV UV_COMPILE_BYTECODE=1
+# Put the virtual-environment's bin/ on PATH so executables can be called
+# directly (e.g. `uvicorn ...`) without needing `uv run`.
+ENV PATH="/app/.venv/bin:$PATH"
+
+# ---------------------------------------------------------------------------
+# 3. Working directory
+# ---------------------------------------------------------------------------
+WORKDIR /app
+ENV PYTHONPATH=/app
+
+# ---------------------------------------------------------------------------
+# 4. Install dependencies — layer-optimized
+#    Copy ONLY the lockfile + project manifest first.  This layer is cached
+#    and only invalidated when pyproject.toml or uv.lock change.
+# ---------------------------------------------------------------------------
+COPY pyproject.toml uv.lock ./
+
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --locked --no-install-project
+
+# ---------------------------------------------------------------------------
+# 5. Copy application source and do the final sync
+#    --no-install-project was used above so the project itself wasn't
+#    installed.  Now we copy all source and run a full sync to install it.
+# ---------------------------------------------------------------------------
+COPY . .
+
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --locked
+
+# ---------------------------------------------------------------------------
+# 6. Expose & default command
+# ---------------------------------------------------------------------------
+EXPOSE 8000
+
+CMD ["uv", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
