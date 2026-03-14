@@ -1,7 +1,7 @@
-import app.api.v1.auth as auth
-import app.api.v1.health as health
 from fastapi import APIRouter
 
+import app.api.v1.auth as auth
+import app.api.v1.health as health
 
 main_router = APIRouter()
 
