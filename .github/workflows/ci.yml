@@ -2,52 +2,74 @@ name: CI
 
 on:
   push:
-    branches: [main, develop]
+    branches:
+      - main
+      - develop
   pull_request:
-    branches: [main, develop]
+    branches:
+      - main
+      - develop
 
 jobs:
   lint-and-test:
     runs-on: ubuntu-latest
-
+    
     services:
       postgres:
-        image: postgres:16-alpine
+        image: postgres:15-alpine
         env:
-          POSTGRES_USER: traveler
-          POSTGRES_PASSWORD: traveler
-          POSTGRES_DB: traveler_db
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: musafir_test
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U traveler -d traveler_db"
+          --health-cmd pg_isready
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      - name: Install uv
-        uses: astral-sh/setup-uv@v4
+      - name: Install UV
+        uses: astral-sh/setup-uv@v3
         with:
           version: "latest"
 
       - name: Set up Python
-        run: uv python install 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
 
       - name: Install dependencies
-        run: uv sync --all-extras
+        run: uv sync --dev
 
-      - name: Lint
-        run: uv run ruff check . || true
+      - name: Run Ruff format check
+        run: uv run ruff format --check .
 
-      - name: Run migrations
+      - name: Run Ruff lint
+        run: uv run ruff check .
+
+      - name: Run tests
         env:
-          DATABASE_URL: postgresql+psycopg://traveler:traveler@localhost:5432/traveler_db
-        run: uv run alembic upgrade head
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/musafir_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: musafir_test
+          POSTGRES_HOST: localhost
+          POSTGRES_PORT: 5432
+          ENVIRONMENT: test
+          SECRET_KEY: test-secret-key-for-ci
+          DEBUG: "true"
+        run: uv run pytest -v --cov=app --cov-report=xml
 
-      - name: Test
-        env:
-          DATABASE_URL: postgresql+psycopg://traveler:traveler@localhost:5432/traveler_db
-        run: uv run pytest -v || true
+      - name: Upload coverage
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.xml
+          fail_ci_if_error: false
+
+      - name: Build Docker image (test)
+        run: docker build -f docker/Dockerfile.dev -t musafir-api:test .

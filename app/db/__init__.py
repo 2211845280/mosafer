@@ -1,1 +1,1 @@
-# Database package (engine, session, models)
+"""Database package."""
