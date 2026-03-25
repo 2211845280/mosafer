@@ -1,23 +1,36 @@
-"""Authentication service (placeholder)."""
+"""Authentication service."""
+
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.security import verify_password
+from app.models.users import User
 
 
-async def authenticate_user(email: str, password: str) -> dict:
+async def authenticate_user(db: AsyncSession, email: str, password: str) -> dict:
     """
     Authenticate a user by email and password.
 
-    This is a placeholder implementation. Replace with real
-    authentication logic (e.g., bcrypt password verification,
-    JWT token generation) in production.
-
     Args:
+        db: Database session.
         email: User's email address.
         password: User's password.
 
     Returns:
-        dict with 'message' and 'authenticated' keys.
+        dict with 'message', 'authenticated', and optionally 'user_id' on success.
     """
-    # TODO: Implement real authentication logic
+    result = await db.execute(select(User).where(User.email == email))
+    user = result.scalar_one_or_none()
+    if user is None:
+        return {"message": "Invalid email or password", "authenticated": False}
+    if not user.password_hash:
+        return {"message": "Invalid email or password", "authenticated": False}
+    if not verify_password(password, user.password_hash):
+        return {"message": "Invalid email or password", "authenticated": False}
+    if not user.is_active:
+        return {"message": "Account is disabled", "authenticated": False}
     return {
-        "message": "Authentication not yet implemented",
-        "authenticated": False,
+        "message": "Login successful",
+        "authenticated": True,
+        "user_id": user.id,
     }
