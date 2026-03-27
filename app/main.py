@@ -7,15 +7,12 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1 import auth_router, health_router, users_router
 from app.core.config import settings
-from app.db.database import close_db, init_db
+from app.db.database import close_db
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan events."""
-    # Startup
-    if settings.is_development:
-        await init_db()
     yield
     # Shutdown
     await close_db()
@@ -29,6 +26,7 @@ app = FastAPI(
     lifespan=lifespan,
     docs_url="/docs" if settings.is_development else None,
     redoc_url="/redoc" if settings.is_development else None,
+    swagger_ui_parameters={"persistAuthorization": True},
 )
 
 # CORS middleware
@@ -43,7 +41,7 @@ app.add_middleware(
 # Include v1 routers
 app.include_router(health_router, prefix="/api/v1", tags=["health"])
 app.include_router(users_router, prefix="/api/v1", tags=["users"])
-app.include_router(auth_router, prefix="/api/v1", tags=["auth"])
+app.include_router(auth_router, prefix="/auth", tags=["auth"])
 
 
 @app.get("/")
