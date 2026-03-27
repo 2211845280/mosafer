@@ -12,6 +12,14 @@ from alembic import context
 # Import app config and database base
 from app.core.config import settings
 from app.db.database import Base
+from app.models import (  # noqa: F401
+    example,
+    permissions,
+    revoked_tokens,
+    role_permissions,
+    roles,
+    users,
+)
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
