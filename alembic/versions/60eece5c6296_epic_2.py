@@ -1,16 +1,16 @@
-"""Initial migration
+"""Epic 2
 
-Revision ID: 01e42e4b52e7
-Revises:
-Create Date: 2026-03-08 02:36:54.609129
+Revision ID: 60eece5c6296
+Revises: 2bb649503229
+Create Date: 2026-03-27 19:38:15.290847
 
 """
 
 from collections.abc import Sequence
 
 # revision identifiers, used by Alembic.
-revision: str = "01e42e4b52e7"
-down_revision: str | None = None
+revision: str = "60eece5c6296"
+down_revision: str | None = "2bb649503229"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 

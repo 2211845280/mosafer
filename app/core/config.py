@@ -33,6 +33,14 @@ class Settings(BaseSettings):
         default=2 * 1024 * 1024,
         description="Maximum allowed profile picture upload size",
     )
+    ADMIN_EMAIL: str | None = Field(
+        default=None,
+        description="Optional admin seed email used by migration/deployment setup",
+    )
+    ADMIN_PASSWORD: str | None = Field(
+        default=None,
+        description="Optional admin seed password used by migration/deployment setup",
+    )
 
     # Database
     DATABASE_URL: str = Field(

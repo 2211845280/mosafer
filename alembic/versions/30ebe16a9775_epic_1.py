@@ -1,25 +1,34 @@
-"""Add auth, RBAC, profile, and admin schema
+"""Epic 1 schema and RBAC bootstrap.
 
-Revision ID: 9f3c6c2e8b1a
-Revises: add_password_hash
-Create Date: 2026-03-25
-
+Revision ID: 30ebe16a9775
+Revises:
+Create Date: 2026-03-27 18:55:34.174761
 """
 
 from collections.abc import Sequence
 from datetime import datetime
 
 import sqlalchemy as sa
+
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision: str = "9f3c6c2e8b1a"
-down_revision: str | None = "add_password_hash"
+revision: str = "30ebe16a9775"
+down_revision: str | None = None
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
+    op.create_table(
+        "examples",
+        sa.Column("id", sa.Integer(), nullable=False),
+        sa.Column("name", sa.String(length=255), nullable=False),
+        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
+        sa.PrimaryKeyConstraint("id"),
+    )
+    op.create_index(op.f("ix_examples_id"), "examples", ["id"], unique=False)
+
     op.create_table(
         "roles",
         sa.Column("id", sa.Integer(), nullable=False),
@@ -43,6 +52,23 @@ def upgrade() -> None:
     op.create_index(op.f("ix_permissions_name"), "permissions", ["name"], unique=True)
 
     op.create_table(
+        "users",
+        sa.Column("id", sa.Integer(), nullable=False),
+        sa.Column("email", sa.String(length=255), nullable=False),
+        sa.Column("full_name", sa.String(length=255), nullable=True),
+        sa.Column("password_hash", sa.String(length=255), nullable=True),
+        sa.Column("is_active", sa.Boolean(), nullable=False, server_default=sa.true()),
+        sa.Column("role_id", sa.Integer(), nullable=True),
+        sa.Column("avatar_path", sa.String(length=500), nullable=True),
+        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
+        sa.ForeignKeyConstraint(["role_id"], ["roles.id"], ondelete="SET NULL"),
+        sa.PrimaryKeyConstraint("id"),
+    )
+    op.create_index(op.f("ix_users_id"), "users", ["id"], unique=False)
+    op.create_index(op.f("ix_users_email"), "users", ["email"], unique=True)
+    op.alter_column("users", "is_active", server_default=None)
+
+    op.create_table(
         "role_permissions",
         sa.Column("role_id", sa.Integer(), nullable=False),
         sa.Column("permission_id", sa.Integer(), nullable=False),
@@ -64,18 +90,17 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
     )
-    op.create_index(op.f("ix_revoked_tokens_execute_hash"), "revoked_tokens", ["execute_hash"], unique=True)
     op.create_index(op.f("ix_revoked_tokens_id"), "revoked_tokens", ["id"], unique=False)
     op.create_index(op.f("ix_revoked_tokens_jti"), "revoked_tokens", ["jti"], unique=True)
-    op.create_index(op.f("ix_revoked_tokens_logout_hash"), "revoked_tokens", ["logout_hash"], unique=True)
     op.create_index(op.f("ix_revoked_tokens_user_id"), "revoked_tokens", ["user_id"], unique=False)
+    op.create_index(
+        op.f("ix_revoked_tokens_logout_hash"), "revoked_tokens", ["logout_hash"], unique=True
+    )
+    op.create_index(
+        op.f("ix_revoked_tokens_execute_hash"), "revoked_tokens", ["execute_hash"], unique=True
+    )
 
-    op.add_column("users", sa.Column("is_active", sa.Boolean(), server_default=sa.true(), nullable=False))
-    op.add_column("users", sa.Column("role_id", sa.Integer(), nullable=True))
-    op.add_column("users", sa.Column("avatar_path", sa.String(length=500), nullable=True))
-    op.create_foreign_key("fk_users_role_id_roles", "users", "roles", ["role_id"], ["id"], ondelete="SET NULL")
-    op.alter_column("users", "is_active", server_default=None)
-
+    now = datetime.utcnow()
     role_table = sa.table(
         "roles",
         sa.column("name", sa.String),
@@ -88,8 +113,6 @@ def upgrade() -> None:
         sa.column("description", sa.String),
         sa.column("created_at", sa.DateTime(timezone=True)),
     )
-
-    now = datetime.utcnow()
     op.bulk_insert(
         role_table,
         [
@@ -101,13 +124,20 @@ def upgrade() -> None:
         permission_table,
         [
             {"name": "users.profile.read", "description": "Read own profile", "created_at": now},
-            {"name": "users.profile.update", "description": "Update own profile", "created_at": now},
-            {"name": "users.profile.password", "description": "Change own password", "created_at": now},
+            {
+                "name": "users.profile.update",
+                "description": "Update own profile",
+                "created_at": now,
+            },
+            {
+                "name": "users.profile.password",
+                "description": "Change own password",
+                "created_at": now,
+            },
             {"name": "users.profile.avatar", "description": "Upload own avatar", "created_at": now},
             {"name": "users.admin.manage", "description": "Manage all users", "created_at": now},
         ],
     )
-
     op.execute(
         sa.text(
             """
@@ -141,33 +171,24 @@ def upgrade() -> None:
             """,
         ),
     )
-    op.execute(
-        sa.text(
-            """
-            UPDATE users
-            SET role_id = (SELECT id FROM roles WHERE name = 'user')
-            WHERE role_id IS NULL
-            """,
-        ),
-    )
 
 
 def downgrade() -> None:
-    op.drop_constraint("fk_users_role_id_roles", "users", type_="foreignkey")
-    op.drop_column("users", "avatar_path")
-    op.drop_column("users", "role_id")
-    op.drop_column("users", "is_active")
-
-    op.drop_index(op.f("ix_revoked_tokens_user_id"), table_name="revoked_tokens")
+    op.drop_index(op.f("ix_revoked_tokens_execute_hash"), table_name="revoked_tokens")
     op.drop_index(op.f("ix_revoked_tokens_logout_hash"), table_name="revoked_tokens")
+    op.drop_index(op.f("ix_revoked_tokens_user_id"), table_name="revoked_tokens")
     op.drop_index(op.f("ix_revoked_tokens_jti"), table_name="revoked_tokens")
     op.drop_index(op.f("ix_revoked_tokens_id"), table_name="revoked_tokens")
-    op.drop_index(op.f("ix_revoked_tokens_execute_hash"), table_name="revoked_tokens")
     op.drop_table("revoked_tokens")
     op.drop_table("role_permissions")
+    op.drop_index(op.f("ix_users_email"), table_name="users")
+    op.drop_index(op.f("ix_users_id"), table_name="users")
+    op.drop_table("users")
     op.drop_index(op.f("ix_permissions_name"), table_name="permissions")
     op.drop_index(op.f("ix_permissions_id"), table_name="permissions")
     op.drop_table("permissions")
     op.drop_index(op.f("ix_roles_name"), table_name="roles")
     op.drop_index(op.f("ix_roles_id"), table_name="roles")
     op.drop_table("roles")
+    op.drop_index(op.f("ix_examples_id"), table_name="examples")
+    op.drop_table("examples")

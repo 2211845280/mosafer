@@ -7,15 +7,12 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1 import auth_router, health_router, users_router
 from app.core.config import settings
-from app.db.database import close_db, init_db
+from app.db.database import close_db
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan events."""
-    # Startup
-    if settings.is_development:
-        await init_db()
     yield
     # Shutdown
     await close_db()

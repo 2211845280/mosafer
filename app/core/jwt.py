@@ -1,6 +1,6 @@
 """JWT utilities for access token creation and verification."""
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
 import jwt
@@ -36,8 +36,8 @@ def create_access_token(data: dict) -> str:
     """
     to_encode = data.copy()
     to_encode["jti"] = str(uuid4())
-    to_encode["iat"] = datetime.now(timezone.utc)
-    expire = datetime.now(timezone.utc) + timedelta(
+    to_encode["iat"] = datetime.now(UTC)
+    expire = datetime.now(UTC) + timedelta(
         minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES,
     )
     to_encode["exp"] = expire

@@ -1,6 +1,6 @@
 """Authentication API router."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -144,8 +144,8 @@ async def logout(
         user_id=user.id,
         logout_hash=hash_keyword_token(str(jti), "logout"),
         execute_hash=hash_keyword_token(str(jti), "execute"),
-        revoked_at=datetime.now(timezone.utc),
-        expires_at=datetime.fromtimestamp(int(exp), tz=timezone.utc),
+        revoked_at=datetime.now(UTC),
+        expires_at=datetime.fromtimestamp(int(exp), tz=UTC),
     )
     db.add(revoked)
     try:
