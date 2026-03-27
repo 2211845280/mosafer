@@ -16,10 +16,31 @@ class Settings(BaseSettings):
 
     # Application
     API_HOST: str = Field(default="0.0.0.0", description="API host address")
-    API_PORT: int = Field(default=8000, description="API port number")
+    API_PORT: int = Field(default=8001, description="API port number")
     ENVIRONMENT: str = Field(default="dev", description="Environment name (dev/staging/prod)")
     SECRET_KEY: str = Field(..., description="Secret key for security operations")
     DEBUG: bool = Field(default=False, description="Debug mode")
+    JWT_ALGORITHM: str = Field(default="HS256", description="JWT signing algorithm")
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = Field(
+        default=30,
+        description="Access token expiry in minutes",
+    )
+    PROFILE_PICTURES_DIR: str = Field(
+        default="uploads/profile_pictures",
+        description="Directory for user profile picture uploads",
+    )
+    PROFILE_PICTURE_MAX_SIZE_BYTES: int = Field(
+        default=2 * 1024 * 1024,
+        description="Maximum allowed profile picture upload size",
+    )
+    ADMIN_EMAIL: str | None = Field(
+        default=None,
+        description="Optional admin seed email used by migration/deployment setup",
+    )
+    ADMIN_PASSWORD: str | None = Field(
+        default=None,
+        description="Optional admin seed password used by migration/deployment setup",
+    )
 
     # Database
     DATABASE_URL: str = Field(

@@ -14,7 +14,13 @@ dependencies = [
     "pydantic-settings>=2.1.0",
     "python-dotenv>=1.0.0",
     "email-validator>=2.3.0",
+    "passlib[bcrypt]>=1.7.4",
+    "bcrypt==4.0.1",
+    # "pwdlib[bcrypt]>=0.2.0",
+    "PyJWT>=2.0.0",
+    "python-multipart>=0.0.22",
 ]
+
 
 [build-system]
 requires = ["setuptools>=61.0", "wheel"]
