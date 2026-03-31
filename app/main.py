@@ -5,7 +5,15 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.v1 import auth_router, health_router, users_router
+from app.api.v1 import (
+    airports_router,
+    auth_router,
+    flights_router,
+    health_router,
+    reservations_router,
+    tickets_router,
+    users_router,
+)
 from app.core.config import settings
 from app.db.database import close_db
 
@@ -41,6 +49,10 @@ app.add_middleware(
 # Include v1 routers
 app.include_router(health_router, prefix="/api/v1", tags=["health"])
 app.include_router(users_router, prefix="/api/v1", tags=["users"])
+app.include_router(airports_router, prefix="/api/v1", tags=["airports"])
+app.include_router(flights_router, prefix="/api/v1", tags=["flights"])
+app.include_router(reservations_router, prefix="/api/v1", tags=["reservations"])
+app.include_router(tickets_router, prefix="/api/v1", tags=["tickets"])
 app.include_router(auth_router, prefix="/auth", tags=["auth"])
 
 

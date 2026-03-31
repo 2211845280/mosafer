@@ -13,6 +13,33 @@ from app.models.role_permissions import RolePermission
 from app.models.users import User
 
 
+async def assert_user_has_permission(
+    db: AsyncSession,
+    user: User,
+    permission_name: str,
+) -> None:
+    """Raise 403 if user does not have the named permission."""
+    if user.role_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Insufficient permissions",
+        )
+    stmt = (
+        select(Permission.id)
+        .join(RolePermission, RolePermission.permission_id == Permission.id)
+        .where(
+            RolePermission.role_id == user.role_id,
+            Permission.name == permission_name,
+        )
+    )
+    result = await db.execute(stmt)
+    if result.scalar_one_or_none() is None:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Insufficient permissions",
+        )
+
+
 def require_permission(permission_name: str) -> Callable:
     """Create a dependency that validates user permission membership."""
 
