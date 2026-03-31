@@ -1,6 +1,6 @@
 """Flight CRUD and search API."""
 
-from datetime import date, datetime, time, timezone
+from datetime import UTC, date, datetime, time
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func, select
@@ -83,7 +83,9 @@ async def list_flights_admin(
 )
 async def search_flights(
     db: AsyncSession = Depends(get_db),
-    departure_date: date | None = Query(None, description="Filter by departure local day (UTC window)"),
+    departure_date: date | None = Query(
+        None, description="Filter by departure local day (UTC window)"
+    ),
     destination_airport_id: int | None = Query(None),
     destination_iata: str | None = Query(None, min_length=3, max_length=3),
     origin_airport_id: int | None = Query(None),
@@ -97,8 +99,8 @@ async def search_flights(
     stmt = select(Flight)
 
     if departure_date is not None:
-        start = datetime.combine(departure_date, time.min, tzinfo=timezone.utc)
-        end = datetime.combine(departure_date, time.max, tzinfo=timezone.utc)
+        start = datetime.combine(departure_date, time.min, tzinfo=UTC)
+        end = datetime.combine(departure_date, time.max, tzinfo=UTC)
         stmt = stmt.where(Flight.departure_at >= start, Flight.departure_at <= end)
 
     if destination_airport_id is not None:

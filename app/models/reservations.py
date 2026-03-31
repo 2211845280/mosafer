@@ -37,7 +37,9 @@ class Reservation(Base):
         index=True,
     )
     seat: Mapped[str] = mapped_column(String(8), nullable=False)
-    status: Mapped[str] = mapped_column(String(32), nullable=False, default=ReservationStatus.CONFIRMED.value)
+    status: Mapped[str] = mapped_column(
+        String(32), nullable=False, default=ReservationStatus.CONFIRMED.value
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=datetime.utcnow,

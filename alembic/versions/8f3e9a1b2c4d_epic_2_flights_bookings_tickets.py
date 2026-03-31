@@ -10,6 +10,7 @@ from collections.abc import Sequence
 from datetime import datetime
 
 import sqlalchemy as sa
+
 from alembic import op
 
 revision: str = "8f3e9a1b2c4d"
@@ -49,10 +50,17 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_index(op.f("ix_flights_departure_at"), "flights", ["departure_at"], unique=False)
-    op.create_index(op.f("ix_flights_destination_airport_id"), "flights", ["destination_airport_id"], unique=False)
+    op.create_index(
+        op.f("ix_flights_destination_airport_id"),
+        "flights",
+        ["destination_airport_id"],
+        unique=False,
+    )
     op.create_index(op.f("ix_flights_flight_number"), "flights", ["flight_number"], unique=False)
     op.create_index(op.f("ix_flights_id"), "flights", ["id"], unique=False)
-    op.create_index(op.f("ix_flights_origin_airport_id"), "flights", ["origin_airport_id"], unique=False)
+    op.create_index(
+        op.f("ix_flights_origin_airport_id"), "flights", ["origin_airport_id"], unique=False
+    )
 
     op.create_table(
         "reservations",

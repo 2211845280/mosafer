@@ -28,7 +28,9 @@ class Flight(Base):
         nullable=False,
         index=True,
     )
-    departure_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
+    departure_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, index=True
+    )
     arrival_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     base_price: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
     total_seats: Mapped[int] = mapped_column(Integer, nullable=False)
