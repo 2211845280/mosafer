@@ -75,11 +75,15 @@ async def validate_ticket(
     if ticket is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ticket not found")
     if ticket.status == TicketStatus.CANCELLED.value:
-        return TicketValidationResponse(ticket_number=ticket.ticket_number, valid=False, status=ticket.status)
+        return TicketValidationResponse(
+            ticket_number=ticket.ticket_number, valid=False, status=ticket.status
+        )
     if ticket.status == TicketStatus.ISSUED.value:
         ticket.status = TicketStatus.USED.value
         await db.commit()
-    return TicketValidationResponse(ticket_number=ticket.ticket_number, valid=True, status=ticket.status)
+    return TicketValidationResponse(
+        ticket_number=ticket.ticket_number, valid=True, status=ticket.status
+    )
 
 
 @router.get(
@@ -113,10 +117,18 @@ async def ticket_report(
     to_date: datetime | None = Query(None),
 ) -> TicketReportResponse:
     """Minimal issued/used/cancelled ticket counts."""
-    issued_stmt = select(func.count()).select_from(Ticket).where(Ticket.status == TicketStatus.ISSUED.value)
-    used_stmt = select(func.count()).select_from(Ticket).where(Ticket.status == TicketStatus.USED.value)
-    cancelled_stmt = select(func.count()).select_from(Ticket).where(
-        Ticket.status == TicketStatus.CANCELLED.value,
+    issued_stmt = (
+        select(func.count()).select_from(Ticket).where(Ticket.status == TicketStatus.ISSUED.value)
+    )
+    used_stmt = (
+        select(func.count()).select_from(Ticket).where(Ticket.status == TicketStatus.USED.value)
+    )
+    cancelled_stmt = (
+        select(func.count())
+        .select_from(Ticket)
+        .where(
+            Ticket.status == TicketStatus.CANCELLED.value,
+        )
     )
     if from_date is not None:
         issued_stmt = issued_stmt.where(Ticket.created_at >= from_date)
