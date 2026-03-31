@@ -45,6 +45,18 @@ class Settings(BaseSettings):
         default="uploads/ticket_qr",
         description="Directory for generated ticket QR PNG files",
     )
+    AMADEUS_BASE_URL: str = Field(
+        default="https://test.api.amadeus.com",
+        description="Amadeus API base URL",
+    )
+    AMADEUS_CLIENT_ID: str | None = Field(
+        default=None,
+        description="Amadeus OAuth client id",
+    )
+    AMADEUS_CLIENT_SECRET: str | None = Field(
+        default=None,
+        description="Amadeus OAuth client secret",
+    )
 
     # Database
     DATABASE_URL: str = Field(
