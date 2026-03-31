@@ -15,3 +15,15 @@ class TicketRead(BaseModel):
     qr_image_path: str | None
     status: str
     created_at: datetime
+
+
+class TicketValidationResponse(BaseModel):
+    ticket_number: str
+    valid: bool
+    status: str
+
+
+class TicketReportResponse(BaseModel):
+    issued_count: int
+    used_count: int
+    cancelled_count: int

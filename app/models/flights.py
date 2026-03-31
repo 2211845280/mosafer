@@ -1,4 +1,4 @@
-"""SQLAlchemy ORM model for flights."""
+"""SQLAlchemy ORM model for booked/selected flights."""
 
 from datetime import datetime
 from decimal import Decimal
@@ -10,30 +10,40 @@ from app.db.database import Base
 
 
 class Flight(Base):
-    """Scheduled flight between two airports."""
+    """Booked/selected flight persisted from provider offers."""
 
     __tablename__ = "flights"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    flight_number: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
-    origin_airport_id: Mapped[int] = mapped_column(
-        Integer,
-        ForeignKey("airports.id", ondelete="RESTRICT"),
+    amadeus_flight_id: Mapped[str] = mapped_column(
+        String(128),
+        unique=True,
         nullable=False,
         index=True,
     )
-    destination_airport_id: Mapped[int] = mapped_column(
+    origin_iata: Mapped[str] = mapped_column(String(3), nullable=False, index=True)
+    destination_iata: Mapped[str] = mapped_column(String(3), nullable=False, index=True)
+    carrier_code: Mapped[str] = mapped_column(String(3), nullable=False, index=True)
+    flight_number: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
+    origin_airport_id: Mapped[int | None] = mapped_column(
         Integer,
         ForeignKey("airports.id", ondelete="RESTRICT"),
-        nullable=False,
+        nullable=True,
+        index=True,
+    )
+    destination_airport_id: Mapped[int | None] = mapped_column(
+        Integer,
+        ForeignKey("airports.id", ondelete="RESTRICT"),
+        nullable=True,
         index=True,
     )
     departure_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, index=True
     )
     arrival_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-    base_price: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
-    total_seats: Mapped[int] = mapped_column(Integer, nullable=False)
+    base_price: Mapped[Decimal | None] = mapped_column(Numeric(12, 2), nullable=True)
+    currency: Mapped[str | None] = mapped_column(String(3), nullable=True)
+    total_seats: Mapped[int | None] = mapped_column(Integer, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=datetime.utcnow,

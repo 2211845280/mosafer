@@ -1,26 +1,17 @@
-"""Flight CRUD and search API."""
-
-from datetime import UTC, date, datetime, time
+"""Flight CRUD and Amadeus-backed search API."""
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import func, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
 from app.core.rbac import require_permission
 from app.db.database import get_db
-from app.models.airports import Airport
 from app.models.flights import Flight
-from app.schemas.airports import AirportRead
-from app.schemas.flights import (
-    FlightCreate,
-    FlightDetailRead,
-    FlightRead,
-    FlightSearchResponse,
-    FlightUpdate,
-)
+from app.schemas.flights import FlightCreate, FlightRead, FlightSearchResponse, FlightUpdate
+from app.services.amadeus_service import AmadeusService
 
 router = APIRouter()
+amadeus_service = AmadeusService()
 
 
 @router.post(
@@ -32,8 +23,8 @@ async def create_flight(
     data: FlightCreate,
     db: AsyncSession = Depends(get_db),
 ) -> FlightRead:
-    """Create flight (admin)."""
-    if data.origin_airport_id == data.destination_airport_id:
+    """Create local stored flight (admin)."""
+    if data.origin_airport_id is not None and data.origin_airport_id == data.destination_airport_id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Origin and destination must differ",
@@ -44,12 +35,17 @@ async def create_flight(
             detail="Arrival must be after departure",
         )
     flight = Flight(
+        amadeus_flight_id=data.amadeus_flight_id.strip(),
+        origin_iata=data.origin_iata.upper(),
+        destination_iata=data.destination_iata.upper(),
+        carrier_code=data.carrier_code.upper(),
         flight_number=data.flight_number.strip(),
         origin_airport_id=data.origin_airport_id,
         destination_airport_id=data.destination_airport_id,
         departure_at=data.departure_at,
         arrival_at=data.arrival_at,
         base_price=data.base_price,
+        currency=data.currency.upper() if data.currency else None,
         total_seats=data.total_seats,
     )
     db.add(flight)
@@ -68,7 +64,7 @@ async def list_flights_admin(
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=200),
 ) -> list[FlightRead]:
-    """List flights (admin)."""
+    """List locally stored flights (admin)."""
     result = await db.execute(
         select(Flight).order_by(Flight.departure_at.desc()).offset(skip).limit(limit),
     )
@@ -82,60 +78,31 @@ async def list_flights_admin(
     dependencies=[Depends(require_permission("flights.read"))],
 )
 async def search_flights(
-    db: AsyncSession = Depends(get_db),
-    departure_date: date | None = Query(
-        None, description="Filter by departure local day (UTC window)"
-    ),
-    destination_airport_id: int | None = Query(None),
-    destination_iata: str | None = Query(None, min_length=3, max_length=3),
-    origin_airport_id: int | None = Query(None),
-    origin_iata: str | None = Query(None, min_length=3, max_length=3),
-    max_price: float | None = Query(None, ge=0),
-    sort: str = Query("departure_at"),
+    origin_iata: str = Query(..., min_length=3, max_length=3),
+    destination_iata: str = Query(..., min_length=3, max_length=3),
+    departure_date: str = Query(..., description="YYYY-MM-DD"),
+    adults: int = Query(1, ge=1, le=9),
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
 ) -> FlightSearchResponse:
-    """Search flights with filters, sort, pagination."""
-    stmt = select(Flight)
-
-    if departure_date is not None:
-        start = datetime.combine(departure_date, time.min, tzinfo=UTC)
-        end = datetime.combine(departure_date, time.max, tzinfo=UTC)
-        stmt = stmt.where(Flight.departure_at >= start, Flight.departure_at <= end)
-
-    if destination_airport_id is not None:
-        stmt = stmt.where(Flight.destination_airport_id == destination_airport_id)
-    elif destination_iata:
-        dst_sq = select(Airport.id).where(Airport.iata_code == destination_iata.upper())
-        stmt = stmt.where(Flight.destination_airport_id.in_(dst_sq))
-
-    if origin_airport_id is not None:
-        stmt = stmt.where(Flight.origin_airport_id == origin_airport_id)
-    elif origin_iata:
-        org_sq = select(Airport.id).where(Airport.iata_code == origin_iata.upper())
-        stmt = stmt.where(Flight.origin_airport_id.in_(org_sq))
-
-    if max_price is not None:
-        stmt = stmt.where(Flight.base_price <= max_price)
-
-    total = (await db.execute(select(func.count()).select_from(stmt.subquery()))).scalar_one()
-
-    sort_key = sort.lstrip("-")
-    desc = sort.startswith("-")
-    if sort_key not in ("departure_at", "base_price"):
-        sort_key = "departure_at"
-        desc = False
-    if sort_key == "base_price":
-        order_col = Flight.base_price.desc() if desc else Flight.base_price.asc()
-    else:
-        order_col = Flight.departure_at.desc() if desc else Flight.departure_at.asc()
-    stmt = stmt.order_by(order_col).offset(skip).limit(limit)
-
-    result = await db.execute(stmt)
-    rows = result.scalars().all()
+    """Search flights from Amadeus with pagination."""
+    try:
+        rows = await amadeus_service.search_flights(
+            origin_iata=origin_iata,
+            destination_iata=destination_iata,
+            departure_date=departure_date,
+            adults=adults,
+            limit=limit + skip,
+        )
+    except Exception as exc:  # pragma: no cover - external API availability
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"Amadeus search failed: {exc}",
+        ) from exc
+    sliced = rows[skip : skip + limit]
     return FlightSearchResponse(
-        items=[FlightRead.model_validate(f) for f in rows],
-        total=total,
+        items=sliced,
+        total=len(rows),
         skip=skip,
         limit=limit,
     )
@@ -143,28 +110,16 @@ async def search_flights(
 
 @router.get(
     "/flights/{flight_id}",
-    response_model=FlightDetailRead,
+    response_model=FlightRead,
     dependencies=[Depends(require_permission("flights.read"))],
 )
-async def get_flight_detail(flight_id: int, db: AsyncSession = Depends(get_db)) -> FlightDetailRead:
-    """Flight detail with airports."""
-    result = await db.execute(
-        select(Flight)
-        .options(
-            selectinload(Flight.origin_airport),
-            selectinload(Flight.destination_airport),
-        )
-        .where(Flight.id == flight_id),
-    )
+async def get_flight_detail(flight_id: int, db: AsyncSession = Depends(get_db)) -> FlightRead:
+    """Get stored flight details by id."""
+    result = await db.execute(select(Flight).where(Flight.id == flight_id))
     flight = result.scalar_one_or_none()
     if flight is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Flight not found")
-    base = FlightRead.model_validate(flight)
-    return FlightDetailRead(
-        **base.model_dump(),
-        origin_airport=AirportRead.model_validate(flight.origin_airport),
-        destination_airport=AirportRead.model_validate(flight.destination_airport),
-    )
+    return FlightRead.model_validate(flight)
 
 
 @router.patch(
@@ -177,11 +132,19 @@ async def update_flight(
     data: FlightUpdate,
     db: AsyncSession = Depends(get_db),
 ) -> FlightRead:
-    """Update flight."""
+    """Update stored flight."""
     result = await db.execute(select(Flight).where(Flight.id == flight_id))
     flight = result.scalar_one_or_none()
     if flight is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Flight not found")
+    if data.amadeus_flight_id is not None:
+        flight.amadeus_flight_id = data.amadeus_flight_id.strip()
+    if data.origin_iata is not None:
+        flight.origin_iata = data.origin_iata.upper()
+    if data.destination_iata is not None:
+        flight.destination_iata = data.destination_iata.upper()
+    if data.carrier_code is not None:
+        flight.carrier_code = data.carrier_code.upper()
     if data.flight_number is not None:
         flight.flight_number = data.flight_number.strip()
     if data.origin_airport_id is not None:
@@ -194,11 +157,17 @@ async def update_flight(
         flight.arrival_at = data.arrival_at
     if data.base_price is not None:
         flight.base_price = data.base_price
+    if data.currency is not None:
+        flight.currency = data.currency.upper()
     if data.total_seats is not None:
         flight.total_seats = data.total_seats
     if flight.departure_at >= flight.arrival_at:
         raise HTTPException(status_code=400, detail="Arrival must be after departure")
-    if flight.origin_airport_id == flight.destination_airport_id:
+    if (
+        flight.origin_airport_id is not None
+        and flight.destination_airport_id is not None
+        and flight.origin_airport_id == flight.destination_airport_id
+    ):
         raise HTTPException(status_code=400, detail="Origin and destination must differ")
     await db.commit()
     await db.refresh(flight)
