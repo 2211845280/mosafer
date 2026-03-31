@@ -41,6 +41,10 @@ class Settings(BaseSettings):
         default=None,
         description="Optional admin seed password used by migration/deployment setup",
     )
+    TICKET_QR_DIR: str = Field(
+        default="uploads/ticket_qr",
+        description="Directory for generated ticket QR PNG files",
+    )
 
     # Database
     DATABASE_URL: str = Field(
