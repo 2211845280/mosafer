@@ -1,4 +1,4 @@
-"""SQLAlchemy ORM model for flight reservations."""
+"""SQLAlchemy ORM model for bookings."""
 
 from datetime import datetime
 from enum import StrEnum
@@ -10,15 +10,15 @@ from app.db.database import Base
 
 
 class ReservationStatus(StrEnum):
-    """Reservation lifecycle."""
+    """Booking lifecycle."""
 
-    PENDING = "pending"
-    CONFIRMED = "confirmed"
-    CANCELLED = "cancelled"
+    BOOKED = "booked"
+    PAID = "paid"
+    CANCELED = "canceled"
 
 
 class Reservation(Base):
-    """User booking for a flight with a selected seat."""
+    """User booking for a selected flight with a seat."""
 
     __tablename__ = "reservations"
     __table_args__ = (UniqueConstraint("flight_id", "seat", name="uq_reservations_flight_seat"),)
@@ -38,8 +38,10 @@ class Reservation(Base):
     )
     seat: Mapped[str] = mapped_column(String(8), nullable=False)
     status: Mapped[str] = mapped_column(
-        String(32), nullable=False, default=ReservationStatus.CONFIRMED.value
+        String(32), nullable=False, default=ReservationStatus.BOOKED.value
     )
+    total_price: Mapped[float | None] = mapped_column(nullable=True)
+    currency: Mapped[str | None] = mapped_column(String(3), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=datetime.utcnow,

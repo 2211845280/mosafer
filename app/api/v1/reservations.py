@@ -3,7 +3,7 @@
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import func, select
+from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -33,7 +33,7 @@ async def create_reservation(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> ReservationWithFlightRead:
-    """Book a seat on a flight; creates reservation and ticket with QR."""
+    """Create booking from selected offer; upserts local flight and issues ticket."""
     seat = normalize_seat(data.seat)
     if not is_valid_seat(seat):
         raise HTTPException(
@@ -41,31 +41,33 @@ async def create_reservation(
             detail="Invalid seat format (use row 1-99 and letter A-F, e.g. 12A)",
         )
 
-    flight_result = await db.execute(select(Flight).where(Flight.id == data.flight_id))
+    flight_result = await db.execute(
+        select(Flight).where(Flight.amadeus_flight_id == data.amadeus_flight_id.strip()),
+    )
     flight = flight_result.scalar_one_or_none()
     if flight is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Flight not found")
-
-    booked = await db.execute(
-        select(func.count())
-        .select_from(Reservation)
-        .where(
-            Reservation.flight_id == data.flight_id,
-            Reservation.status != ReservationStatus.CANCELLED.value,
-        ),
-    )
-    n_booked = booked.scalar_one()
-    if n_booked >= flight.total_seats:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Flight is full",
+        flight = Flight(
+            amadeus_flight_id=data.amadeus_flight_id.strip(),
+            origin_iata=data.origin_iata.upper(),
+            destination_iata=data.destination_iata.upper(),
+            carrier_code=data.carrier_code.upper(),
+            flight_number=data.flight_number.strip(),
+            departure_at=data.departure_at,
+            arrival_at=data.arrival_at,
+            base_price=data.base_price,
+            currency=data.currency.upper() if data.currency else None,
+            total_seats=None,
         )
+        db.add(flight)
+        await db.flush()
 
     reservation = Reservation(
         user_id=user.id,
-        flight_id=data.flight_id,
+        flight_id=flight.id,
         seat=seat,
-        status=ReservationStatus.CONFIRMED.value,
+        status=ReservationStatus.BOOKED.value,
+        total_price=data.total_price if data.total_price is not None else data.base_price,
+        currency=(data.currency.upper() if data.currency else None),
     )
     db.add(reservation)
     try:
@@ -100,6 +102,8 @@ async def create_reservation(
         flight_id=reservation.flight_id,
         seat=reservation.seat,
         status=reservation.status,
+        total_price=reservation.total_price,
+        currency=reservation.currency,
         created_at=reservation.created_at,
         flight=FlightRead.model_validate(flight),
     )
@@ -141,13 +145,14 @@ async def list_my_reservations(
 @router.post(
     "/reservations/{reservation_id}/cancel",
     response_model=ReservationRead,
+    dependencies=[Depends(require_permission("bookings.cancel"))],
 )
 async def cancel_reservation(
     reservation_id: int,
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> ReservationRead:
-    """Cancel reservation (owner or admin)."""
+    """Cancel booking (owner or admin)."""
     result = await db.execute(
         select(Reservation).where(Reservation.id == reservation_id),
     )
@@ -158,10 +163,15 @@ async def cancel_reservation(
     if reservation.user_id != user.id:
         await assert_user_has_permission(db, user, "users.admin.manage")
 
-    if reservation.status == ReservationStatus.CANCELLED.value:
+    if reservation.status == ReservationStatus.CANCELED.value:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Already cancelled")
+    if reservation.status == ReservationStatus.PAID.value:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Paid booking cannot be canceled in Epic 2",
+        )
 
-    reservation.status = ReservationStatus.CANCELLED.value
+    reservation.status = ReservationStatus.CANCELED.value
     ticket_r = await db.execute(select(Ticket).where(Ticket.reservation_id == reservation.id))
     ticket = ticket_r.scalar_one_or_none()
     if ticket is not None:
