@@ -50,4 +50,4 @@ class Reservation(Base):
 
     user = relationship("User", backref="reservations")
     flight = relationship("Flight", back_populates="reservations")
-    ticket = relationship("Ticket", back_populates="reservation", uselist=False)
+    ticket = relationship("Ticket", back_populates="booking", uselist=False)

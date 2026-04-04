@@ -1,6 +1,5 @@
 """Generate ticket QR code images."""
 
-import json
 from pathlib import Path
 
 import qrcode
@@ -9,9 +8,9 @@ from qrcode.constants import ERROR_CORRECT_M
 from app.core.config import settings
 
 
-def build_qr_payload(ticket_number: str, reservation_id: int) -> str:
-    """Build compact JSON payload for QR scanning."""
-    return json.dumps({"tn": ticket_number, "rid": reservation_id}, separators=(",", ":"))
+def qr_content_for_ticket(ticket_number: str) -> str:
+    """QR encodes ticket number only (Epic 3)."""
+    return ticket_number.strip().upper()
 
 
 def write_qr_png(payload: str, filename: str) -> str:

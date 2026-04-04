@@ -10,7 +10,7 @@ from sqlalchemy.orm import selectinload
 
 from app.core.jwt import get_current_user
 from app.core.rbac import assert_user_has_permission, require_permission
-from app.core.ticket_qr import build_qr_payload, write_qr_png
+from app.core.ticket_qr import qr_content_for_ticket, write_qr_png
 from app.db.database import get_db
 from app.models.flights import Flight
 from app.models.reservations import Reservation, ReservationStatus
@@ -80,16 +80,16 @@ async def create_reservation(
         ) from None
 
     ticket_number = uuid.uuid4().hex[:16].upper()
-    payload = build_qr_payload(ticket_number, reservation.id)
+    qr_plain = qr_content_for_ticket(ticket_number)
     filename = f"{ticket_number}.png"
-    qr_path = write_qr_png(payload, filename)
+    qr_path = write_qr_png(qr_plain, filename)
 
     ticket = Ticket(
-        reservation_id=reservation.id,
+        booking_id=reservation.id,
         ticket_number=ticket_number,
-        qr_payload=payload,
+        qr_code=qr_plain,
         qr_image_path=qr_path,
-        status=TicketStatus.ISSUED.value,
+        status=TicketStatus.VALID.value,
     )
     db.add(ticket)
     await db.commit()
@@ -135,6 +135,8 @@ async def list_my_reservations(
                 flight_id=r.flight_id,
                 seat=r.seat,
                 status=r.status,
+                total_price=r.total_price,
+                currency=r.currency,
                 created_at=r.created_at,
                 flight=FlightRead.model_validate(r.flight),
             ),
@@ -172,10 +174,10 @@ async def cancel_reservation(
         )
 
     reservation.status = ReservationStatus.CANCELED.value
-    ticket_r = await db.execute(select(Ticket).where(Ticket.reservation_id == reservation.id))
+    ticket_r = await db.execute(select(Ticket).where(Ticket.booking_id == reservation.id))
     ticket = ticket_r.scalar_one_or_none()
     if ticket is not None:
-        ticket.status = TicketStatus.CANCELLED.value
+        ticket.status = TicketStatus.CANCELED.value
 
     await db.commit()
     await db.refresh(reservation)

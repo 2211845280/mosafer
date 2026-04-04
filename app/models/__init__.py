@@ -8,7 +8,7 @@ from app.models.reservations import Reservation, ReservationStatus
 from app.models.revoked_tokens import RevokedToken
 from app.models.role_permissions import RolePermission
 from app.models.roles import Role
-from app.models.tickets import Ticket, TicketStatus
+from app.models.tickets import Ticket, TicketImage, TicketStatus
 from app.models.users import User
 
 __all__ = [
@@ -23,5 +23,6 @@ __all__ = [
     "Reservation",
     "ReservationStatus",
     "Ticket",
+    "TicketImage",
     "TicketStatus",
 ]

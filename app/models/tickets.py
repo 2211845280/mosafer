@@ -10,21 +10,20 @@ from app.db.database import Base
 
 
 class TicketStatus(StrEnum):
-    """Ticket lifecycle."""
+    """Ticket lifecycle (local-only, Epic 3)."""
 
-    ISSUED = "issued"
+    VALID = "valid"
     USED = "used"
-    CANCELLED = "cancelled"
-    REFUNDED = "refunded"
+    CANCELED = "canceled"
 
 
 class Ticket(Base):
-    """Ticket issued for a reservation with QR reference."""
+    """Ticket issued for a booking with QR reference."""
 
     __tablename__ = "tickets"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    reservation_id: Mapped[int] = mapped_column(
+    booking_id: Mapped[int] = mapped_column(
         Integer,
         ForeignKey("reservations.id", ondelete="CASCADE"),
         nullable=False,
@@ -32,15 +31,38 @@ class Ticket(Base):
         index=True,
     )
     ticket_number: Mapped[str] = mapped_column(String(32), unique=True, nullable=False, index=True)
-    qr_payload: Mapped[str] = mapped_column(String(512), nullable=False)
+    qr_code: Mapped[str] = mapped_column(String(512), nullable=False)
     qr_image_path: Mapped[str | None] = mapped_column(String(500), nullable=True)
     status: Mapped[str] = mapped_column(
-        String(32), nullable=False, default=TicketStatus.ISSUED.value
+        String(32), nullable=False, default=TicketStatus.VALID.value
     )
-    created_at: Mapped[datetime] = mapped_column(
+    issued_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=datetime.utcnow,
         nullable=False,
     )
 
-    reservation = relationship("Reservation", back_populates="ticket")
+    booking = relationship("Reservation", back_populates="ticket")
+    images = relationship("TicketImage", back_populates="ticket", cascade="all, delete-orphan")
+
+
+class TicketImage(Base):
+    """User-uploaded files linked to a ticket."""
+
+    __tablename__ = "ticket_images"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    ticket_id: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey("tickets.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    file_path: Mapped[str] = mapped_column(String(500), nullable=False)
+    uploaded_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=datetime.utcnow,
+        nullable=False,
+    )
+
+    ticket = relationship("Ticket", back_populates="images")
