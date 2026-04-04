@@ -45,6 +45,14 @@ class Settings(BaseSettings):
         default="uploads/ticket_qr",
         description="Directory for generated ticket QR PNG files",
     )
+    TICKET_UPLOADS_DIR: str = Field(
+        default="uploads/ticket_attachments",
+        description="Directory for user-uploaded ticket-related files",
+    )
+    TICKET_UPLOAD_MAX_SIZE_BYTES: int = Field(
+        default=5 * 1024 * 1024,
+        description="Maximum ticket attachment upload size",
+    )
     AMADEUS_BASE_URL: str = Field(
         default="https://test.api.amadeus.com",
         description="Amadeus API base URL",
