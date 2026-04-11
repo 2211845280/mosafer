@@ -1,4 +1,4 @@
-"""Epoc2
+"""epoch_2_updates
 
 Revision ID: 4bc576b22014
 Revises: b7e4c1a92f03

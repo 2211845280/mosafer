@@ -2,8 +2,8 @@
 
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -17,6 +17,7 @@ from app.models.reservations import Reservation, ReservationStatus
 from app.models.tickets import Ticket, TicketStatus
 from app.models.users import User
 from app.schemas.flights import FlightRead
+from app.schemas.pagination import PaginatedResponse
 from app.schemas.reservations import ReservationCreate, ReservationRead, ReservationWithFlightRead
 from app.services.booking_utils import is_valid_seat, normalize_seat
 
@@ -42,12 +43,12 @@ async def create_reservation(
         )
 
     flight_result = await db.execute(
-        select(Flight).where(Flight.amadeus_flight_id == data.amadeus_flight_id.strip()),
+        select(Flight).where(Flight.provider_flight_id == data.provider_flight_id.strip()),
     )
     flight = flight_result.scalar_one_or_none()
     if flight is None:
         flight = Flight(
-            amadeus_flight_id=data.amadeus_flight_id.strip(),
+            provider_flight_id=data.provider_flight_id.strip(),
             origin_iata=data.origin_iata.upper(),
             destination_iata=data.destination_iata.upper(),
             carrier_code=data.carrier_code.upper(),
@@ -80,7 +81,16 @@ async def create_reservation(
         ) from None
 
     ticket_number = uuid.uuid4().hex[:16].upper()
-    qr_plain = qr_content_for_ticket(ticket_number)
+    qr_plain = qr_content_for_ticket(
+        ticket_number,
+        flight_id=flight.id,
+        origin_iata=flight.origin_iata,
+        destination_iata=flight.destination_iata,
+        departure_at=flight.departure_at.isoformat(),
+        carrier_code=flight.carrier_code,
+        flight_number=flight.flight_number,
+        seat=seat,
+    )
     filename = f"{ticket_number}.png"
     qr_path = write_qr_png(qr_plain, filename)
 
@@ -111,24 +121,36 @@ async def create_reservation(
 
 @router.get(
     "/reservations/me",
-    response_model=list[ReservationWithFlightRead],
+    response_model=PaginatedResponse[ReservationWithFlightRead],
     dependencies=[Depends(require_permission("flights.read"))],
 )
 async def list_my_reservations(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
-) -> list[ReservationWithFlightRead]:
+    page: int = Query(1, ge=1),
+    page_size: int = Query(50, ge=1, le=200),
+) -> PaginatedResponse[ReservationWithFlightRead]:
     """List current user's reservations with flight info."""
+    total = (
+        await db.execute(
+            select(func.count())
+            .select_from(Reservation)
+            .where(Reservation.user_id == user.id)
+        )
+    ).scalar_one()
+
+    offset = (page - 1) * page_size
     result = await db.execute(
         select(Reservation)
         .options(selectinload(Reservation.flight))
         .where(Reservation.user_id == user.id)
-        .order_by(Reservation.created_at.desc()),
+        .order_by(Reservation.created_at.desc())
+        .offset(offset)
+        .limit(page_size),
     )
-    rows = result.scalars().all()
-    out: list[ReservationWithFlightRead] = []
-    for r in rows:
-        out.append(
+    items: list[ReservationWithFlightRead] = []
+    for r in result.scalars().all():
+        items.append(
             ReservationWithFlightRead(
                 id=r.id,
                 user_id=r.user_id,
@@ -141,7 +163,7 @@ async def list_my_reservations(
                 flight=FlightRead.model_validate(r.flight),
             ),
         )
-    return out
+    return PaginatedResponse.create(items=items, total=total, page=page, page_size=page_size)
 
 
 @router.post(

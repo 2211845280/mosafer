@@ -1,17 +1,30 @@
-"""Flight CRUD and Amadeus-backed search API."""
+"""Flight CRUD and search API."""
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import select
+import asyncio
+import json
+
+import structlog
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi.responses import StreamingResponse
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.cache import get_cache, RedisCache
 from app.core.rbac import require_permission
 from app.db.database import get_db
 from app.models.flights import Flight
-from app.schemas.flights import FlightCreate, FlightRead, FlightSearchResponse, FlightUpdate
-from app.services.amadeus_service import AmadeusService
+from app.schemas.flights import FlightCreate, FlightOfferRead, FlightRead, FlightSearchResponse, FlightUpdate
+from app.schemas.pagination import PaginatedResponse
+from app.schemas.flight_status import FlightStatusRead
+from app.services.external.mock_flight_service import MockFlightService
+from app.services.external.mock_flight_status_service import MockFlightStatusService
+
+logger = structlog.get_logger(__name__)
+
+_mock_service = MockFlightService()
+_status_service = MockFlightStatusService()
 
 router = APIRouter()
-amadeus_service = AmadeusService()
 
 
 @router.post(
@@ -35,7 +48,7 @@ async def create_flight(
             detail="Arrival must be after departure",
         )
     flight = Flight(
-        amadeus_flight_id=data.amadeus_flight_id.strip(),
+        provider_flight_id=data.provider_flight_id.strip(),
         origin_iata=data.origin_iata.upper(),
         destination_iata=data.destination_iata.upper(),
         carrier_code=data.carrier_code.upper(),
@@ -56,20 +69,22 @@ async def create_flight(
 
 @router.get(
     "/flights",
-    response_model=list[FlightRead],
+    response_model=PaginatedResponse[FlightRead],
     dependencies=[Depends(require_permission("flights.manage"))],
 )
 async def list_flights_admin(
     db: AsyncSession = Depends(get_db),
-    skip: int = Query(0, ge=0),
-    limit: int = Query(50, ge=1, le=200),
-) -> list[FlightRead]:
-    """List locally stored flights (admin)."""
+    page: int = Query(1, ge=1),
+    page_size: int = Query(50, ge=1, le=200),
+) -> PaginatedResponse[FlightRead]:
+    """List locally stored flights (admin) with pagination."""
+    total = (await db.execute(select(func.count()).select_from(Flight))).scalar_one()
+    offset = (page - 1) * page_size
     result = await db.execute(
-        select(Flight).order_by(Flight.departure_at.desc()).offset(skip).limit(limit),
+        select(Flight).order_by(Flight.departure_at.desc()).offset(offset).limit(page_size),
     )
-    rows = result.scalars().all()
-    return [FlightRead.model_validate(f) for f in rows]
+    items = [FlightRead.model_validate(f) for f in result.scalars().all()]
+    return PaginatedResponse.create(items=items, total=total, page=page, page_size=page_size)
 
 
 @router.get(
@@ -84,25 +99,36 @@ async def search_flights(
     adults: int = Query(1, ge=1, le=9),
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
+    cache: RedisCache = Depends(get_cache),
 ) -> FlightSearchResponse:
-    """Search flights from Amadeus with pagination."""
-    try:
-        rows = await amadeus_service.search_flights(
-            origin_iata=origin_iata,
-            destination_iata=destination_iata,
+    """Search flights via Mock Flight API (cached for 10 min)."""
+    cache_key = (
+        f"flights:search:{origin_iata.upper()}:{destination_iata.upper()}"
+        f":{departure_date}:{adults}"
+    )
+
+    cached = await cache.get(cache_key)
+    if cached is not None:
+        logger.debug("flight_search.cache_hit", key=cache_key)
+        all_offers = [FlightOfferRead(**item) for item in cached]
+    else:
+        all_offers = await _mock_service.search_flights(
+            origin=origin_iata,
+            destination=destination_iata,
             departure_date=departure_date,
             adults=adults,
-            limit=limit + skip,
         )
-    except Exception as exc:  # pragma: no cover - external API availability
-        raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY,
-            detail=f"Amadeus search failed: {exc}",
-        ) from exc
-    sliced = rows[skip : skip + limit]
+        await cache.set(
+            cache_key,
+            [o.model_dump(mode="json") for o in all_offers],
+            ttl_seconds=600,
+        )
+
+    total = len(all_offers)
+    page = all_offers[skip : skip + limit]
     return FlightSearchResponse(
-        items=sliced,
-        total=len(rows),
+        items=page,
+        total=total,
         skip=skip,
         limit=limit,
     )
@@ -122,6 +148,90 @@ async def get_flight_detail(flight_id: int, db: AsyncSession = Depends(get_db)) 
     return FlightRead.model_validate(flight)
 
 
+@router.get(
+    "/flights/{flight_id}/status",
+    response_model=FlightStatusRead,
+    dependencies=[Depends(require_permission("flights.read"))],
+)
+async def get_flight_status(
+    flight_id: int,
+    db: AsyncSession = Depends(get_db),
+    cache: RedisCache = Depends(get_cache),
+) -> FlightStatusRead:
+    """Get real-time flight status (cached 2 min)."""
+    cache_key = f"flight:status:{flight_id}"
+
+    cached = await cache.get(cache_key)
+    if cached is not None:
+        logger.debug("flight_status.cache_hit", flight_id=flight_id)
+        return FlightStatusRead(**cached)
+
+    result = await db.execute(select(Flight).where(Flight.id == flight_id))
+    flight = result.scalar_one_or_none()
+    if flight is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Flight not found")
+
+    status_data = await _status_service.get_status(
+        carrier_code=flight.carrier_code,
+        flight_number=flight.flight_number,
+        departure_at=flight.departure_at,
+    )
+    await cache.set(cache_key, status_data.model_dump(mode="json"), ttl_seconds=120)
+    return status_data
+
+
+@router.get(
+    "/flights/{flight_id}/status/stream",
+    dependencies=[Depends(require_permission("flights.read"))],
+)
+async def stream_flight_status(
+    flight_id: int,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    cache: RedisCache = Depends(get_cache),
+) -> StreamingResponse:
+    """SSE stream of flight status updates (polls Redis every 10 s, 2 h timeout)."""
+    result = await db.execute(select(Flight).where(Flight.id == flight_id))
+    flight = result.scalar_one_or_none()
+    if flight is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Flight not found")
+
+    async def _event_generator():
+        cache_key = f"flight:status:{flight_id}"
+        last_payload: str | None = None
+        max_seconds = 2 * 60 * 60
+        elapsed = 0
+        heartbeat_interval = 30
+        poll_interval = 10
+        ticks_since_heartbeat = 0
+
+        while elapsed < max_seconds:
+            if await request.is_disconnected():
+                break
+
+            raw = await cache.get(cache_key)
+            if raw is not None:
+                current_payload = json.dumps(raw, sort_keys=True)
+                if current_payload != last_payload:
+                    last_payload = current_payload
+                    yield f"data: {json.dumps(raw)}\n\n"
+                    ticks_since_heartbeat = 0
+
+            ticks_since_heartbeat += poll_interval
+            if ticks_since_heartbeat >= heartbeat_interval:
+                yield ": keepalive\n\n"
+                ticks_since_heartbeat = 0
+
+            await asyncio.sleep(poll_interval)
+            elapsed += poll_interval
+
+    return StreamingResponse(
+        _event_generator(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
+
+
 @router.patch(
     "/flights/{flight_id}",
     response_model=FlightRead,
@@ -137,8 +247,8 @@ async def update_flight(
     flight = result.scalar_one_or_none()
     if flight is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Flight not found")
-    if data.amadeus_flight_id is not None:
-        flight.amadeus_flight_id = data.amadeus_flight_id.strip()
+    if data.provider_flight_id is not None:
+        flight.provider_flight_id = data.provider_flight_id.strip()
     if data.origin_iata is not None:
         flight.origin_iata = data.origin_iata.upper()
     if data.destination_iata is not None:

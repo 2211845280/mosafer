@@ -1,16 +1,16 @@
-"""try
+"""schema_fixes
 
-Revision ID: 2bb649503229
-Revises: 67b9b4b9f61c
-Create Date: 2026-03-27 19:34:56.921469
+Revision ID: 0d52ce81312c
+Revises: 9c1f6e2a4b11
+Create Date: 2026-03-31 22:56:09.933778
 
 """
 
 from collections.abc import Sequence
 
 # revision identifiers, used by Alembic.
-revision: str = "2bb649503229"
-down_revision: str | None = "67b9b4b9f61c"
+revision: str = "0d52ce81312c"
+down_revision: str | None = "9c1f6e2a4b11"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 

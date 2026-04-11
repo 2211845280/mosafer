@@ -1,9 +1,10 @@
 """SQLAlchemy ORM model for bookings."""
 
-from datetime import datetime
+from datetime import UTC, datetime
+from decimal import Decimal
 from enum import StrEnum
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String, UniqueConstraint
+from sqlalchemy import DateTime, ForeignKey, Integer, Numeric, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.database import Base
@@ -40,11 +41,11 @@ class Reservation(Base):
     status: Mapped[str] = mapped_column(
         String(32), nullable=False, default=ReservationStatus.BOOKED.value
     )
-    total_price: Mapped[float | None] = mapped_column(nullable=True)
+    total_price: Mapped[Decimal | None] = mapped_column(Numeric(12, 2), nullable=True)
     currency: Mapped[str | None] = mapped_column(String(3), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
-        default=datetime.utcnow,
+        default=lambda: datetime.now(UTC),
         nullable=False,
     )
 

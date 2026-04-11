@@ -1,6 +1,6 @@
 """SQLAlchemy ORM model for users."""
 
-from datetime import datetime
+from datetime import UTC, datetime
 
 from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
@@ -24,8 +24,12 @@ class User(Base):
         nullable=True,
     )
     avatar_path: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    is_email_verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    email_verification_token: Mapped[str | None] = mapped_column(
+        String(64), unique=True, nullable=True
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
-        default=datetime.utcnow,
+        default=lambda: datetime.now(UTC),
         nullable=False,
     )

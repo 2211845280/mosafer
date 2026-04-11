@@ -9,7 +9,7 @@ from app.schemas.airports import AirportRead
 
 
 class FlightCreate(BaseModel):
-    amadeus_flight_id: str = Field(..., min_length=1, max_length=128)
+    provider_flight_id: str = Field(..., min_length=1, max_length=128)
     origin_iata: str = Field(..., min_length=3, max_length=3)
     destination_iata: str = Field(..., min_length=3, max_length=3)
     carrier_code: str = Field(..., min_length=2, max_length=3)
@@ -24,7 +24,7 @@ class FlightCreate(BaseModel):
 
 
 class FlightUpdate(BaseModel):
-    amadeus_flight_id: str | None = Field(None, min_length=1, max_length=128)
+    provider_flight_id: str | None = Field(None, min_length=1, max_length=128)
     origin_iata: str | None = Field(None, min_length=3, max_length=3)
     destination_iata: str | None = Field(None, min_length=3, max_length=3)
     carrier_code: str | None = Field(None, min_length=2, max_length=3)
@@ -42,7 +42,7 @@ class FlightRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
-    amadeus_flight_id: str
+    provider_flight_id: str
     origin_iata: str
     destination_iata: str
     carrier_code: str
@@ -62,9 +62,9 @@ class FlightDetailRead(FlightRead):
     destination_airport: AirportRead
 
 
-class AmadeusFlightOfferRead(BaseModel):
+class FlightOfferRead(BaseModel):
     offer_id: str
-    amadeus_flight_id: str
+    provider_flight_id: str
     origin_iata: str
     destination_iata: str
     carrier_code: str
@@ -73,10 +73,11 @@ class AmadeusFlightOfferRead(BaseModel):
     arrival_at: datetime
     total_price: Decimal | None = None
     currency: str | None = None
+    source: str = "mock"
 
 
 class FlightSearchResponse(BaseModel):
-    items: list[AmadeusFlightOfferRead]
+    items: list[FlightOfferRead]
     total: int
     skip: int
     limit: int

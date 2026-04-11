@@ -1,11 +1,10 @@
-"""User CRUD API router."""
+"""User management API router."""
 
 from pathlib import Path
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
-from pydantic import BaseModel, ConfigDict, EmailStr
-from sqlalchemy import select
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -15,91 +14,21 @@ from app.core.rbac import require_permission
 from app.core.security import hash_password, verify_password
 from app.db.database import get_db
 from app.models.roles import Role
+from app.models.user_preferences import UserPreference
 from app.models.users import User
-from app.schemas.users import UserCreate, UserRead
+from app.schemas.pagination import PaginatedResponse
+from app.schemas.user_preferences import UserPreferenceRead, UserPreferenceUpdate
+from app.schemas.users import (
+    AccountStatusRequest,
+    AdminUserRead,
+    ChangePasswordRequest,
+    MessageResponse,
+    ProfileRead,
+    ProfileUpdateRequest,
+    RoleChangeRequest,
+)
 
 router = APIRouter()
-
-
-class ProfileRead(BaseModel):
-    """Schema for reading authenticated user profile."""
-
-    model_config = ConfigDict(from_attributes=True)
-
-    id: int
-    email: EmailStr
-    full_name: str | None = None
-    role_id: int | None = None
-    is_active: bool
-    avatar_path: str | None = None
-
-
-class ProfileUpdateRequest(BaseModel):
-    """Schema for updating user profile details."""
-
-    full_name: str | None = None
-    email: EmailStr | None = None
-
-
-class ChangePasswordRequest(BaseModel):
-    """Schema for changing user password."""
-
-    current_password: str
-    new_password: str
-
-
-class RoleChangeRequest(BaseModel):
-    """Schema for changing user role."""
-
-    role_name: str
-
-
-class AccountStatusRequest(BaseModel):
-    """Schema for enabling/disabling account."""
-
-    is_active: bool
-
-
-class MessageResponse(BaseModel):
-    """Schema for generic response messages."""
-
-    message: str
-
-
-class AdminUserRead(BaseModel):
-    """Schema for admin user list response."""
-
-    model_config = ConfigDict(from_attributes=True)
-
-    id: int
-    email: EmailStr
-    full_name: str | None = None
-    role_id: int | None = None
-    is_active: bool
-    avatar_path: str | None = None
-
-
-@router.post("/users", response_model=UserRead)
-async def create_user(
-    user_in: UserCreate,
-    db: AsyncSession = Depends(get_db),
-) -> UserRead:
-    """Create a new user in the database."""
-    user = User(email=user_in.email, full_name=user_in.full_name)
-    db.add(user)
-    await db.commit()
-    await db.refresh(user)
-    return user
-
-
-@router.get("/users", response_model=list[UserRead])
-async def list_users(
-    db: AsyncSession = Depends(get_db),
-) -> list[UserRead]:
-    """List all users from the database."""
-    result = await db.execute(select(User))
-    users = result.scalars().all()
-    return users
 
 
 @router.get("/users/me", response_model=ProfileRead)
@@ -195,18 +124,66 @@ async def upload_my_avatar(
     return ProfileRead.model_validate(current_user)
 
 
+@router.get("/users/me/preferences", response_model=UserPreferenceRead)
+async def get_my_preferences(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> UserPreferenceRead:
+    """Return current user's preferences, creating defaults if none exist."""
+    result = await db.execute(
+        select(UserPreference).where(UserPreference.user_id == current_user.id)
+    )
+    pref = result.scalar_one_or_none()
+    if pref is None:
+        pref = UserPreference(user_id=current_user.id)
+        db.add(pref)
+        await db.commit()
+        await db.refresh(pref)
+    return UserPreferenceRead.model_validate(pref)
+
+
+@router.patch("/users/me/preferences", response_model=UserPreferenceRead)
+async def update_my_preferences(
+    payload: UserPreferenceUpdate,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> UserPreferenceRead:
+    """Update current user's preferences (partial update)."""
+    result = await db.execute(
+        select(UserPreference).where(UserPreference.user_id == current_user.id)
+    )
+    pref = result.scalar_one_or_none()
+    if pref is None:
+        pref = UserPreference(user_id=current_user.id)
+        db.add(pref)
+        await db.flush()
+
+    update_data = payload.model_dump(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(pref, field, value.value if hasattr(value, "value") else value)
+
+    db.add(pref)
+    await db.commit()
+    await db.refresh(pref)
+    return UserPreferenceRead.model_validate(pref)
+
+
 @router.get(
     "/users/admin",
-    response_model=list[AdminUserRead],
+    response_model=PaginatedResponse[AdminUserRead],
     dependencies=[Depends(require_permission("users.admin.manage"))],
 )
 async def admin_list_users(
     db: AsyncSession = Depends(get_db),
-) -> list[AdminUserRead]:
-    """Admin endpoint to list all users."""
-    result = await db.execute(select(User))
-    users = result.scalars().all()
-    return [AdminUserRead.model_validate(user) for user in users]
+    page: int = Query(1, ge=1),
+    page_size: int = Query(50, ge=1, le=200),
+) -> PaginatedResponse[AdminUserRead]:
+    """Admin endpoint to list all users with pagination."""
+    total = (await db.execute(select(func.count()).select_from(User))).scalar_one()
+    offset = (page - 1) * page_size
+    result = await db.execute(select(User).offset(offset).limit(page_size))
+    items = [AdminUserRead.model_validate(user) for user in result.scalars().all()]
+    return PaginatedResponse.create(items=items, total=total, page=page, page_size=page_size)
 
 
 @router.patch(

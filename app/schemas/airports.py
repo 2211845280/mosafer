@@ -1,6 +1,7 @@
 """Pydantic schemas for airports."""
 
 from datetime import datetime
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -11,6 +12,11 @@ class AirportCreate(BaseModel):
     city: str
     country: str
     timezone: str | None = None
+    latitude: float | None = None
+    longitude: float | None = None
+    terminal_info: dict[str, Any] | None = None
+    amenities: dict[str, Any] | None = None
+    map_url: str | None = None
 
 
 class AirportUpdate(BaseModel):
@@ -18,6 +24,11 @@ class AirportUpdate(BaseModel):
     city: str | None = None
     country: str | None = None
     timezone: str | None = None
+    latitude: float | None = None
+    longitude: float | None = None
+    terminal_info: dict[str, Any] | None = None
+    amenities: dict[str, Any] | None = None
+    map_url: str | None = None
 
 
 class AirportRead(BaseModel):
@@ -29,4 +40,14 @@ class AirportRead(BaseModel):
     city: str
     country: str
     timezone: str | None = None
+    latitude: float | None = None
+    longitude: float | None = None
     created_at: datetime
+
+
+class AirportDetailRead(AirportRead):
+    """Extended airport read with terminal/amenity details."""
+
+    terminal_info: dict[str, Any] | None = None
+    amenities: dict[str, Any] | None = None
+    map_url: str | None = None

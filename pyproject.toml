@@ -1,7 +1,7 @@
 [project]
-name = "musafir"
+name = "mosafer"
 version = "0.1.0"
-description = "Comprehensive ERP and Retail Management System"
+description = "Smart travel companion backend for mobile and web apps"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
@@ -22,6 +22,13 @@ dependencies = [
     "qrcode[pil]>=7.4.2",
     "httpx>=0.25.0,<0.28.0",
     "fpdf2>=2.7.0",
+    "structlog>=24.1.0",
+    "slowapi>=0.1.9",
+    "redis[hiredis]>=5.0.0",
+    "arq>=0.26.0",
+    "openai>=1.30.0",
+    "firebase-admin>=6.4.0",
+    "resend>=2.0.0",
 ]
 
 

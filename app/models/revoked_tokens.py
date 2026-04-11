@@ -1,6 +1,6 @@
 """SQLAlchemy ORM model for revoked JWT tokens."""
 
-from datetime import datetime
+from datetime import UTC, datetime
 
 from sqlalchemy import DateTime, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
@@ -25,7 +25,7 @@ class RevokedToken(Base):
     execute_hash: Mapped[str] = mapped_column(String(64), unique=True, nullable=False, index=True)
     revoked_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
-        default=datetime.utcnow,
+        default=lambda: datetime.now(UTC),
         nullable=False,
     )
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
