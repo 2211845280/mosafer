@@ -1,16 +1,29 @@
+<<<<<<<< HEAD:alembic/versions/60eece5c6296_epic_2.py
+"""Epic 2
+
+Revision ID: 60eece5c6296
+Revises: 2bb649503229
+Create Date: 2026-03-27 19:38:15.290847
+========
 """try
 
 Revision ID: 2bb649503229
 Revises: 67b9b4b9f61c
 Create Date: 2026-03-27 19:34:56.921469
+>>>>>>>> 7ebaa1a4f8a62d839050d1eb0b1bdc557cc76767:alembic/versions/2bb649503229_try.py
 
 """
 
 from collections.abc import Sequence
 
 # revision identifiers, used by Alembic.
+<<<<<<<< HEAD:alembic/versions/60eece5c6296_epic_2.py
+revision: str = "60eece5c6296"
+down_revision: str | None = "2bb649503229"
+========
 revision: str = "2bb649503229"
 down_revision: str | None = "67b9b4b9f61c"
+>>>>>>>> 7ebaa1a4f8a62d839050d1eb0b1bdc557cc76767:alembic/versions/2bb649503229_try.py
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 

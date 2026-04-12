@@ -13,9 +13,16 @@ from alembic import context
 from app.core.config import settings
 from app.db.database import Base
 from app.models import (  # noqa: F401
+<<<<<<< HEAD
+    admin,
+    airports,
+    flights,
+    passenger,
+=======
     airports,
     example,
     flights,
+>>>>>>> 7ebaa1a4f8a62d839050d1eb0b1bdc557cc76767
     permissions,
     reservations,
     revoked_tokens,

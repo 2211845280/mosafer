@@ -1,3 +1,3 @@
-"""Musafir ERP System - Main Application Package."""
+"""Mosafer - Smart Travel Companion Backend."""
 
 __version__ = "0.1.0"

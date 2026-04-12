@@ -1,12 +1,11 @@
 services:
   db:
     image: postgres:15-alpine
-    container_name: musafir_db_dev
+    container_name: mosafer_db_dev
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
-      POSTGRES_DB: ${POSTGRES_DB:-musafir}
-    # External connection: Host=localhost, Port=5432, User/Password from .env
+      POSTGRES_DB: ${POSTGRES_DB:-mosafer}
     ports:
       - "0.0.0.0:5432:5432"
     volumes:
@@ -17,23 +16,39 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - musafir_network
+      - mosafer_network
+
+  redis:
+    image: redis:7-alpine
+    container_name: mosafer_redis_dev
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - mosafer_network
 
   api:
     build:
       context: .
       dockerfile: docker/Dockerfile.dev
-    container_name: musafir_api_dev
+    container_name: mosafer_api_dev
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-musafir}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-mosafer}
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
-      POSTGRES_DB: ${POSTGRES_DB:-musafir}
+      POSTGRES_DB: ${POSTGRES_DB:-mosafer}
       POSTGRES_HOST: db
       POSTGRES_PORT: 5432
       ENVIRONMENT: dev
       SECRET_KEY: ${SECRET_KEY:-dev-secret-key-change-in-production}
       DEBUG: "true"
+      REDIS_URL: redis://redis:6379/0
       API_HOST: 0.0.0.0
       API_PORT: 8001
     ports:
@@ -47,8 +62,14 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     networks:
+<<<<<<< HEAD
+      - mosafer_network
+=======
       - musafir_network
+>>>>>>> 7ebaa1a4f8a62d839050d1eb0b1bdc557cc76767
     command: ["uv", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8001", "--reload"]
 
     # Compose Watch (>= 2.22.0): syncs host files into the container on save,
@@ -72,24 +93,66 @@ services:
         - action: rebuild
           path: uv.lock
 
+  worker:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.dev
+    container_name: mosafer_worker_dev
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-mosafer}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-mosafer}
+      POSTGRES_HOST: db
+      POSTGRES_PORT: 5432
+      ENVIRONMENT: dev
+      SECRET_KEY: ${SECRET_KEY:-dev-secret-key-change-in-production}
+      REDIS_URL: redis://redis:6379/0
+    volumes:
+      - .:/app
+      - /app/.venv
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - mosafer_network
+    command: ["uv", "run", "arq", "app.workers.settings.WorkerSettings"]
+    develop:
+      watch:
+        - action: sync
+          path: .
+          target: /app
+          ignore:
+            - .venv/
+            - __pycache__/
+            - .git/
+            - "*.pyc"
+        - action: rebuild
+          path: pyproject.toml
+        - action: rebuild
+          path: uv.lock
+
   pgadmin:
     image: dpage/pgadmin4:latest
-    container_name: musafir_pgadmin_dev
+    container_name: mosafer_pgadmin_dev
     environment:
-      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@musafir.local}
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@mosafer.local}
       PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin}
     ports:
       - "5050:80"
     depends_on:
       - db
     networks:
-      - musafir_network
+      - mosafer_network
     profiles:
       - tools
 
 volumes:
   postgres_data:
+  redis_data:
 
 networks:
-  musafir_network:
+  mosafer_network:
     driver: bridge

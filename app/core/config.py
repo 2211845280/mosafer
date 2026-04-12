@@ -25,6 +25,13 @@ class Settings(BaseSettings):
         default=30,
         description="Access token expiry in minutes",
     )
+<<<<<<< HEAD
+    REFRESH_TOKEN_EXPIRE_DAYS: int = Field(
+        default=7,
+        description="Refresh token expiry in days",
+    )
+=======
+>>>>>>> 7ebaa1a4f8a62d839050d1eb0b1bdc557cc76767
     PROFILE_PICTURES_DIR: str = Field(
         default="uploads/profile_pictures",
         description="Directory for user profile picture uploads",
@@ -53,6 +60,47 @@ class Settings(BaseSettings):
         default=5 * 1024 * 1024,
         description="Maximum ticket attachment upload size",
     )
+<<<<<<< HEAD
+    CORS_ORIGINS: str = Field(
+        default="*",
+        description="Comma-separated list of allowed CORS origins (use * for all)",
+    )
+    REDIS_URL: str = Field(
+        default="redis://localhost:6379/0",
+        description="Redis connection URL",
+    )
+
+    # OpenAI
+    OPENAI_API_KEY: str | None = Field(
+        default=None,
+        description="OpenAI API key for AI travel agent features",
+    )
+
+    # Payment
+    PAYMENT_PROVIDER: str = Field(
+        default="mock",
+        description="Payment provider (mock, stripe, paymob)",
+    )
+    PAYMENT_WEBHOOK_SECRET: str | None = Field(
+        default=None,
+        description="Webhook signature secret for payment provider",
+    )
+
+    # Firebase (FCM)
+    FIREBASE_CREDENTIALS_PATH: str | None = Field(
+        default=None,
+        description="Path to Firebase service account JSON for FCM",
+    )
+
+    # Email (Resend)
+    RESEND_API_KEY: str | None = Field(
+        default=None,
+        description="Resend API key for transactional emails",
+    )
+    RESEND_FROM_EMAIL: str = Field(
+        default="noreply@mosafer.dev",
+        description="Default sender email address",
+=======
     AMADEUS_BASE_URL: str = Field(
         default="https://test.api.amadeus.com",
         description="Amadeus API base URL",
@@ -64,6 +112,7 @@ class Settings(BaseSettings):
     AMADEUS_CLIENT_SECRET: str | None = Field(
         default=None,
         description="Amadeus OAuth client secret",
+>>>>>>> 7ebaa1a4f8a62d839050d1eb0b1bdc557cc76767
     )
 
     # Database
@@ -73,13 +122,20 @@ class Settings(BaseSettings):
     )
     POSTGRES_USER: str = Field(default="postgres", description="PostgreSQL user")
     POSTGRES_PASSWORD: str = Field(..., description="PostgreSQL password")
-    POSTGRES_DB: str = Field(default="musafir", description="PostgreSQL database name")
+    POSTGRES_DB: str = Field(default="mosafer", description="PostgreSQL database name")
     POSTGRES_HOST: str = Field(default="db", description="PostgreSQL host")
     POSTGRES_PORT: int = Field(default=5432, description="PostgreSQL port")
 
     # Database Pool Settings
     DB_POOL_SIZE: int = Field(default=5, description="Database connection pool size")
     DB_MAX_OVERFLOW: int = Field(default=10, description="Database connection pool max overflow")
+
+    @property
+    def cors_origins_list(self) -> list[str]:
+        """Parse CORS_ORIGINS into a list."""
+        if self.CORS_ORIGINS.strip() == "*":
+            return ["*"]
+        return [o.strip() for o in self.CORS_ORIGINS.split(",") if o.strip()]
 
     @property
     def database_url_async(self) -> str:
