@@ -75,6 +75,5 @@ logs/
 Thumbs.db
 .DS_Store
 
-# Secrets
-secrets/firebase.json
-secrets/resend.json
+# Secrets (entire directory — Firebase SDK JSON, Resend keys, etc.)
+secrets/
