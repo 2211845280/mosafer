@@ -62,7 +62,7 @@ The product is **Mosafer** — a smart travel companion backend that powers both
 - Notification dispatcher with FCM push + Resend email + in-app DB fan-out (Epic 8); wired into flight status, departure alerts, and payments
 - Mock payment integration (Epic 7); create-session, webhook, status, refund endpoints ready; swap mock service for Stripe/PayMob when needed
 - Mock Flight API integrated (Epic 2); replace with real provider when ready
-- No in-airport experience dashboard (Epic 6 — skipped pending API access)
+- In-airport dashboard experience is available via mock logic (Epic 6); can be upgraded with real indoor maps/gate APIs later
 - No webapp-to-app QR bridge (the current QR is ticket-number-only, not a deep link with full flight data)
 - No production hardening (Epic 9)
 
@@ -227,14 +227,14 @@ Each epic is a self-contained deliverable. **Work top to bottom.** Each task ins
 
 ---
 
-### EPIC 6 — In-Airport Experience `[0/4]`
+### EPIC 6 — In-Airport Experience `[4/4]`
 
 > **Goal:** Once the user is at the airport, the app becomes a live dashboard.
 
-- [ ] **6.1** — **Airport dashboard endpoint** — `GET /api/v1/trips/{reservation_id}/airport-dashboard`. Returns: flight status, gate, counter, terminal, time to boarding, walk time to gate (estimated), nearby food/shops. *(Depends on: 3.2, 3.5, 4.6)*
-- [ ] **6.2** — **Gate proximity suggestions** — based on gate location and time to boarding: if > 60 min → "you have time to explore terminal shops and restaurants"; if 30-60 min → "head towards your gate area, grab food nearby"; if < 30 min → "proceed to gate now". *(Depends on: 6.1)*
-- [ ] **6.3** — **Boarding countdown** — real-time countdown to boarding time (boarding usually starts 30-45 min before departure). Factor in known gate info. *(Depends on: 3.2)*
-- [ ] **6.4** — **Post-flight transition** — when flight status = "landed", switch app context to: arrival airport info, immigration tips (if international), baggage claim belt (if available from API), local transport options. *(Depends on: 3.3, 5.5)*
+- [x] **6.1** — **Airport dashboard endpoint** — `GET /api/v1/trips/{reservation_id}/airport-dashboard`. Returns: flight status, gate, counter, terminal, time to boarding, walk time to gate (estimated), nearby food/shops. *(Depends on: 3.2, 3.5, 4.6)*
+- [x] **6.2** — **Gate proximity suggestions** — based on gate location and time to boarding: if > 60 min → "you have time to explore terminal shops and restaurants"; if 30-60 min → "head towards your gate area, grab food nearby"; if < 30 min → "proceed to gate now". *(Depends on: 6.1)*
+- [x] **6.3** — **Boarding countdown** — real-time countdown to boarding time (boarding usually starts 30-45 min before departure). Factor in known gate info. *(Depends on: 3.2)*
+- [x] **6.4** — **Post-flight transition** — when flight status = "landed", switch app context to: arrival airport info, immigration tips (if international), baggage claim belt (if available from API), local transport options. *(Depends on: 3.3, 5.5)*
 
 ---
 
@@ -324,11 +324,11 @@ Quick reference for all third-party APIs the project will need:
 | 3 | Flight Status & Airport | 7 | 7 | `████████████████████` 100% |
 | 4 | Smart Airport Timer | 6 | 6 | `████████████████████` 100% |
 | 5 | AI Travel Agent | 9 | 9 | `████████████████████` 100% |
-| 6 | In-Airport Experience | 4 | 0 | `░░░░░░░░░░░░░░░░░░░░` 0% |
+| 6 | In-Airport Experience | 4 | 4 | `████████████████████` 100% |
 | 7 | Payment Integration (Mock) | 6 | 6 | `████████████████████` 100% |
 | 8 | Notifications (FCM + Resend) | 5 | 5 | `████████████████████` 100% |
 | 9 | Production Hardening | 9 | 0 | `░░░░░░░░░░░░░░░░░░░░` 0% |
-| | **TOTAL** | **77** | **64** | **83%** |
+| | **TOTAL** | **77** | **68** | **88%** |
 
 ## Task Summary by Priority
 

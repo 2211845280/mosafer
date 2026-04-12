@@ -109,3 +109,46 @@ class LocationCheckResponse(BaseModel):
     airport: AirportContextRead | None = None
     minutes_to_boarding: int | None = None
     departure_plan: DeparturePlanResult | None = None
+
+
+# ---------------------------------------------------------------------------
+# Epic 6 — In-Airport Experience
+# ---------------------------------------------------------------------------
+
+
+class GateSuggestionLevel(StrEnum):
+    explore = "explore"
+    move_near_gate = "move_near_gate"
+    proceed_now = "proceed_now"
+
+
+class GateSuggestion(BaseModel):
+    level: GateSuggestionLevel
+    message: str
+
+
+class BoardingCountdown(BaseModel):
+    boarding_at: datetime
+    minutes_to_boarding: int
+    is_boarding_open: bool
+
+
+class ArrivalContextRead(BaseModel):
+    airport: AirportContextRead
+    immigration_tip: str
+    baggage_claim: str | None = None
+    local_transport_options: list[str] = []
+    destination_tips: list[str] = []
+
+
+class AirportDashboardResponse(BaseModel):
+    reservation_id: int
+    at_airport: bool
+    distance_km: float
+    flight_status: FlightStatusSummary
+    airport: AirportContextRead
+    boarding: BoardingCountdown
+    walking_time_to_gate_minutes: int
+    nearby_food_shops: list[str] = []
+    gate_suggestion: GateSuggestion
+    arrival_context: ArrivalContextRead | None = None
