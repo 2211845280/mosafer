@@ -1,5 +1,6 @@
 """Ticket API (Epic 3 — local ticketing)."""
 
+import json
 from datetime import datetime
 from pathlib import Path
 from uuid import uuid4
@@ -18,7 +19,11 @@ from app.db.database import get_db
 from app.models.reservations import Reservation
 from app.models.tickets import Ticket, TicketImage, TicketStatus
 from app.models.users import User
+from app.schemas.pagination import PaginatedResponse
 from app.schemas.tickets import (
+    FlightSummaryForTicket,
+    QRScanRequest,
+    QRScanResponse,
     TicketListItem,
     TicketRead,
     TicketReportResponse,
@@ -29,23 +34,33 @@ from app.schemas.tickets import (
 router = APIRouter()
 
 
-async def _fetch_user_ticket_items(
+async def _fetch_user_ticket_page(
     db: AsyncSession,
     user_id: int,
     *,
-    skip: int,
-    limit: int,
-) -> list[TicketListItem]:
+    page: int,
+    page_size: int,
+) -> PaginatedResponse[TicketListItem]:
+    total = (
+        await db.execute(
+            select(func.count())
+            .select_from(Ticket)
+            .join(Reservation, Reservation.id == Ticket.booking_id)
+            .where(Reservation.user_id == user_id)
+        )
+    ).scalar_one()
+    offset = (page - 1) * page_size
     result = await db.execute(
         select(Ticket)
         .join(Reservation, Reservation.id == Ticket.booking_id)
         .options(selectinload(Ticket.booking).selectinload(Reservation.flight))
         .where(Reservation.user_id == user_id)
         .order_by(Ticket.issued_at.desc())
-        .offset(skip)
-        .limit(limit),
+        .offset(offset)
+        .limit(page_size),
     )
-    return [ticket_list_item(t) for t in result.scalars().all()]
+    items = [ticket_list_item(t) for t in result.scalars().all()]
+    return PaginatedResponse.create(items=items, total=total, page=page, page_size=page_size)
 
 
 async def _load_ticket_for_user(
@@ -68,37 +83,37 @@ async def _load_ticket_for_user(
 
 @router.get(
     "/tickets",
-    response_model=list[TicketListItem],
+    response_model=PaginatedResponse[TicketListItem],
     dependencies=[Depends(require_permission("tickets.view"))],
 )
 async def list_my_tickets(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
-    skip: int = Query(0, ge=0),
-    limit: int = Query(50, ge=1, le=200),
-) -> list[TicketListItem]:
+    page: int = Query(1, ge=1),
+    page_size: int = Query(50, ge=1, le=200),
+) -> PaginatedResponse[TicketListItem]:
     """List authenticated user's tickets with flight summary."""
-    return await _fetch_user_ticket_items(db, user.id, skip=skip, limit=limit)
+    return await _fetch_user_ticket_page(db, user.id, page=page, page_size=page_size)
 
 
 @router.get(
     "/tickets/me",
-    response_model=list[TicketListItem],
+    response_model=PaginatedResponse[TicketListItem],
     dependencies=[Depends(require_permission("tickets.view"))],
 )
 async def list_my_tickets_legacy(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
-    skip: int = Query(0, ge=0),
-    limit: int = Query(50, ge=1, le=200),
-) -> list[TicketListItem]:
+    page: int = Query(1, ge=1),
+    page_size: int = Query(50, ge=1, le=200),
+) -> PaginatedResponse[TicketListItem]:
     """Backward-compatible alias for GET /tickets."""
-    return await _fetch_user_ticket_items(db, user.id, skip=skip, limit=limit)
+    return await _fetch_user_ticket_page(db, user.id, page=page, page_size=page_size)
 
 
 @router.get(
     "/tickets/history",
-    response_model=list[TicketListItem],
+    response_model=PaginatedResponse[TicketListItem],
     dependencies=[Depends(require_permission("tickets.view"))],
 )
 async def list_ticket_history(
@@ -108,30 +123,40 @@ async def list_ticket_history(
     from_date: datetime | None = Query(None),
     to_date: datetime | None = Query(None),
     user_id: int | None = Query(None, description="Admin only: filter by user"),
-    skip: int = Query(0, ge=0),
-    limit: int = Query(50, ge=1, le=200),
-) -> list[TicketListItem]:
+    page: int = Query(1, ge=1),
+    page_size: int = Query(50, ge=1, le=200),
+) -> PaginatedResponse[TicketListItem]:
     """Ticket history for current user; admin may pass user_id."""
     target_user_id = user.id
     if user_id is not None and user_id != user.id:
         await assert_user_has_permission(db, user, "users.admin.manage")
         target_user_id = user_id
 
-    stmt = (
+    base = (
         select(Ticket)
         .join(Reservation, Reservation.id == Ticket.booking_id)
-        .options(selectinload(Ticket.booking).selectinload(Reservation.flight))
         .where(Reservation.user_id == target_user_id)
     )
     if status_filter:
-        stmt = stmt.where(Ticket.status == status_filter)
+        base = base.where(Ticket.status == status_filter)
     if from_date is not None:
-        stmt = stmt.where(Ticket.issued_at >= from_date)
+        base = base.where(Ticket.issued_at >= from_date)
     if to_date is not None:
-        stmt = stmt.where(Ticket.issued_at <= to_date)
-    stmt = stmt.order_by(Ticket.issued_at.desc()).offset(skip).limit(limit)
-    rows = (await db.execute(stmt)).scalars().all()
-    return [ticket_list_item(t) for t in rows]
+        base = base.where(Ticket.issued_at <= to_date)
+
+    count_stmt = select(func.count()).select_from(base.subquery())
+    total = (await db.execute(count_stmt)).scalar_one()
+
+    offset = (page - 1) * page_size
+    data_stmt = (
+        base.options(selectinload(Ticket.booking).selectinload(Reservation.flight))
+        .order_by(Ticket.issued_at.desc())
+        .offset(offset)
+        .limit(page_size)
+    )
+    rows = (await db.execute(data_stmt)).scalars().all()
+    items = [ticket_list_item(t) for t in rows]
+    return PaginatedResponse.create(items=items, total=total, page=page, page_size=page_size)
 
 
 @router.get(
@@ -328,3 +353,63 @@ async def get_ticket(
         await assert_user_has_permission(db, user, "users.admin.manage")
 
     return TicketRead.model_validate(ticket)
+
+
+@router.post(
+    "/tickets/scan",
+    response_model=QRScanResponse,
+    dependencies=[Depends(require_permission("tickets.view"))],
+)
+async def scan_ticket_qr(
+    data: QRScanRequest,
+    db: AsyncSession = Depends(get_db),
+) -> QRScanResponse:
+    """Parse a QR payload and return full ticket + flight data.
+
+    Accepts both the new JSON format and the legacy plain ticket-number format.
+    """
+    raw = data.qr_payload.strip()
+
+    try:
+        payload = json.loads(raw)
+        ticket_number = payload.get("ticket_number", "").strip().upper()
+    except (json.JSONDecodeError, AttributeError):
+        ticket_number = raw.upper()
+
+    if not ticket_number:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="QR payload does not contain a ticket number",
+        )
+
+    result = await db.execute(
+        select(Ticket)
+        .options(selectinload(Ticket.booking).selectinload(Reservation.flight))
+        .where(Ticket.ticket_number == ticket_number),
+    )
+    ticket = result.scalar_one_or_none()
+    if ticket is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Ticket not found",
+        )
+
+    booking = ticket.booking
+    flight = booking.flight
+
+    return QRScanResponse(
+        ticket_number=ticket.ticket_number,
+        ticket_status=ticket.status,
+        reservation_id=booking.id,
+        reservation_status=booking.status,
+        flight=FlightSummaryForTicket(
+            carrier_code=flight.carrier_code,
+            flight_number=flight.flight_number,
+            origin_iata=flight.origin_iata,
+            destination_iata=flight.destination_iata,
+            departure_at=flight.departure_at,
+            arrival_at=flight.arrival_at,
+            seat=booking.seat,
+        ),
+        issued_at=ticket.issued_at,
+    )

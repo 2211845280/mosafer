@@ -1,113 +1,56 @@
-"""User CRUD API router."""
+"""User management API router."""
 
 from pathlib import Path
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
-from pydantic import BaseModel, ConfigDict, EmailStr
-from sqlalchemy import select
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.core.config import settings
 from app.core.jwt import get_current_user
 from app.core.rbac import require_permission
 from app.core.security import hash_password, verify_password
 from app.db.database import get_db
+from app.models.passenger import Passenger
 from app.models.roles import Role
+from app.models.user_preferences import UserPreference
 from app.models.users import User
-from app.schemas.users import UserCreate, UserRead
+from app.schemas.pagination import PaginatedResponse
+from app.schemas.user_preferences import UserPreferenceRead, UserPreferenceUpdate
+from app.schemas.users import (
+    AccountStatusRequest,
+    AdminUserRead,
+    ChangePasswordRequest,
+    MessageResponse,
+    ProfileRead,
+    ProfileUpdateRequest,
+    RoleChangeRequest,
+)
 
 router = APIRouter()
 
 
-class ProfileRead(BaseModel):
-    """Schema for reading authenticated user profile."""
-
-    model_config = ConfigDict(from_attributes=True)
-
-    id: int
-    email: EmailStr
-    full_name: str | None = None
-    role_id: int | None = None
-    is_active: bool
-    avatar_path: str | None = None
-
-
-class ProfileUpdateRequest(BaseModel):
-    """Schema for updating user profile details."""
-
-    full_name: str | None = None
-    email: EmailStr | None = None
-
-
-class ChangePasswordRequest(BaseModel):
-    """Schema for changing user password."""
-
-    current_password: str
-    new_password: str
-
-
-class RoleChangeRequest(BaseModel):
-    """Schema for changing user role."""
-
-    role_name: str
-
-
-class AccountStatusRequest(BaseModel):
-    """Schema for enabling/disabling account."""
-
-    is_active: bool
-
-
-class MessageResponse(BaseModel):
-    """Schema for generic response messages."""
-
-    message: str
-
-
-class AdminUserRead(BaseModel):
-    """Schema for admin user list response."""
-
-    model_config = ConfigDict(from_attributes=True)
-
-    id: int
-    email: EmailStr
-    full_name: str | None = None
-    role_id: int | None = None
-    is_active: bool
-    avatar_path: str | None = None
-
-
-@router.post("/users", response_model=UserRead)
-async def create_user(
-    user_in: UserCreate,
-    db: AsyncSession = Depends(get_db),
-) -> UserRead:
-    """Create a new user in the database."""
-    user = User(email=user_in.email, full_name=user_in.full_name)
-    db.add(user)
-    await db.commit()
-    await db.refresh(user)
-    return user
-
-
-@router.get("/users", response_model=list[UserRead])
-async def list_users(
-    db: AsyncSession = Depends(get_db),
-) -> list[UserRead]:
-    """List all users from the database."""
-    result = await db.execute(select(User))
-    users = result.scalars().all()
-    return users
+async def _load_user_with_profile(db: AsyncSession, user_id: int) -> User | None:
+    """Load a user with their passenger/admin profile eagerly."""
+    result = await db.execute(
+        select(User)
+        .where(User.id == user_id)
+        .options(selectinload(User.passenger), selectinload(User.admin))
+    )
+    return result.scalar_one_or_none()
 
 
 @router.get("/users/me", response_model=ProfileRead)
 async def get_my_profile(
     current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
 ) -> ProfileRead:
     """Return current authenticated user profile."""
-    return ProfileRead.model_validate(current_user)
+    user = await _load_user_with_profile(db, current_user.id)
+    return ProfileRead.model_validate(user)
 
 
 @router.patch("/users/me", response_model=ProfileRead)
@@ -117,15 +60,23 @@ async def update_my_profile(
     db: AsyncSession = Depends(get_db),
 ) -> ProfileRead:
     """Update authenticated user profile fields."""
-    if payload.full_name is not None:
-        current_user.full_name = payload.full_name
     if payload.email is not None:
         current_user.email = str(payload.email)
+
+    if payload.full_name is not None or payload.phone is not None:
+        user = await _load_user_with_profile(db, current_user.id)
+        profile = user.passenger or user.admin
+        if profile is None:
+            profile = Passenger(user_id=current_user.id, full_name=payload.full_name or "")
+            db.add(profile)
+        if payload.full_name is not None:
+            profile.full_name = payload.full_name
+        if payload.phone is not None:
+            profile.phone = payload.phone
 
     db.add(current_user)
     try:
         await db.commit()
-        await db.refresh(current_user)
     except IntegrityError:
         await db.rollback()
         raise HTTPException(
@@ -133,7 +84,8 @@ async def update_my_profile(
             detail="An account with this email already exists",
         ) from None
 
-    return ProfileRead.model_validate(current_user)
+    updated = await _load_user_with_profile(db, current_user.id)
+    return ProfileRead.model_validate(updated)
 
 
 @router.post("/users/me/password", response_model=MessageResponse)
@@ -191,22 +143,76 @@ async def upload_my_avatar(
     current_user.avatar_path = saved_path.as_posix()
     db.add(current_user)
     await db.commit()
-    await db.refresh(current_user)
-    return ProfileRead.model_validate(current_user)
+
+    updated = await _load_user_with_profile(db, current_user.id)
+    return ProfileRead.model_validate(updated)
+
+
+@router.get("/users/me/preferences", response_model=UserPreferenceRead)
+async def get_my_preferences(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> UserPreferenceRead:
+    """Return current user's preferences, creating defaults if none exist."""
+    result = await db.execute(
+        select(UserPreference).where(UserPreference.user_id == current_user.id)
+    )
+    pref = result.scalar_one_or_none()
+    if pref is None:
+        pref = UserPreference(user_id=current_user.id)
+        db.add(pref)
+        await db.commit()
+        await db.refresh(pref)
+    return UserPreferenceRead.model_validate(pref)
+
+
+@router.patch("/users/me/preferences", response_model=UserPreferenceRead)
+async def update_my_preferences(
+    payload: UserPreferenceUpdate,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> UserPreferenceRead:
+    """Update current user's preferences (partial update)."""
+    result = await db.execute(
+        select(UserPreference).where(UserPreference.user_id == current_user.id)
+    )
+    pref = result.scalar_one_or_none()
+    if pref is None:
+        pref = UserPreference(user_id=current_user.id)
+        db.add(pref)
+        await db.flush()
+
+    update_data = payload.model_dump(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(pref, field, value.value if hasattr(value, "value") else value)
+
+    db.add(pref)
+    await db.commit()
+    await db.refresh(pref)
+    return UserPreferenceRead.model_validate(pref)
 
 
 @router.get(
     "/users/admin",
-    response_model=list[AdminUserRead],
+    response_model=PaginatedResponse[AdminUserRead],
     dependencies=[Depends(require_permission("users.admin.manage"))],
 )
 async def admin_list_users(
     db: AsyncSession = Depends(get_db),
-) -> list[AdminUserRead]:
-    """Admin endpoint to list all users."""
-    result = await db.execute(select(User))
-    users = result.scalars().all()
-    return [AdminUserRead.model_validate(user) for user in users]
+    page: int = Query(1, ge=1),
+    page_size: int = Query(50, ge=1, le=200),
+) -> PaginatedResponse[AdminUserRead]:
+    """Admin endpoint to list all users with pagination."""
+    total = (await db.execute(select(func.count()).select_from(User))).scalar_one()
+    offset = (page - 1) * page_size
+    result = await db.execute(
+        select(User)
+        .offset(offset)
+        .limit(page_size)
+        .options(selectinload(User.passenger), selectinload(User.admin))
+    )
+    items = [AdminUserRead.model_validate(user) for user in result.scalars().all()]
+    return PaginatedResponse.create(items=items, total=total, page=page, page_size=page_size)
 
 
 @router.patch(
@@ -220,8 +226,7 @@ async def admin_set_user_status(
     db: AsyncSession = Depends(get_db),
 ) -> AdminUserRead:
     """Admin endpoint to enable or disable user accounts."""
-    result = await db.execute(select(User).where(User.id == user_id))
-    user = result.scalar_one_or_none()
+    user = await _load_user_with_profile(db, user_id)
     if user is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     user.is_active = payload.is_active
@@ -247,8 +252,7 @@ async def admin_change_user_role(
     if role is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Role not found")
 
-    user_result = await db.execute(select(User).where(User.id == user_id))
-    user = user_result.scalar_one_or_none()
+    user = await _load_user_with_profile(db, user_id)
     if user is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 

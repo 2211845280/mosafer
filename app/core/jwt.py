@@ -20,7 +20,7 @@ http_bearer = HTTPBearer(
     auto_error=False,
     scheme_name="JWT",
     bearerFormat="JWT",
-    description="Paste the access_token from POST /auth/login or POST /auth/token.",
+    description="Paste the access_token from POST /api/v1/auth/login or POST /api/v1/auth/token.",
 )
 
 

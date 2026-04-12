@@ -1,8 +1,8 @@
 """SQLAlchemy ORM model for airports."""
 
-from datetime import datetime
+from datetime import UTC, datetime
 
-from sqlalchemy import DateTime, Integer, String
+from sqlalchemy import JSON, DateTime, Integer, Numeric, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.database import Base
@@ -19,9 +19,14 @@ class Airport(Base):
     city: Mapped[str] = mapped_column(String(128), nullable=False)
     country: Mapped[str] = mapped_column(String(128), nullable=False)
     timezone: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    latitude: Mapped[float | None] = mapped_column(Numeric(10, 7), nullable=True)
+    longitude: Mapped[float | None] = mapped_column(Numeric(10, 7), nullable=True)
+    terminal_info: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    amenities: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    map_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
-        default=datetime.utcnow,
+        default=lambda: datetime.now(UTC),
         nullable=False,
     )
 

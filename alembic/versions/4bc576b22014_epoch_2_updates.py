@@ -1,21 +1,17 @@
-"""Epoc2
+"""epoch_2_updates
 
 Revision ID: 4bc576b22014
 Revises: b7e4c1a92f03
 Create Date: 2026-04-01 22:36:54.488037
 
 """
-from typing import Sequence, Union
-
-from alembic import op
-import sqlalchemy as sa
-
+from collections.abc import Sequence
 
 # revision identifiers, used by Alembic.
 revision: str = '4bc576b22014'
-down_revision: Union[str, None] = 'b7e4c1a92f03'
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | None = 'b7e4c1a92f03'
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:

@@ -1,6 +1,6 @@
 """SQLAlchemy ORM model for tickets."""
 
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import StrEnum
 
 from sqlalchemy import DateTime, ForeignKey, Integer, String
@@ -38,7 +38,7 @@ class Ticket(Base):
     )
     issued_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
-        default=datetime.utcnow,
+        default=lambda: datetime.now(UTC),
         nullable=False,
     )
 
@@ -61,7 +61,7 @@ class TicketImage(Base):
     file_path: Mapped[str] = mapped_column(String(500), nullable=False)
     uploaded_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
-        default=datetime.utcnow,
+        default=lambda: datetime.now(UTC),
         nullable=False,
     )
 
