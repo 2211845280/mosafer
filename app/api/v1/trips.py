@@ -7,12 +7,11 @@ from datetime import UTC, datetime, timedelta
 
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import func, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.core.cache import RedisCache, get_cache
-from app.core.jwt import get_current_user
 from app.core.rbac import require_permission
 from app.db.database import get_db
 from app.models.airports import Airport
@@ -23,7 +22,6 @@ from app.models.trip_todos import TripTodo
 from app.models.user_preferences import UserPreference
 from app.models.users import User
 from app.schemas.ai import (
-    DestinationTipsResult,
     PackingListResult,
     TimelineItem,
     TimelineResult,

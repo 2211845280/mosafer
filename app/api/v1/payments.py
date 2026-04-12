@@ -183,7 +183,7 @@ async def refund_payment(
     if payment.status != "completed":
         raise HTTPException(status_code=409, detail="Only completed payments can be refunded")
 
-    refund_result = await _payment_service.refund(
+    await _payment_service.refund(
         provider_payment_id=payment.provider_payment_id,
         amount=payment.amount,
     )

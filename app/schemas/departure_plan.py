@@ -3,25 +3,24 @@
 from __future__ import annotations
 
 from datetime import datetime
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
-
 
 # ---------------------------------------------------------------------------
 # Directions
 # ---------------------------------------------------------------------------
 
 
-class TransportMode(str, Enum):
+class TransportMode(StrEnum):
     driving = "driving"
     transit = "transit"
     walking = "walking"
     taxi = "taxi"
 
 
-class TrafficLevel(str, Enum):
+class TrafficLevel(StrEnum):
     low = "low"
     moderate = "moderate"
     heavy = "heavy"
@@ -39,7 +38,7 @@ class DirectionsResult(BaseModel):
 # ---------------------------------------------------------------------------
 
 
-class WeatherCondition(str, Enum):
+class WeatherCondition(StrEnum):
     clear = "clear"
     cloudy = "cloudy"
     rain = "rain"

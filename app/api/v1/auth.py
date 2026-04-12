@@ -14,6 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.jwt import create_access_token, get_current_payload, get_current_user
+from app.core.rate_limit import limiter
 from app.core.security import hash_keyword_token, hash_password
 from app.db.database import get_db
 from app.models.passenger import Passenger
@@ -31,7 +32,6 @@ from app.schemas.auth import (
     RegisterResponse,
     TokenResponse,
 )
-from app.core.rate_limit import limiter
 from app.services.auth_service import authenticate_user
 
 router = APIRouter()

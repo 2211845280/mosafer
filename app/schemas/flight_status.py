@@ -3,12 +3,12 @@
 from __future__ import annotations
 
 from datetime import datetime
-from enum import Enum
+from enum import StrEnum
 
 from pydantic import BaseModel
 
 
-class FlightStatusCode(str, Enum):
+class FlightStatusCode(StrEnum):
     scheduled = "scheduled"
     check_in_open = "check_in_open"
     boarding = "boarding"

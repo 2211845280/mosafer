@@ -14,7 +14,6 @@ from app.core.jwt import get_current_user
 from app.core.rbac import require_permission
 from app.core.security import hash_password, verify_password
 from app.db.database import get_db
-from app.models.admin import Admin
 from app.models.passenger import Passenger
 from app.models.roles import Role
 from app.models.user_preferences import UserPreference

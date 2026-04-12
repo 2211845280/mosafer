@@ -1,6 +1,6 @@
 """SQLAlchemy ORM model for trip preparation todos."""
 
-from datetime import UTC, datetime, date
+from datetime import UTC, date, datetime
 
 from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column

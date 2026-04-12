@@ -1,14 +1,13 @@
 """Generic pagination response schema."""
 
+from __future__ import annotations
+
 from math import ceil
-from typing import Generic, TypeVar
 
 from pydantic import BaseModel
 
-T = TypeVar("T")
 
-
-class PaginatedResponse(BaseModel, Generic[T]):
+class PaginatedResponse[T](BaseModel):
     """Wrapper for paginated list responses."""
 
     items: list[T]
@@ -20,7 +19,7 @@ class PaginatedResponse(BaseModel, Generic[T]):
     @classmethod
     def create(
         cls, *, items: list[T], total: int, page: int, page_size: int
-    ) -> "PaginatedResponse[T]":
+    ) -> PaginatedResponse[T]:
         return cls(
             items=items,
             total=total,

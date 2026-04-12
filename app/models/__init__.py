@@ -19,7 +19,6 @@ from app.models.trip_todos import TripTodo
 from app.models.user_preferences import UserPreference
 from app.models.users import User
 
-
 __all__ = [
     "Admin",
     "User",

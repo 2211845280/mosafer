@@ -9,13 +9,19 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.cache import get_cache, RedisCache
+from app.core.cache import RedisCache, get_cache
 from app.core.rbac import require_permission
 from app.db.database import get_db
 from app.models.flights import Flight
-from app.schemas.flights import FlightCreate, FlightOfferRead, FlightRead, FlightSearchResponse, FlightUpdate
-from app.schemas.pagination import PaginatedResponse
 from app.schemas.flight_status import FlightStatusRead
+from app.schemas.flights import (
+    FlightCreate,
+    FlightOfferRead,
+    FlightRead,
+    FlightSearchResponse,
+    FlightUpdate,
+)
+from app.schemas.pagination import PaginatedResponse
 from app.services.external.mock_flight_service import MockFlightService
 from app.services.external.mock_flight_status_service import MockFlightStatusService
 
