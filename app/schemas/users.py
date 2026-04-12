@@ -1,5 +1,7 @@
 """Pydantic schemas for user operations."""
 
+from datetime import datetime
+
 from pydantic import BaseModel, ConfigDict, EmailStr
 
 
@@ -7,7 +9,6 @@ class UserCreate(BaseModel):
     """Schema for creating a new user."""
 
     email: EmailStr
-    full_name: str | None = None
 
 
 class UserRead(BaseModel):
@@ -17,7 +18,28 @@ class UserRead(BaseModel):
 
     id: int
     email: EmailStr
-    full_name: str | None = None
+
+
+class PassengerRead(BaseModel):
+    """Nested read for passenger profile."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    full_name: str
+    phone: str | None = None
+    passport_image: str | None = None
+    account_status: str = "active"
+
+
+class AdminRead(BaseModel):
+    """Nested read for admin profile."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    full_name: str
+    phone: str | None = None
 
 
 class ProfileRead(BaseModel):
@@ -27,17 +49,20 @@ class ProfileRead(BaseModel):
 
     id: int
     email: EmailStr
-    full_name: str | None = None
     role_id: int | None = None
     is_active: bool
     avatar_path: str | None = None
+    last_login: datetime | None = None
+    passenger: PassengerRead | None = None
+    admin: AdminRead | None = None
 
 
 class ProfileUpdateRequest(BaseModel):
     """Schema for updating user profile details."""
 
-    full_name: str | None = None
     email: EmailStr | None = None
+    full_name: str | None = None
+    phone: str | None = None
 
 
 class ChangePasswordRequest(BaseModel):
@@ -72,7 +97,9 @@ class AdminUserRead(BaseModel):
 
     id: int
     email: EmailStr
-    full_name: str | None = None
     role_id: int | None = None
     is_active: bool
     avatar_path: str | None = None
+    last_login: datetime | None = None
+    passenger: PassengerRead | None = None
+    admin: AdminRead | None = None

@@ -7,12 +7,15 @@ from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, 
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.core.config import settings
 from app.core.jwt import get_current_user
 from app.core.rbac import require_permission
 from app.core.security import hash_password, verify_password
 from app.db.database import get_db
+from app.models.admin import Admin
+from app.models.passenger import Passenger
 from app.models.roles import Role
 from app.models.user_preferences import UserPreference
 from app.models.users import User
@@ -31,12 +34,24 @@ from app.schemas.users import (
 router = APIRouter()
 
 
+async def _load_user_with_profile(db: AsyncSession, user_id: int) -> User | None:
+    """Load a user with their passenger/admin profile eagerly."""
+    result = await db.execute(
+        select(User)
+        .where(User.id == user_id)
+        .options(selectinload(User.passenger), selectinload(User.admin))
+    )
+    return result.scalar_one_or_none()
+
+
 @router.get("/users/me", response_model=ProfileRead)
 async def get_my_profile(
     current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
 ) -> ProfileRead:
     """Return current authenticated user profile."""
-    return ProfileRead.model_validate(current_user)
+    user = await _load_user_with_profile(db, current_user.id)
+    return ProfileRead.model_validate(user)
 
 
 @router.patch("/users/me", response_model=ProfileRead)
@@ -46,15 +61,23 @@ async def update_my_profile(
     db: AsyncSession = Depends(get_db),
 ) -> ProfileRead:
     """Update authenticated user profile fields."""
-    if payload.full_name is not None:
-        current_user.full_name = payload.full_name
     if payload.email is not None:
         current_user.email = str(payload.email)
+
+    if payload.full_name is not None or payload.phone is not None:
+        user = await _load_user_with_profile(db, current_user.id)
+        profile = user.passenger or user.admin
+        if profile is None:
+            profile = Passenger(user_id=current_user.id, full_name=payload.full_name or "")
+            db.add(profile)
+        if payload.full_name is not None:
+            profile.full_name = payload.full_name
+        if payload.phone is not None:
+            profile.phone = payload.phone
 
     db.add(current_user)
     try:
         await db.commit()
-        await db.refresh(current_user)
     except IntegrityError:
         await db.rollback()
         raise HTTPException(
@@ -62,7 +85,8 @@ async def update_my_profile(
             detail="An account with this email already exists",
         ) from None
 
-    return ProfileRead.model_validate(current_user)
+    updated = await _load_user_with_profile(db, current_user.id)
+    return ProfileRead.model_validate(updated)
 
 
 @router.post("/users/me/password", response_model=MessageResponse)
@@ -120,8 +144,9 @@ async def upload_my_avatar(
     current_user.avatar_path = saved_path.as_posix()
     db.add(current_user)
     await db.commit()
-    await db.refresh(current_user)
-    return ProfileRead.model_validate(current_user)
+
+    updated = await _load_user_with_profile(db, current_user.id)
+    return ProfileRead.model_validate(updated)
 
 
 @router.get("/users/me/preferences", response_model=UserPreferenceRead)
@@ -181,7 +206,12 @@ async def admin_list_users(
     """Admin endpoint to list all users with pagination."""
     total = (await db.execute(select(func.count()).select_from(User))).scalar_one()
     offset = (page - 1) * page_size
-    result = await db.execute(select(User).offset(offset).limit(page_size))
+    result = await db.execute(
+        select(User)
+        .offset(offset)
+        .limit(page_size)
+        .options(selectinload(User.passenger), selectinload(User.admin))
+    )
     items = [AdminUserRead.model_validate(user) for user in result.scalars().all()]
     return PaginatedResponse.create(items=items, total=total, page=page, page_size=page_size)
 
@@ -197,8 +227,7 @@ async def admin_set_user_status(
     db: AsyncSession = Depends(get_db),
 ) -> AdminUserRead:
     """Admin endpoint to enable or disable user accounts."""
-    result = await db.execute(select(User).where(User.id == user_id))
-    user = result.scalar_one_or_none()
+    user = await _load_user_with_profile(db, user_id)
     if user is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     user.is_active = payload.is_active
@@ -224,8 +253,7 @@ async def admin_change_user_role(
     if role is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Role not found")
 
-    user_result = await db.execute(select(User).where(User.id == user_id))
-    user = user_result.scalar_one_or_none()
+    user = await _load_user_with_profile(db, user_id)
     if user is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 

@@ -16,6 +16,7 @@ from app.core.config import settings
 from app.core.jwt import create_access_token, get_current_payload, get_current_user
 from app.core.security import hash_keyword_token, hash_password
 from app.db.database import get_db
+from app.models.passenger import Passenger
 from app.models.refresh_tokens import RefreshToken
 from app.models.revoked_tokens import RevokedToken
 from app.models.roles import Role
@@ -69,7 +70,6 @@ async def register(
     verification_token = uuid4().hex
     user = User(
         email=data.email,
-        full_name=data.name,
         password_hash=hashed,
         role_id=default_role.id if default_role else None,
         is_email_verified=False,
@@ -77,14 +77,19 @@ async def register(
     )
     db.add(user)
     try:
-        await db.commit()
-        await db.refresh(user)
+        await db.flush()
     except IntegrityError:
         await db.rollback()
         raise HTTPException(
             status_code=409,
             detail="An account with this email already exists",
         ) from None
+
+    passenger = Passenger(user_id=user.id, full_name=data.name)
+    db.add(passenger)
+    await db.commit()
+    await db.refresh(user)
+
     return RegisterResponse(
         message="Registration successful. Please verify your email.",
         user_id=user.id,
@@ -104,6 +109,12 @@ async def login(
     if not result["authenticated"]:
         raise HTTPException(status_code=401, detail=result["message"])
     user_id = result["user_id"]
+
+    user_result = await db.execute(select(User).where(User.id == user_id))
+    logged_in_user = user_result.scalar_one_or_none()
+    if logged_in_user:
+        logged_in_user.last_login = datetime.now(UTC)
+
     access_token = create_access_token(data={"sub": str(user_id)})
     refresh_token = await _create_refresh_token(db, user_id)
     await db.commit()
