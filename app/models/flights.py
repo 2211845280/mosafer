@@ -1,6 +1,10 @@
 """SQLAlchemy ORM model for booked/selected flights."""
 
+<<<<<<< HEAD
 from datetime import UTC, datetime
+=======
+from datetime import datetime
+>>>>>>> 7ebaa1a4f8a62d839050d1eb0b1bdc557cc76767
 from decimal import Decimal
 
 from sqlalchemy import DateTime, ForeignKey, Integer, Numeric, String
@@ -15,7 +19,11 @@ class Flight(Base):
     __tablename__ = "flights"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+<<<<<<< HEAD
     provider_flight_id: Mapped[str] = mapped_column(
+=======
+    amadeus_flight_id: Mapped[str] = mapped_column(
+>>>>>>> 7ebaa1a4f8a62d839050d1eb0b1bdc557cc76767
         String(128),
         unique=True,
         nullable=False,
@@ -46,7 +54,11 @@ class Flight(Base):
     total_seats: Mapped[int | None] = mapped_column(Integer, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
+<<<<<<< HEAD
         default=lambda: datetime.now(UTC),
+=======
+        default=datetime.utcnow,
+>>>>>>> 7ebaa1a4f8a62d839050d1eb0b1bdc557cc76767
         nullable=False,
     )
 

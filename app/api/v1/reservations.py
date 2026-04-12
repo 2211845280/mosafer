@@ -2,8 +2,13 @@
 
 import uuid
 
+<<<<<<< HEAD
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func, select
+=======
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import select
+>>>>>>> 7ebaa1a4f8a62d839050d1eb0b1bdc557cc76767
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -17,7 +22,10 @@ from app.models.reservations import Reservation, ReservationStatus
 from app.models.tickets import Ticket, TicketStatus
 from app.models.users import User
 from app.schemas.flights import FlightRead
+<<<<<<< HEAD
 from app.schemas.pagination import PaginatedResponse
+=======
+>>>>>>> 7ebaa1a4f8a62d839050d1eb0b1bdc557cc76767
 from app.schemas.reservations import ReservationCreate, ReservationRead, ReservationWithFlightRead
 from app.services.booking_utils import is_valid_seat, normalize_seat
 
@@ -43,12 +51,20 @@ async def create_reservation(
         )
 
     flight_result = await db.execute(
+<<<<<<< HEAD
         select(Flight).where(Flight.provider_flight_id == data.provider_flight_id.strip()),
+=======
+        select(Flight).where(Flight.amadeus_flight_id == data.amadeus_flight_id.strip()),
+>>>>>>> 7ebaa1a4f8a62d839050d1eb0b1bdc557cc76767
     )
     flight = flight_result.scalar_one_or_none()
     if flight is None:
         flight = Flight(
+<<<<<<< HEAD
             provider_flight_id=data.provider_flight_id.strip(),
+=======
+            amadeus_flight_id=data.amadeus_flight_id.strip(),
+>>>>>>> 7ebaa1a4f8a62d839050d1eb0b1bdc557cc76767
             origin_iata=data.origin_iata.upper(),
             destination_iata=data.destination_iata.upper(),
             carrier_code=data.carrier_code.upper(),
@@ -81,6 +97,7 @@ async def create_reservation(
         ) from None
 
     ticket_number = uuid.uuid4().hex[:16].upper()
+<<<<<<< HEAD
     qr_plain = qr_content_for_ticket(
         ticket_number,
         flight_id=flight.id,
@@ -91,6 +108,9 @@ async def create_reservation(
         flight_number=flight.flight_number,
         seat=seat,
     )
+=======
+    qr_plain = qr_content_for_ticket(ticket_number)
+>>>>>>> 7ebaa1a4f8a62d839050d1eb0b1bdc557cc76767
     filename = f"{ticket_number}.png"
     qr_path = write_qr_png(qr_plain, filename)
 
@@ -121,12 +141,17 @@ async def create_reservation(
 
 @router.get(
     "/reservations/me",
+<<<<<<< HEAD
     response_model=PaginatedResponse[ReservationWithFlightRead],
+=======
+    response_model=list[ReservationWithFlightRead],
+>>>>>>> 7ebaa1a4f8a62d839050d1eb0b1bdc557cc76767
     dependencies=[Depends(require_permission("flights.read"))],
 )
 async def list_my_reservations(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
+<<<<<<< HEAD
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=200),
 ) -> PaginatedResponse[ReservationWithFlightRead]:
@@ -140,10 +165,15 @@ async def list_my_reservations(
     ).scalar_one()
 
     offset = (page - 1) * page_size
+=======
+) -> list[ReservationWithFlightRead]:
+    """List current user's reservations with flight info."""
+>>>>>>> 7ebaa1a4f8a62d839050d1eb0b1bdc557cc76767
     result = await db.execute(
         select(Reservation)
         .options(selectinload(Reservation.flight))
         .where(Reservation.user_id == user.id)
+<<<<<<< HEAD
         .order_by(Reservation.created_at.desc())
         .offset(offset)
         .limit(page_size),
@@ -151,6 +181,14 @@ async def list_my_reservations(
     items: list[ReservationWithFlightRead] = []
     for r in result.scalars().all():
         items.append(
+=======
+        .order_by(Reservation.created_at.desc()),
+    )
+    rows = result.scalars().all()
+    out: list[ReservationWithFlightRead] = []
+    for r in rows:
+        out.append(
+>>>>>>> 7ebaa1a4f8a62d839050d1eb0b1bdc557cc76767
             ReservationWithFlightRead(
                 id=r.id,
                 user_id=r.user_id,
@@ -163,7 +201,11 @@ async def list_my_reservations(
                 flight=FlightRead.model_validate(r.flight),
             ),
         )
+<<<<<<< HEAD
     return PaginatedResponse.create(items=items, total=total, page=page, page_size=page_size)
+=======
+    return out
+>>>>>>> 7ebaa1a4f8a62d839050d1eb0b1bdc557cc76767
 
 
 @router.post(

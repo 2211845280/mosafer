@@ -1,5 +1,6 @@
 """Authentication API router."""
 
+<<<<<<< HEAD
 import hashlib
 import secrets
 from datetime import UTC, datetime, timedelta
@@ -8,10 +9,19 @@ from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.security import OAuth2PasswordRequestForm
+=======
+from datetime import UTC, datetime
+from typing import Annotated
+
+from fastapi import APIRouter, Depends, HTTPException
+from fastapi.security import OAuth2PasswordRequestForm
+from pydantic import BaseModel, EmailStr
+>>>>>>> 7ebaa1a4f8a62d839050d1eb0b1bdc557cc76767
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+<<<<<<< HEAD
 from app.core.config import settings
 from app.core.jwt import create_access_token, get_current_payload, get_current_user
 from app.core.security import hash_keyword_token, hash_password
@@ -32,13 +42,45 @@ from app.schemas.auth import (
     TokenResponse,
 )
 from app.core.rate_limit import limiter
+=======
+from app.core.jwt import create_access_token, get_current_payload, get_current_user
+from app.core.security import hash_keyword_token, hash_password
+from app.db.database import get_db
+from app.models.revoked_tokens import RevokedToken
+from app.models.roles import Role
+from app.models.users import User
+>>>>>>> 7ebaa1a4f8a62d839050d1eb0b1bdc557cc76767
 from app.services.auth_service import authenticate_user
 
 router = APIRouter()
 
 
+<<<<<<< HEAD
 def _hash_refresh_token(raw_token: str) -> str:
     return hashlib.sha256(raw_token.encode()).hexdigest()
+=======
+class RegisterRequest(BaseModel):
+    """Schema for registration request."""
+
+    name: str
+    email: EmailStr
+    password: str
+
+
+class RegisterResponse(BaseModel):
+    """Schema for registration response."""
+
+    message: str
+    user_id: int
+    email: str
+
+
+class LoginRequest(BaseModel):
+    """Schema for login request."""
+
+    email: EmailStr
+    password: str
+>>>>>>> 7ebaa1a4f8a62d839050d1eb0b1bdc557cc76767
 
 
 async def _create_refresh_token(db: AsyncSession, user_id: int) -> str:
@@ -55,11 +97,34 @@ async def _create_refresh_token(db: AsyncSession, user_id: int) -> str:
     await db.flush()
     return raw_token
 
+<<<<<<< HEAD
 
 @router.post("/register", response_model=RegisterResponse)
 @limiter.limit("5/minute")
 async def register(
     request: Request,
+=======
+    message: str
+    authenticated: bool
+    access_token: str | None = None
+
+
+class TokenResponse(BaseModel):
+    """OAuth2-style token response (form field username = email)."""
+
+    access_token: str
+    token_type: str = "bearer"
+
+
+class LogoutResponse(BaseModel):
+    """Schema for logout response."""
+
+    message: str
+
+
+@router.post("/register", response_model=RegisterResponse)
+async def register(
+>>>>>>> 7ebaa1a4f8a62d839050d1eb0b1bdc557cc76767
     data: RegisterRequest,
     db: AsyncSession = Depends(get_db),
 ) -> RegisterResponse:
@@ -67,6 +132,7 @@ async def register(
     hashed = hash_password(data.password)
     role_result = await db.execute(select(Role).where(Role.name == "user"))
     default_role = role_result.scalar_one_or_none()
+<<<<<<< HEAD
     verification_token = uuid4().hex
     user = User(
         email=data.email,
@@ -78,12 +144,25 @@ async def register(
     db.add(user)
     try:
         await db.flush()
+=======
+    user = User(
+        email=data.email,
+        full_name=data.name,
+        password_hash=hashed,
+        role_id=default_role.id if default_role else None,
+    )
+    db.add(user)
+    try:
+        await db.commit()
+        await db.refresh(user)
+>>>>>>> 7ebaa1a4f8a62d839050d1eb0b1bdc557cc76767
     except IntegrityError:
         await db.rollback()
         raise HTTPException(
             status_code=409,
             detail="An account with this email already exists",
         ) from None
+<<<<<<< HEAD
 
     passenger = Passenger(user_id=user.id, full_name=data.name)
     db.add(passenger)
@@ -92,12 +171,17 @@ async def register(
 
     return RegisterResponse(
         message="Registration successful. Please verify your email.",
+=======
+    return RegisterResponse(
+        message="Registration successful",
+>>>>>>> 7ebaa1a4f8a62d839050d1eb0b1bdc557cc76767
         user_id=user.id,
         email=user.email,
     )
 
 
 @router.post("/login", response_model=LoginResponse)
+<<<<<<< HEAD
 @limiter.limit("10/minute")
 async def login(
     request: Request,
@@ -118,18 +202,36 @@ async def login(
     access_token = create_access_token(data={"sub": str(user_id)})
     refresh_token = await _create_refresh_token(db, user_id)
     await db.commit()
+=======
+async def login(
+    credentials: LoginRequest,
+    db: AsyncSession = Depends(get_db),
+) -> LoginResponse:
+    """Login endpoint. Verifies credentials and returns access token on success."""
+    result = await authenticate_user(db, credentials.email, credentials.password)
+    if not result["authenticated"]:
+        raise HTTPException(status_code=401, detail=result["message"])
+    access_token = create_access_token(data={"sub": str(result["user_id"])})
+>>>>>>> 7ebaa1a4f8a62d839050d1eb0b1bdc557cc76767
     return LoginResponse(
         message=result["message"],
         authenticated=True,
         access_token=access_token,
+<<<<<<< HEAD
         refresh_token=refresh_token,
+=======
+>>>>>>> 7ebaa1a4f8a62d839050d1eb0b1bdc557cc76767
     )
 
 
 @router.post("/token", response_model=TokenResponse)
+<<<<<<< HEAD
 @limiter.limit("10/minute")
 async def auth_token(
     request: Request,
+=======
+async def auth_token(
+>>>>>>> 7ebaa1a4f8a62d839050d1eb0b1bdc557cc76767
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
     db: AsyncSession = Depends(get_db),
 ) -> TokenResponse:
@@ -137,6 +239,7 @@ async def auth_token(
     result = await authenticate_user(db, form_data.username, form_data.password)
     if not result["authenticated"]:
         raise HTTPException(status_code=401, detail=result["message"])
+<<<<<<< HEAD
     user_id = result["user_id"]
     access_token = create_access_token(data={"sub": str(user_id)})
     refresh_token = await _create_refresh_token(db, user_id)
@@ -178,6 +281,10 @@ async def refresh_tokens(
         refresh_token=new_refresh,
         token_type="bearer",
     )
+=======
+    access_token = create_access_token(data={"sub": str(result["user_id"])})
+    return TokenResponse(access_token=access_token, token_type="bearer")
+>>>>>>> 7ebaa1a4f8a62d839050d1eb0b1bdc557cc76767
 
 
 @router.post("/logout", response_model=LogoutResponse)
@@ -206,6 +313,7 @@ async def logout(
     except IntegrityError:
         await db.rollback()
     return LogoutResponse(message="Logout successful")
+<<<<<<< HEAD
 
 
 @router.post("/verify-email", response_model=EmailVerifyResponse)
@@ -227,3 +335,5 @@ async def verify_email(
     user.email_verification_token = None
     await db.commit()
     return EmailVerifyResponse(message="Email verified successfully")
+=======
+>>>>>>> 7ebaa1a4f8a62d839050d1eb0b1bdc557cc76767

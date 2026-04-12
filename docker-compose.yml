@@ -65,7 +65,11 @@ services:
       redis:
         condition: service_healthy
     networks:
+<<<<<<< HEAD
       - mosafer_network
+=======
+      - musafir_network
+>>>>>>> 7ebaa1a4f8a62d839050d1eb0b1bdc557cc76767
     command: ["uv", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8001", "--reload"]
 
     # Compose Watch (>= 2.22.0): syncs host files into the container on save,

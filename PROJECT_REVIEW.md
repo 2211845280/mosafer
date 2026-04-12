@@ -24,7 +24,11 @@ The product is **Mosafer** — a smart travel companion backend that powers both
 
 | Feature Area | Description |
 |---|---|
+<<<<<<< HEAD
 | **Ticket Purchase (Web)** | Search flights via **Mock Flight API**, buy tickets, generate QR codes |
+=======
+| **Ticket Purchase (Web)** | Search flights via **Skyscanner**, buy tickets, generate QR codes |
+>>>>>>> 7ebaa1a4f8a62d839050d1eb0b1bdc557cc76767
 | **Ticket Scan (App)** | Scan QR from web purchase → import full flight data into the mobile app |
 | **AI Travel Agent** | Destination-aware packing lists (must-have → optional), warns about items unavailable at destination |
 | **Smart Airport Timer** | Calculates when to leave based on: user location, airport location, transport mode (car/train/taxi), live traffic, weather |
@@ -46,7 +50,11 @@ The product is **Mosafer** — a smart travel companion backend that powers both
 | **RBAC** | Done | Roles, Permissions, RolePermissions link table, `require_permission()` dependency, admin seed migration |
 | **User management** | Done | Profile read/update, avatar upload, password change, admin CRUD (enable/disable/role change/delete) |
 | **Airports** | Done | Full CRUD (create/list/get/update/delete), IATA code, city, country, timezone |
+<<<<<<< HEAD
 | **Flights** | Partial | Admin create/list; **public flight search targets Mock Flight API** (Epic 2). Retire any legacy flight-provider code during housekeeping. |
+=======
+| **Flights** | Partial | Admin create/list; **public flight search targets Skyscanner only** (Epic 2). Retire any legacy flight-provider code during housekeeping. |
+>>>>>>> 7ebaa1a4f8a62d839050d1eb0b1bdc557cc76767
 | **Reservations** | Done | Create booking (upserts flight, validates seat, issues ticket + QR), list user bookings, cancel booking |
 | **Tickets** | Done | List/history (with filters), get by number, validate (QR scan flow: valid→used), download PDF, upload attachments, admin report |
 | **QR System** | Done | QR PNG generation per ticket, QR content encoding, PDF embedding |
@@ -56,6 +64,7 @@ The product is **Mosafer** — a smart travel companion backend that powers both
 
 ### 2.2 What Does NOT Exist Yet
 
+<<<<<<< HEAD
 - OpenAI LLM integration with packing lists, destination tips, and trip timelines (Epic 5); trip todos and feedback loop implemented
 - Mock geolocation, route calculation, and traffic/weather services integrated (Epic 4); replace with real Google Maps + OpenWeatherMap when ready
 - Mock flight status service integrated (Epic 3); SSE live updates available; replace with real provider when ready
@@ -65,6 +74,25 @@ The product is **Mosafer** — a smart travel companion backend that powers both
 - No in-airport experience dashboard (Epic 6 — skipped pending API access)
 - No webapp-to-app QR bridge (the current QR is ticket-number-only, not a deep link with full flight data)
 - No production hardening (Epic 9)
+=======
+- No AI agent / LLM integration of any kind
+- No destination intelligence (packing lists, local availability info)
+- No user location / geolocation handling
+- No transport mode or route calculation
+- No traffic or weather API integration
+- No real-time flight status (delays, gates, counters)
+- No push notifications / WebSocket for live alerts
+- No Skyscanner integration yet (web ticket purchase); remove legacy flight-search code when wiring Skyscanner
+- No payment processing
+- No webapp-to-app QR bridge (the current QR is ticket-number-only, not a deep link with full flight data)
+- No user preferences / travel profile storage
+- No background task system (Celery, ARQ, or similar)
+- No structured logging or observability
+- No rate limiting
+- No email verification on registration
+- No refresh tokens (only short-lived access tokens)
+- No README
+>>>>>>> 7ebaa1a4f8a62d839050d1eb0b1bdc557cc76767
 
 ---
 
@@ -132,6 +160,7 @@ Each epic is a self-contained deliverable. **Work top to bottom.** Each task ins
 
 ---
 
+<<<<<<< HEAD
 ### EPIC 0 — Housekeeping & Foundation `[18/18]`
 
 > **Goal:** Clean codebase, fix bugs, establish patterns for everything that follows.
@@ -224,6 +253,100 @@ Each epic is a self-contained deliverable. **Work top to bottom.** Each task ins
 - [x] **5.7** — **Create trip todo endpoints** — full CRUD on `/api/v1/trips/{reservation_id}/todos` plus `POST .../todos/populate` to auto-create from AI packing list. *(Depends on: 5.6, 5.4)*
 - [x] **5.8** — **AI-generated timeline** — `POST /api/v1/trips/{reservation_id}/timeline`. Generates preparation timeline via LLM, creates TripTodo records with due_date relative to departure. Cached 24h. *(Depends on: 5.3, 4.3, 5.6)*
 - [x] **5.9** — **User feedback loop** — `TripFeedback` model (rating, packing_helpful, missing_items, comments). `POST` and `GET` endpoints at `/api/v1/trips/{reservation_id}/feedback`. *(Depends on: 5.7)*
+=======
+### EPIC 0 — Housekeeping & Foundation `[0/18]`
+
+> **Goal:** Clean codebase, fix bugs, establish patterns for everything that follows.
+
+- [ ] **0.1** — **Fix B1:** Delete `app/utils/security.py` (placeholder security). Grep the codebase to confirm nothing imports from it. *(Depends on: —)*
+- [ ] **0.2** — **Fix B2:** Protect or remove `POST /users` (unprotected user creation). *(Depends on: —)*
+- [ ] **0.3** — **Fix B3:** Replace all `datetime.utcnow` with `datetime.now(UTC)` across all models. *(Depends on: —)*
+- [ ] **0.4** — **Fix B4:** Rename `app/api/v1/endpoints.py` → `app/api/v1/users.py`. Update `__init__.py` import. *(Depends on: —)*
+- [ ] **0.5** — **Fix B5 + B6:** Delete `app/api/endpoints.py` and `app/models/example.py`. *(Depends on: —)*
+- [ ] **0.6** — **Fix B7:** Delete `app/db/migrations/` directory (keep `alembic/`). *(Depends on: —)*
+- [ ] **0.7** — **Fix B9:** Move auth router from `/auth` to `/api/v1/auth`. *(Depends on: —)*
+- [ ] **0.8** — **Fix B10:** Move inline schemas from users router to `app/schemas/users.py`. *(Depends on: 0.4)*
+- [ ] **0.9** — **Fix B11:** Add `CORS_ORIGINS` env var to settings, use it in `main.py`. *(Depends on: —)*
+- [ ] **0.10** — **Fix B12 + B13:** Create `README.md`, align project name everywhere (pick `mosafer` or `musafir`). Update `pyproject.toml` description. *(Depends on: —)*
+- [ ] **0.11** — **Fix B15:** Change reservation `total_price` from `float` to `Decimal`/`Numeric(12,2)`. Add migration. *(Depends on: —)*
+- [ ] **0.12** — **Squash Alembic migrations** into a clean baseline. Or at minimum rename the experimental ones. *(Depends on: 0.6, 0.11)*
+- [ ] **0.13** — **Add refresh tokens** — create `RefreshToken` model, add `/auth/refresh` endpoint, extend login to return both tokens. *(Depends on: —)*
+- [ ] **0.14** — **Add email verification** — generate verification token on register, add `/auth/verify-email` endpoint. (Can be a simple token in DB, no email sending yet.) *(Depends on: —)*
+- [ ] **0.15** — **Add structured logging** — use `structlog` or Python `logging` with JSON formatter. Add request ID middleware. *(Depends on: —)*
+- [ ] **0.16** — **Add rate limiting** — use `slowapi` or custom middleware on auth endpoints. *(Depends on: —)*
+- [ ] **0.17** — **Add pagination metadata** to all list endpoints (total count, page info). *(Depends on: —)*
+- [ ] **0.18** — **Remove Amadeus; Skyscanner-only flight search** — delete Amadeus client/service, related config (`AMADEUS_*`), tests, and router wiring; replace with Skyscanner (Epic 2) or stubs as needed. Rename DB/API fields (e.g. `amadeus_flight_id` → neutral name) via migration if you keep storing provider flight IDs. *(Depends on: —)*
+
+---
+
+### EPIC 1 — Infrastructure for New Features `[0/6]`
+
+> **Goal:** Set up Redis, background tasks, and the service patterns needed by all future epics.
+
+- [ ] **1.1** — **Add Redis** to `docker-compose.yml` (all three: dev, staging, prod). Add `REDIS_URL` to settings. *(Depends on: Epic 0)*
+- [ ] **1.2** — **Set up ARQ** (or chosen task queue). Create `app/workers/` package with a worker entry point and a base task pattern. *(Depends on: 1.1)*
+- [ ] **1.3** — **Create `app/services/external/` package** — establish pattern for external API clients (each API gets its own service file with retry, timeout, error handling). *(Depends on: Epic 0)*
+- [ ] **1.4** — **Set up caching layer** — create `app/core/cache.py` with Redis-backed cache helpers (get/set/invalidate with TTL). *(Depends on: 1.1)*
+- [ ] **1.5** — **Create user preferences model** — `UserPreference` table: `user_id`, `home_address`, `home_lat/lng`, `preferred_transport` (car/train/taxi/bus), `language`, `currency`, `notification_enabled`. Add migration, schema, and CRUD endpoint under `/api/v1/users/me/preferences`. *(Depends on: Epic 0)*
+- [ ] **1.6** — **Add notification infrastructure** — `Notification` model (user_id, type, title, body, read, created_at). Create `/api/v1/notifications` endpoints (list, mark read). FCM integration comes later. *(Depends on: Epic 0)*
+
+---
+
+### EPIC 2 — Skyscanner Integration & Web Ticket Purchase `[0/7]`
+
+> **Goal:** Web app users can search and "buy" tickets that generate QR codes scannable by the mobile app.
+
+- [ ] **2.1** — **Research & register for Skyscanner API** (Skyscanner Flights API via RapidAPI or direct partner). Document auth method, rate limits, and response format. *(Depends on: —)*
+- [ ] **2.2** — **Create `app/services/external/skyscanner_service.py`** — search flights, normalize responses into your internal `FlightOfferRead` (or equivalent) schema. *(Depends on: 1.3)*
+- [ ] **2.3** — **Flight search endpoint (Skyscanner-only)** — `/api/v1/flights/search` calls Skyscanner, returns paginated offers. Add metadata fields the client needs (e.g. source, price, legs). *(Depends on: 2.2)*
+- [ ] **2.4** — **Create purchase flow** — `POST /api/v1/orders` accepts a selected offer, creates reservation + ticket + QR. This is the formalized version of the existing reservation flow. Add `Order` model if needed, or extend `Reservation` with `payment_status`. *(Depends on: Epic 0)*
+- [ ] **2.5** — **Enhance QR code content** — QR should encode a deep-link URL or a JSON payload containing: `ticket_number`, `flight_id`, `origin`, `destination`, `departure_at`, `carrier`, `flight_number`, `seat`. This is what the mobile app scans. *(Depends on: 2.4)*
+- [ ] **2.6** — **Create QR scan endpoint** — `POST /api/v1/tickets/scan` accepts QR payload string, parses it, returns full ticket + flight data. This is the mobile app's entry point after scanning. *(Depends on: 2.5)*
+- [ ] **2.7** — **Add flight search caching** — cache Skyscanner results in Redis (TTL: 5–15 min) to reduce API calls and speed up repeated searches. *(Depends on: 1.4, 2.3)*
+
+---
+
+### EPIC 3 — Real-Time Flight Status & Airport Data `[0/7]`
+
+> **Goal:** After a ticket is scanned/imported into the app, show live flight info: gate, counter, delays, terminal.
+
+- [ ] **3.1** — **Integrate flight status API** — create `app/services/external/flight_status_service.py`. Fetch real-time status by flight number + date: departure gate, check-in counter, terminal, delay minutes, status (on-time / delayed / canceled / boarding / departed / landed). *(Depends on: 1.3)*
+- [ ] **3.2** — **Create flight status endpoint** — `GET /api/v1/flights/{flight_id}/status` returns live status. Cache in Redis (TTL: 2 min). *(Depends on: 3.1, 1.4)*
+- [ ] **3.3** — **Create flight status polling worker** — background task that polls status for all flights departing in the next 24 hours every 3-5 minutes. Stores latest status in DB/Redis. *(Depends on: 1.2, 3.1)*
+- [ ] **3.4** — **Enrich airport model** — add `latitude`, `longitude`, `terminal_info` (JSON), `amenities` (JSON), `map_url` to the Airport model. Seed from a public airport database (OurAirports CSV or similar). *(Depends on: Epic 0)*
+- [ ] **3.5** — **Create airport detail endpoint** — `GET /api/v1/airports/{iata}/info` returns full airport info including terminals, gates area, food options near gates. *(Depends on: 3.4)*
+- [ ] **3.6** — **SSE endpoint for live updates** — `GET /api/v1/flights/{flight_id}/status/stream` returns Server-Sent Events with gate changes, delay updates, boarding calls. Client connects after scanning ticket. *(Depends on: 3.2)*
+- [ ] **3.7** — **Push notification on status change** — when flight status polling detects a change (gate change, delay, boarding), send push notification to all users with tickets on that flight. *(Depends on: 1.6, 3.3)*
+
+---
+
+### EPIC 4 — Smart Airport Timer `[0/6]`
+
+> **Goal:** Tell the user exactly when to leave for the airport based on where they are, how they travel, traffic, and weather.
+
+- [ ] **4.1** — **Integrate Google Maps Directions API** — create `app/services/external/maps_service.py`. Given origin (lat/lng), destination (airport lat/lng), and mode (driving/transit/walking), return ETA in minutes and distance. Must support departure_time for traffic prediction. *(Depends on: 1.3)*
+- [ ] **4.2** — **Integrate weather API** — create `app/services/external/weather_service.py`. Fetch weather for a location at a given time. Return: condition (rain/snow/clear), temperature, visibility, severe weather alerts. *(Depends on: 1.3)*
+- [ ] **4.3** — **Create departure time calculator** — `app/services/departure_planner.py`. Inputs: user location, airport IATA (→ lat/lng), flight departure time, transport mode. Logic: `leave_at = departure_time - check_in_buffer (2h domestic / 3h international) - travel_eta - weather_buffer (add 15-30 min if rain/snow)`. Return: `leave_at`, `travel_minutes`, `weather_warning`, `transport_mode`. *(Depends on: 4.1, 4.2, 3.4)*
+- [ ] **4.4** — **Create departure planner endpoint** — `GET /api/v1/trips/{reservation_id}/departure-plan`. Returns the full departure recommendation. *(Depends on: 4.3)*
+- [ ] **4.5** — **Create departure alert worker** — background task that runs for flights in the next 12 hours. Recalculates departure time every 30 min (traffic changes). Sends notification when it's time to leave. Escalates urgency (gentle reminder → warning → urgent). *(Depends on: 1.2, 4.3, 1.6)*
+- [ ] **4.6** — **"At airport" mode trigger** — when user's location is within 1 km of the airport (client sends location update), switch the app context to show in-airport data: gate, counter, time-to-boarding, food/shops nearby. *(Depends on: 4.4, 3.5)*
+
+---
+
+### EPIC 5 — AI Travel Agent (Destination Intelligence) `[0/9]`
+
+> **Goal:** Smart AI assistant that creates packing lists, travel tips, and warnings based on destination.
+
+- [ ] **5.1** — **Set up LLM integration** — create `app/services/ai/llm_client.py` with an abstraction over OpenAI (or chosen provider). Support: system prompt, user message, structured JSON output. Add `OPENAI_API_KEY` to settings. *(Depends on: 1.3)*
+- [ ] **5.2** — **Design AI prompt templates** — create `app/services/ai/prompts/` directory. Write prompt templates for: packing list, destination tips, item availability check. Use Jinja2 or simple string templates with placeholders for: `destination_country`, `destination_city`, `trip_duration`, `travel_dates`, `traveler_origin_country`. *(Depends on: 5.1)*
+- [ ] **5.3** — **Create packing list generator** — `app/services/ai/packing_agent.py`. Takes destination + dates + user origin country. Returns categorized list: `must_have` (items unavailable/expensive at destination), `recommended`, `optional`. Examples: sunscreen brands, specific deodorants, medications, adapters, specific clothing. *(Depends on: 5.2)*
+- [ ] **5.4** — **Create packing list endpoint** — `POST /api/v1/trips/{reservation_id}/packing-list`. Calls AI agent, caches result in Redis (TTL: 24h), returns structured list. *(Depends on: 5.3, 1.4)*
+- [ ] **5.5** — **Create destination tips endpoint** — `GET /api/v1/destinations/{iata}/tips`. Returns AI-generated tips: visa requirements, currency, language, customs, safety, transportation, SIM card, tipping culture. Cache aggressively (TTL: 7 days). *(Depends on: 5.2, 1.4)*
+- [ ] **5.6** — **Create trip todo list model** — `TripTodo` table: `id`, `reservation_id`, `user_id`, `category` (packing/document/task), `title`, `priority` (must/recommended/optional), `is_completed`, `due_date`, `source` (ai/user). *(Depends on: Epic 0)*
+- [ ] **5.7** — **Create trip todo endpoints** — full CRUD on `/api/v1/trips/{reservation_id}/todos`. Auto-populated from AI packing list, user can add/edit/complete/delete items. *(Depends on: 5.6, 5.4)*
+- [ ] **5.8** — **AI-generated timeline** — given a trip, generate a timeline: "7 days before: check visa status", "3 days before: buy items from packing list", "1 day before: pack bags, charge devices", "Day of: leave at X". Store as todos with due dates. *(Depends on: 5.3, 4.3, 5.6)*
+- [ ] **5.9** — **User feedback loop** — after a trip, ask user "was the packing list helpful? anything missing?" Store feedback. Use it to improve prompts over time (append to prompt context or fine-tune). *(Depends on: 5.7)*
+>>>>>>> 7ebaa1a4f8a62d839050d1eb0b1bdc557cc76767
 
 ---
 
@@ -238,6 +361,7 @@ Each epic is a self-contained deliverable. **Work top to bottom.** Each task ins
 
 ---
 
+<<<<<<< HEAD
 ### EPIC 7 — Payment Integration (Mock) `[6/6]`
 
 > **Goal:** Payment infrastructure with mock provider, ready to swap for Stripe/PayMob when needed.
@@ -260,6 +384,30 @@ Each epic is a self-contained deliverable. **Work top to bottom.** Each task ins
 - [x] **8.3** — **Integrate Resend email service** — created `app/services/external/email_service.py` using real Resend Python SDK. Added `RESEND_API_KEY` and `RESEND_FROM_EMAIL` to settings. Template methods: `send_booking_confirmation`, `send_payment_receipt`, `send_trip_reminder`. Fallback log if API key missing. *(Depends on: 1.3)*
 - [x] **8.4** — **Create notification dispatch service** — `app/services/notification_dispatcher.py` — `dispatch()` fans out to: in-app DB `Notification`, FCM push (for push-worthy events), Resend email (for critical events: payment_success, gate_change, departure_urgent). Event-type mapping determines channels. *(Depends on: 8.1, 8.3, 1.6)*
 - [x] **8.5** — **Wire notifications to events** — updated `flight_status_poller.py` and `departure_alert.py` workers to use `NotificationDispatcher` instead of direct `Notification` creation. Updated `payments.py` webhook and refund handlers to dispatch notifications. All channels degrade gracefully if FCM/email unavailable. *(Depends on: 8.4, all prior epics)*
+=======
+### EPIC 7 — Payment Integration `[0/6]`
+
+> **Goal:** Actually charge users for ticket purchases on the web app.
+
+- [ ] **7.1** — **Choose and register payment provider** (Stripe / PayMob / Tap). Set up test/sandbox account. Document webhooks. *(Depends on: —)*
+- [ ] **7.2** — **Create `app/services/external/payment_service.py`** — create payment intent/session, verify webhook signature, handle success/failure callbacks. *(Depends on: 1.3)*
+- [ ] **7.3** — **Create payment models** — `Payment` table: `id`, `reservation_id`, `user_id`, `provider`, `provider_payment_id`, `amount`, `currency`, `status` (pending/completed/failed/refunded), `created_at`. *(Depends on: Epic 0)*
+- [ ] **7.4** — **Create payment endpoints** — `POST /api/v1/payments/create-session` (returns provider checkout URL/client secret), `POST /api/v1/payments/webhook` (provider callback), `GET /api/v1/payments/{id}` (status check). *(Depends on: 7.2, 7.3)*
+- [ ] **7.5** — **Connect payment to reservation** — after successful payment webhook, update reservation status to `PAID`, finalize ticket. If payment fails/expires, auto-cancel reservation after timeout. *(Depends on: 7.4, Epic 0)*
+- [ ] **7.6** — **Refund flow** — when a paid reservation is canceled, initiate refund through payment provider. *(Depends on: 7.5)*
+
+---
+
+### EPIC 8 — Notifications & Communication `[0/5]`
+
+> **Goal:** Push notifications, email, and in-app notifications.
+
+- [ ] **8.1** — **Integrate FCM** — create `app/services/external/fcm_service.py`. Store user device tokens (`DeviceToken` model: user_id, token, platform, created_at). *(Depends on: 1.3, 1.6)*
+- [ ] **8.2** — **Create device token endpoints** — `POST /api/v1/devices/register`, `DELETE /api/v1/devices/{token}`. *(Depends on: 8.1)*
+- [ ] **8.3** — **Integrate email service** — create `app/services/external/email_service.py` (SendGrid, AWS SES, or Resend). Send: verification email, booking confirmation, trip reminders. *(Depends on: 1.3)*
+- [ ] **8.4** — **Create notification dispatch service** — `app/services/notification_dispatcher.py` — fan out to: in-app DB notification, push (FCM), email. Each notification type has a template. *(Depends on: 8.1, 8.3, 1.6)*
+- [ ] **8.5** — **Wire notifications to events** — booking confirmed, payment success, flight status change, departure reminder, gate change, boarding alert. Each event triggers the dispatcher. *(Depends on: 8.4, all prior epics)*
+>>>>>>> 7ebaa1a4f8a62d839050d1eb0b1bdc557cc76767
 
 ---
 
@@ -285,7 +433,11 @@ Quick reference for all third-party APIs the project will need:
 
 | API | Purpose | Free Tier | Key Link |
 |---|---|---|---|
+<<<<<<< HEAD
 | **Mock Flight API** (built-in mock data) | Flight search & pricing — **mock provider** for web/app booking flow during development | N/A | Internal module `app/services/external/mock_flight_service.py` |
+=======
+| **Skyscanner** (e.g. RapidAPI or official partner API) | Flight search & pricing — **sole provider** for web/app booking flow | Varies by product | Register via RapidAPI or Skyscanner for Business / partner docs |
+>>>>>>> 7ebaa1a4f8a62d839050d1eb0b1bdc557cc76767
 | **AviationStack** | Real-time flight status | 100 calls/month | https://aviationstack.com |
 | **FlightAware AeroAPI** | Flight tracking (production) | Paid | https://www.flightaware.com/aeroapi |
 | **Google Maps Directions** | Route + traffic + ETA | $200/month credit | https://developers.google.com/maps |
@@ -318,6 +470,7 @@ Quick reference for all third-party APIs the project will need:
 
 | Epic | Title | Tasks | Done | Progress |
 |---|---|---|---|---|
+<<<<<<< HEAD
 | 0 | Housekeeping & Foundation | 18 | 18 | `████████████████████` 100% |
 | 1 | Infrastructure | 6 | 6 | `████████████████████` 100% |
 | 2 | Mock Flight API & Purchase | 7 | 7 | `████████████████████` 100% |
@@ -329,6 +482,19 @@ Quick reference for all third-party APIs the project will need:
 | 8 | Notifications (FCM + Resend) | 5 | 5 | `████████████████████` 100% |
 | 9 | Production Hardening | 9 | 0 | `░░░░░░░░░░░░░░░░░░░░` 0% |
 | | **TOTAL** | **77** | **64** | **83%** |
+=======
+| 0 | Housekeeping & Foundation | 18 | 0 | `░░░░░░░░░░░░░░░░░░░░` 0% |
+| 1 | Infrastructure | 6 | 0 | `░░░░░░░░░░░░░░░░░░░░` 0% |
+| 2 | Skyscanner & Purchase | 7 | 0 | `░░░░░░░░░░░░░░░░░░░░` 0% |
+| 3 | Flight Status & Airport | 7 | 0 | `░░░░░░░░░░░░░░░░░░░░` 0% |
+| 4 | Smart Airport Timer | 6 | 0 | `░░░░░░░░░░░░░░░░░░░░` 0% |
+| 5 | AI Travel Agent | 9 | 0 | `░░░░░░░░░░░░░░░░░░░░` 0% |
+| 6 | In-Airport Experience | 4 | 0 | `░░░░░░░░░░░░░░░░░░░░` 0% |
+| 7 | Payment Integration | 6 | 0 | `░░░░░░░░░░░░░░░░░░░░` 0% |
+| 8 | Notifications | 5 | 0 | `░░░░░░░░░░░░░░░░░░░░` 0% |
+| 9 | Production Hardening | 9 | 0 | `░░░░░░░░░░░░░░░░░░░░` 0% |
+| | **TOTAL** | **77** | **0** | **0%** |
+>>>>>>> 7ebaa1a4f8a62d839050d1eb0b1bdc557cc76767
 
 ## Task Summary by Priority
 
@@ -336,7 +502,11 @@ Quick reference for all third-party APIs the project will need:
 |---|---|---|
 | **Now** | Epic 0 (Housekeeping) | 2–3 days |
 | **Next** | Epic 1 (Infrastructure) | 3–4 days |
+<<<<<<< HEAD
 | **Core features** | Epic 2 (Mock Flight API + Purchase) → Epic 3 (Flight Status) → Epic 4 (Airport Timer) | 2–3 weeks |
+=======
+| **Core features** | Epic 2 (Skyscanner + Purchase) → Epic 3 (Flight Status) → Epic 4 (Airport Timer) | 2–3 weeks |
+>>>>>>> 7ebaa1a4f8a62d839050d1eb0b1bdc557cc76767
 | **Differentiator** | Epic 5 (AI Agent) → Epic 6 (In-Airport) | 2–3 weeks |
 | **Revenue** | Epic 7 (Payments) | 1 week |
 | **Polish** | Epic 8 (Notifications) → Epic 9 (Production) | 2–3 weeks |

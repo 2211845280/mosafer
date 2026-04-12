@@ -1,6 +1,9 @@
 """Generate ticket QR code images."""
 
+<<<<<<< HEAD
 import json
+=======
+>>>>>>> 7ebaa1a4f8a62d839050d1eb0b1bdc557cc76767
 from pathlib import Path
 
 import qrcode
@@ -9,6 +12,7 @@ from qrcode.constants import ERROR_CORRECT_M
 from app.core.config import settings
 
 
+<<<<<<< HEAD
 def qr_content_for_ticket(
     ticket_number: str,
     *,
@@ -41,6 +45,11 @@ def qr_content_for_ticket(
     if seat is not None:
         payload["seat"] = seat
     return json.dumps(payload, separators=(",", ":"))
+=======
+def qr_content_for_ticket(ticket_number: str) -> str:
+    """QR encodes ticket number only (Epic 3)."""
+    return ticket_number.strip().upper()
+>>>>>>> 7ebaa1a4f8a62d839050d1eb0b1bdc557cc76767
 
 
 def write_qr_png(payload: str, filename: str) -> str:

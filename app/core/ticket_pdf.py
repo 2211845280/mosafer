@@ -41,7 +41,11 @@ def build_ticket_pdf_bytes(
     pdf = FPDF()
     pdf.add_page()
     pdf.set_font("Helvetica", size=14)
+<<<<<<< HEAD
     pdf.cell(0, 10, text="Mosafer ticket", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+=======
+    pdf.cell(0, 10, text="Musafir ticket", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+>>>>>>> 7ebaa1a4f8a62d839050d1eb0b1bdc557cc76767
     pdf.set_font("Helvetica", size=11)
     pdf.cell(0, 8, text=f"Ticket number: {ticket_number}", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
     pdf.cell(0, 8, text=f"Booking ID: {booking_id}", new_x=XPos.LMARGIN, new_y=YPos.NEXT)

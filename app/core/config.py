@@ -25,10 +25,13 @@ class Settings(BaseSettings):
         default=30,
         description="Access token expiry in minutes",
     )
+<<<<<<< HEAD
     REFRESH_TOKEN_EXPIRE_DAYS: int = Field(
         default=7,
         description="Refresh token expiry in days",
     )
+=======
+>>>>>>> 7ebaa1a4f8a62d839050d1eb0b1bdc557cc76767
     PROFILE_PICTURES_DIR: str = Field(
         default="uploads/profile_pictures",
         description="Directory for user profile picture uploads",
@@ -57,6 +60,7 @@ class Settings(BaseSettings):
         default=5 * 1024 * 1024,
         description="Maximum ticket attachment upload size",
     )
+<<<<<<< HEAD
     CORS_ORIGINS: str = Field(
         default="*",
         description="Comma-separated list of allowed CORS origins (use * for all)",
@@ -96,6 +100,19 @@ class Settings(BaseSettings):
     RESEND_FROM_EMAIL: str = Field(
         default="noreply@mosafer.dev",
         description="Default sender email address",
+=======
+    AMADEUS_BASE_URL: str = Field(
+        default="https://test.api.amadeus.com",
+        description="Amadeus API base URL",
+    )
+    AMADEUS_CLIENT_ID: str | None = Field(
+        default=None,
+        description="Amadeus OAuth client id",
+    )
+    AMADEUS_CLIENT_SECRET: str | None = Field(
+        default=None,
+        description="Amadeus OAuth client secret",
+>>>>>>> 7ebaa1a4f8a62d839050d1eb0b1bdc557cc76767
     )
 
     # Database

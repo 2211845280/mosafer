@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 """Flight CRUD and search API."""
 
 import asyncio
@@ -25,6 +26,22 @@ _mock_service = MockFlightService()
 _status_service = MockFlightStatusService()
 
 router = APIRouter()
+=======
+"""Flight CRUD and Amadeus-backed search API."""
+
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.rbac import require_permission
+from app.db.database import get_db
+from app.models.flights import Flight
+from app.schemas.flights import FlightCreate, FlightRead, FlightSearchResponse, FlightUpdate
+from app.services.amadeus_service import AmadeusService
+
+router = APIRouter()
+amadeus_service = AmadeusService()
+>>>>>>> 7ebaa1a4f8a62d839050d1eb0b1bdc557cc76767
 
 
 @router.post(
@@ -48,7 +65,11 @@ async def create_flight(
             detail="Arrival must be after departure",
         )
     flight = Flight(
+<<<<<<< HEAD
         provider_flight_id=data.provider_flight_id.strip(),
+=======
+        amadeus_flight_id=data.amadeus_flight_id.strip(),
+>>>>>>> 7ebaa1a4f8a62d839050d1eb0b1bdc557cc76767
         origin_iata=data.origin_iata.upper(),
         destination_iata=data.destination_iata.upper(),
         carrier_code=data.carrier_code.upper(),
@@ -69,11 +90,16 @@ async def create_flight(
 
 @router.get(
     "/flights",
+<<<<<<< HEAD
     response_model=PaginatedResponse[FlightRead],
+=======
+    response_model=list[FlightRead],
+>>>>>>> 7ebaa1a4f8a62d839050d1eb0b1bdc557cc76767
     dependencies=[Depends(require_permission("flights.manage"))],
 )
 async def list_flights_admin(
     db: AsyncSession = Depends(get_db),
+<<<<<<< HEAD
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=200),
 ) -> PaginatedResponse[FlightRead]:
@@ -85,6 +111,17 @@ async def list_flights_admin(
     )
     items = [FlightRead.model_validate(f) for f in result.scalars().all()]
     return PaginatedResponse.create(items=items, total=total, page=page, page_size=page_size)
+=======
+    skip: int = Query(0, ge=0),
+    limit: int = Query(50, ge=1, le=200),
+) -> list[FlightRead]:
+    """List locally stored flights (admin)."""
+    result = await db.execute(
+        select(Flight).order_by(Flight.departure_at.desc()).offset(skip).limit(limit),
+    )
+    rows = result.scalars().all()
+    return [FlightRead.model_validate(f) for f in rows]
+>>>>>>> 7ebaa1a4f8a62d839050d1eb0b1bdc557cc76767
 
 
 @router.get(
@@ -99,6 +136,7 @@ async def search_flights(
     adults: int = Query(1, ge=1, le=9),
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
+<<<<<<< HEAD
     cache: RedisCache = Depends(get_cache),
 ) -> FlightSearchResponse:
     """Search flights via Mock Flight API (cached for 10 min)."""
@@ -129,6 +167,27 @@ async def search_flights(
     return FlightSearchResponse(
         items=page,
         total=total,
+=======
+) -> FlightSearchResponse:
+    """Search flights from Amadeus with pagination."""
+    try:
+        rows = await amadeus_service.search_flights(
+            origin_iata=origin_iata,
+            destination_iata=destination_iata,
+            departure_date=departure_date,
+            adults=adults,
+            limit=limit + skip,
+        )
+    except Exception as exc:  # pragma: no cover - external API availability
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"Amadeus search failed: {exc}",
+        ) from exc
+    sliced = rows[skip : skip + limit]
+    return FlightSearchResponse(
+        items=sliced,
+        total=len(rows),
+>>>>>>> 7ebaa1a4f8a62d839050d1eb0b1bdc557cc76767
         skip=skip,
         limit=limit,
     )
@@ -148,6 +207,7 @@ async def get_flight_detail(flight_id: int, db: AsyncSession = Depends(get_db)) 
     return FlightRead.model_validate(flight)
 
 
+<<<<<<< HEAD
 @router.get(
     "/flights/{flight_id}/status",
     response_model=FlightStatusRead,
@@ -232,6 +292,8 @@ async def stream_flight_status(
     )
 
 
+=======
+>>>>>>> 7ebaa1a4f8a62d839050d1eb0b1bdc557cc76767
 @router.patch(
     "/flights/{flight_id}",
     response_model=FlightRead,
@@ -247,8 +309,13 @@ async def update_flight(
     flight = result.scalar_one_or_none()
     if flight is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Flight not found")
+<<<<<<< HEAD
     if data.provider_flight_id is not None:
         flight.provider_flight_id = data.provider_flight_id.strip()
+=======
+    if data.amadeus_flight_id is not None:
+        flight.amadeus_flight_id = data.amadeus_flight_id.strip()
+>>>>>>> 7ebaa1a4f8a62d839050d1eb0b1bdc557cc76767
     if data.origin_iata is not None:
         flight.origin_iata = data.origin_iata.upper()
     if data.destination_iata is not None:

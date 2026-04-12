@@ -1,6 +1,10 @@
 """SQLAlchemy ORM model for tickets."""
 
+<<<<<<< HEAD
 from datetime import UTC, datetime
+=======
+from datetime import datetime
+>>>>>>> 7ebaa1a4f8a62d839050d1eb0b1bdc557cc76767
 from enum import StrEnum
 
 from sqlalchemy import DateTime, ForeignKey, Integer, String
@@ -38,7 +42,11 @@ class Ticket(Base):
     )
     issued_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
+<<<<<<< HEAD
         default=lambda: datetime.now(UTC),
+=======
+        default=datetime.utcnow,
+>>>>>>> 7ebaa1a4f8a62d839050d1eb0b1bdc557cc76767
         nullable=False,
     )
 
@@ -61,7 +69,11 @@ class TicketImage(Base):
     file_path: Mapped[str] = mapped_column(String(500), nullable=False)
     uploaded_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
+<<<<<<< HEAD
         default=lambda: datetime.now(UTC),
+=======
+        default=datetime.utcnow,
+>>>>>>> 7ebaa1a4f8a62d839050d1eb0b1bdc557cc76767
         nullable=False,
     )
 

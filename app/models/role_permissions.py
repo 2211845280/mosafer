@@ -1,6 +1,10 @@
 """SQLAlchemy ORM model for role-permission links."""
 
+<<<<<<< HEAD
 from datetime import UTC, datetime
+=======
+from datetime import datetime
+>>>>>>> 7ebaa1a4f8a62d839050d1eb0b1bdc557cc76767
 
 from sqlalchemy import DateTime, ForeignKey, Integer
 from sqlalchemy.orm import Mapped, mapped_column
@@ -25,6 +29,10 @@ class RolePermission(Base):
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
+<<<<<<< HEAD
         default=lambda: datetime.now(UTC),
+=======
+        default=datetime.utcnow,
+>>>>>>> 7ebaa1a4f8a62d839050d1eb0b1bdc557cc76767
         nullable=False,
     )

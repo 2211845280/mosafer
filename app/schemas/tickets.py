@@ -56,6 +56,7 @@ class TicketReportResponse(BaseModel):
     canceled_count: int
 
 
+<<<<<<< HEAD
 class QRScanRequest(BaseModel):
     qr_payload: str = Field(..., min_length=1, description="Raw string from QR code scan")
 
@@ -69,6 +70,8 @@ class QRScanResponse(BaseModel):
     issued_at: datetime
 
 
+=======
+>>>>>>> 7ebaa1a4f8a62d839050d1eb0b1bdc557cc76767
 def flight_summary_from_booking(booking) -> FlightSummaryForTicket:
     """Build summary from Reservation ORM with loaded flight."""
     f = booking.flight
