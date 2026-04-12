@@ -58,12 +58,20 @@ class Settings(BaseSettings):
         description="Maximum ticket attachment upload size",
     )
     CORS_ORIGINS: str = Field(
-        default="*",
+        default="http://localhost:3000,http://localhost:5173",
         description="Comma-separated list of allowed CORS origins (use * for all)",
     )
     REDIS_URL: str = Field(
         default="redis://localhost:6379/0",
         description="Redis connection URL",
+    )
+    MAX_REQUEST_SIZE_BYTES: int = Field(
+        default=5 * 1024 * 1024,
+        description="Global maximum request size in bytes",
+    )
+    TRUSTED_HOSTS: str = Field(
+        default="*",
+        description="Comma-separated trusted hosts for Host header validation",
     )
 
     # OpenAI
@@ -126,6 +134,13 @@ class Settings(BaseSettings):
         if self.DATABASE_URL.startswith("postgresql://"):
             return self.DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://", 1)
         return self.DATABASE_URL
+
+    @property
+    def trusted_hosts_list(self) -> list[str]:
+        """Parse TRUSTED_HOSTS into list."""
+        if self.TRUSTED_HOSTS.strip() == "*":
+            return ["*"]
+        return [h.strip() for h in self.TRUSTED_HOSTS.split(",") if h.strip()]
 
     @property
     def is_production(self) -> bool:

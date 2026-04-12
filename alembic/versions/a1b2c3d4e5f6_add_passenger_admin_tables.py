@@ -29,8 +29,8 @@ def upgrade() -> None:
             unique=True,
         ),
         sa.Column("full_name", sa.String(255), nullable=False),
-        sa.Column("phone", sa.String(32), nullable=True),
-        sa.Column("passport_image", sa.String(500), nullable=True),
+        sa.Column("phone", sa.String(32), nullable=False),
+        sa.Column("passport_image", sa.String(500), nullable=False),
         sa.Column("account_status", sa.String(32), nullable=False, server_default="active"),
     )
     op.create_index("ix_passengers_id", "passengers", ["id"])
@@ -47,15 +47,15 @@ def upgrade() -> None:
             unique=True,
         ),
         sa.Column("full_name", sa.String(255), nullable=False),
-        sa.Column("phone", sa.String(32), nullable=True),
+        sa.Column("phone", sa.String(32), nullable=False),
     )
     op.create_index("ix_admins_id", "admins", ["id"])
     op.create_index("ix_admins_user_id", "admins", ["user_id"])
 
     op.execute(
         sa.text("""
-            INSERT INTO passengers (user_id, full_name)
-            SELECT u.id, COALESCE(u.full_name, '')
+            INSERT INTO passengers (user_id, full_name, phone, passport_image, account_status)
+            SELECT u.id, COALESCE(u.full_name, ''), 'unknown', 'placeholder://pending', 'active'
             FROM users u
             LEFT JOIN roles r ON u.role_id = r.id
             WHERE r.name IS NULL OR r.name != 'admin'
@@ -64,8 +64,8 @@ def upgrade() -> None:
 
     op.execute(
         sa.text("""
-            INSERT INTO admins (user_id, full_name)
-            SELECT u.id, COALESCE(u.full_name, '')
+            INSERT INTO admins (user_id, full_name, phone)
+            SELECT u.id, COALESCE(u.full_name, ''), 'unknown'
             FROM users u
             JOIN roles r ON u.role_id = r.id
             WHERE r.name = 'admin'

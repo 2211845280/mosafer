@@ -47,6 +47,16 @@ When running in development mode, interactive API docs are available at:
 
 - **Swagger UI:** `http://localhost:8001/docs`
 - **ReDoc:** `http://localhost:8001/redoc`
+- **Prometheus metrics:** `http://localhost:8001/metrics`
+
+Versioned API base paths:
+
+- `v1` (current stable): `/api/v1`
+- `v2` (forward-compatible scaffold): `/api/v2`
+
+`v1` remains fully supported for backward compatibility while new expansions will be introduced gradually in `v2`.
+
+Detailed endpoint reference: `docs/api-reference.md`
 
 ## Project Structure
 
@@ -73,13 +83,22 @@ Copy `.env` and adjust values for your environment. Key variables:
 | `SECRET_KEY` | JWT signing secret (change in production) |
 | `DATABASE_URL` | PostgreSQL connection string |
 | `ENVIRONMENT` | `dev` / `staging` / `prod` |
-| `CORS_ORIGINS` | Comma-separated allowed origins (default `*`) |
+| `CORS_ORIGINS` | Comma-separated allowed origins (default local web origins only) |
+| `TRUSTED_HOSTS` | Comma-separated trusted hosts for Host header validation |
 
 ## Testing
 
 ```bash
 uv run pytest -v --cov=app
 ```
+
+Load testing quick smoke:
+
+```bash
+k6 run load_tests/k6_smoke.js
+```
+
+See `docs/load-testing.md` for full scenarios and result interpretation.
 
 ## License
 

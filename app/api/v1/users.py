@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.core.config import settings
+from app.core.file_validation import has_valid_magic_bytes
 from app.core.jwt import get_current_user
 from app.core.rbac import require_permission
 from app.core.security import hash_password, verify_password
@@ -67,7 +68,13 @@ async def update_my_profile(
         user = await _load_user_with_profile(db, current_user.id)
         profile = user.passenger or user.admin
         if profile is None:
-            profile = Passenger(user_id=current_user.id, full_name=payload.full_name or "")
+            profile = Passenger(
+                user_id=current_user.id,
+                full_name=payload.full_name or "Unknown User",
+                phone=payload.phone or "unknown",
+                passport_image="placeholder://pending",
+                account_status="active",
+            )
             db.add(profile)
         if payload.full_name is not None:
             profile.full_name = payload.full_name
@@ -132,6 +139,11 @@ async def upload_my_avatar(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="File is too large",
+        )
+    if not has_valid_magic_bytes(content, file.content_type):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="File content does not match declared type",
         )
 
     base_dir = Path(settings.PROFILE_PICTURES_DIR)
