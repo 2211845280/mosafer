@@ -22,6 +22,7 @@ from app.models.trip_todos import TripTodo
 from app.models.user_preferences import UserPreference
 from app.models.users import User
 from app.schemas.ai import (
+    DestinationTipsResult,
     PackingListResult,
     TimelineItem,
     TimelineResult,
@@ -30,8 +31,13 @@ from app.schemas.ai import (
 )
 from app.schemas.departure_plan import (
     AirportContextRead,
+    AirportDashboardResponse,
+    ArrivalContextRead,
+    BoardingCountdown,
     DeparturePlanResult,
     FlightStatusSummary,
+    GateSuggestion,
+    GateSuggestionLevel,
     LocationCheckRequest,
     LocationCheckResponse,
     TransportMode,
@@ -94,6 +100,102 @@ async def _load_reservation_with_flight_and_airport(
         )
 
     return reservation, flight, airport
+
+
+def _build_gate_suggestion(minutes_to_boarding: int) -> GateSuggestion:
+    if minutes_to_boarding > 60:
+        return GateSuggestion(
+            level=GateSuggestionLevel.explore,
+            message="You have time to explore terminal shops and restaurants.",
+        )
+    if minutes_to_boarding >= 30:
+        return GateSuggestion(
+            level=GateSuggestionLevel.move_near_gate,
+            message="Head toward your gate area and grab food nearby.",
+        )
+    return GateSuggestion(
+        level=GateSuggestionLevel.proceed_now,
+        message="Proceed to your gate now.",
+    )
+
+
+def _estimate_walking_time_to_gate(departure_gate: str | None) -> int:
+    """Simple mock estimate based on gate number."""
+    if not departure_gate:
+        return 8
+    digits = "".join(ch for ch in departure_gate if ch.isdigit())
+    gate_num = int(digits) if digits else 10
+    return max(4, min(18, 4 + gate_num // 2))
+
+
+def _extract_nearby_food_shops(amenities: dict | None) -> list[str]:
+    if not amenities:
+        return ["Coffee Point", "Quick Bites", "Travel Essentials"]
+    for key in ("restaurants", "food", "shops", "dining"):
+        value = amenities.get(key)
+        if isinstance(value, list):
+            items = [str(v) for v in value if v]
+            if items:
+                return items[:6]
+    return ["Coffee Point", "Quick Bites", "Travel Essentials"]
+
+
+def _build_boarding_countdown(
+    departure_at: datetime,
+    delay_minutes: int,
+) -> BoardingCountdown:
+    now = datetime.now(UTC)
+    adjusted_departure = departure_at + timedelta(minutes=delay_minutes)
+    boarding_at = adjusted_departure - timedelta(minutes=30)
+    minutes_to_boarding = max(0, int((boarding_at - now).total_seconds() / 60))
+    return BoardingCountdown(
+        boarding_at=boarding_at,
+        minutes_to_boarding=minutes_to_boarding,
+        is_boarding_open=minutes_to_boarding == 0,
+    )
+
+
+async def _get_destination_tips(
+    iata: str,
+    airport: Airport | None,
+    cache: RedisCache,
+) -> DestinationTipsResult:
+    iata_upper = iata.upper()
+    cache_key = f"destination_tips:{iata_upper}"
+    cached = await cache.get(cache_key)
+    if cached is not None:
+        return DestinationTipsResult(**cached)
+
+    if airport is None:
+        return DestinationTipsResult(
+            general_tips=[f"Research destination {iata_upper} before arrival."],
+        )
+
+    from app.services.ai.prompts.destination_tips import build_tips_prompt
+
+    system_prompt, user_message = build_tips_prompt(
+        city=airport.city,
+        country=airport.country,
+        iata=iata_upper,
+    )
+
+    try:
+        from app.services.ai.llm_client import get_llm_client
+
+        client = get_llm_client()
+        data = await client.chat_json(system_prompt, user_message)
+        tips = DestinationTipsResult(**data)
+    except Exception:
+        logger.exception("airport_dashboard.destination_tips_fallback", iata=iata_upper)
+        tips = DestinationTipsResult(
+            visa=f"Check visa requirements for {airport.country}.",
+            currency=f"Local currency used in {airport.country}.",
+            language=f"Official language of {airport.country}.",
+            general_tips=[f"Review arrival information for {airport.city}."],
+        )
+
+    await cache.set(cache_key, tips.model_dump(mode="json"), ttl_seconds=604800)
+    return tips
 
 
 # ---------------------------------------------------------------------------
@@ -266,6 +368,117 @@ async def location_check(
         at_airport=False,
         distance_km=distance,
         departure_plan=plan,
+    )
+
+
+@router.get(
+    "/trips/{reservation_id}/airport-dashboard",
+    response_model=AirportDashboardResponse,
+)
+async def get_airport_dashboard(
+    reservation_id: int,
+    lat: float = Query(..., ge=-90, le=90, description="Current user latitude"),
+    lng: float = Query(..., ge=-180, le=180, description="Current user longitude"),
+    user: User = Depends(require_permission("flights.read")),
+    db: AsyncSession = Depends(get_db),
+    cache: RedisCache = Depends(get_cache),
+) -> AirportDashboardResponse:
+    """Airport live dashboard for in-terminal experience."""
+    _, flight, origin_airport = await _load_reservation_with_flight_and_airport(
+        reservation_id, user, db,
+    )
+
+    distance = round(
+        _haversine(lat, lng, float(origin_airport.latitude), float(origin_airport.longitude)),
+        2,
+    )
+    at_airport = distance <= 1.0
+
+    status_cache_key = f"flight:status:{flight.id}"
+    cached_status = await cache.get(status_cache_key)
+    if cached_status is not None:
+        flight_status = FlightStatusSummary(**cached_status)
+    else:
+        fresh = await _status_service.get_status(
+            carrier_code=flight.carrier_code,
+            flight_number=flight.flight_number,
+            departure_at=flight.departure_at,
+        )
+        flight_status = FlightStatusSummary(
+            flight_number=fresh.flight_number,
+            carrier_code=fresh.carrier_code,
+            departure_gate=fresh.departure_gate,
+            terminal=fresh.terminal,
+            status=fresh.status.value,
+            delay_minutes=fresh.delay_minutes,
+        )
+        await cache.set(
+            status_cache_key,
+            fresh.model_dump(mode="json"),
+            ttl_seconds=120,
+        )
+
+    boarding = _build_boarding_countdown(flight.departure_at, flight_status.delay_minutes)
+    gate_suggestion = _build_gate_suggestion(boarding.minutes_to_boarding)
+    walking_time = _estimate_walking_time_to_gate(flight_status.departure_gate)
+    nearby = _extract_nearby_food_shops(origin_airport.amenities)
+
+    airport_ctx = AirportContextRead(
+        iata_code=origin_airport.iata_code,
+        name=origin_airport.name,
+        terminal_info=origin_airport.terminal_info,
+        amenities=origin_airport.amenities,
+        map_url=origin_airport.map_url,
+    )
+
+    arrival_context: ArrivalContextRead | None = None
+    if flight_status.status == "landed":
+        dest_result = await db.execute(
+            select(Airport).where(Airport.iata_code == flight.destination_iata)
+        )
+        destination_airport = dest_result.scalar_one_or_none()
+        if destination_airport is not None:
+            dest_ctx = AirportContextRead(
+                iata_code=destination_airport.iata_code,
+                name=destination_airport.name,
+                terminal_info=destination_airport.terminal_info,
+                amenities=destination_airport.amenities,
+                map_url=destination_airport.map_url,
+            )
+            tips = await _get_destination_tips(
+                iata=destination_airport.iata_code,
+                airport=destination_airport,
+                cache=cache,
+            )
+
+            local_transport = []
+            for key in ("transport", "local_transport", "ground_transport"):
+                value = (destination_airport.amenities or {}).get(key)
+                if isinstance(value, list):
+                    local_transport = [str(v) for v in value if v][:6]
+                    break
+            if not local_transport:
+                local_transport = ["Taxi", "Airport bus", "Car rental"]
+
+            arrival_context = ArrivalContextRead(
+                airport=dest_ctx,
+                immigration_tip="Keep passport and arrival form ready before immigration queue.",
+                baggage_claim=f"Belt {((flight.id % 12) + 1)}",
+                local_transport_options=local_transport,
+                destination_tips=tips.general_tips[:5],
+            )
+
+    return AirportDashboardResponse(
+        reservation_id=reservation_id,
+        at_airport=at_airport,
+        distance_km=distance,
+        flight_status=flight_status,
+        airport=airport_ctx,
+        boarding=boarding,
+        walking_time_to_gate_minutes=walking_time,
+        nearby_food_shops=nearby,
+        gate_suggestion=gate_suggestion,
+        arrival_context=arrival_context,
     )
 
 
