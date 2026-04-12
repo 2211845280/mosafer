@@ -18,6 +18,6 @@ class Admin(Base):
         index=True,
     )
     full_name: Mapped[str] = mapped_column(String(255), nullable=False)
-    phone: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    phone: Mapped[str] = mapped_column(String(32), nullable=False)
 
     user = relationship("User", back_populates="admin")

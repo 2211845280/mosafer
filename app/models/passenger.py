@@ -18,8 +18,8 @@ class Passenger(Base):
         index=True,
     )
     full_name: Mapped[str] = mapped_column(String(255), nullable=False)
-    phone: Mapped[str | None] = mapped_column(String(32), nullable=True)
-    passport_image: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    phone: Mapped[str] = mapped_column(String(32), nullable=False)
+    passport_image: Mapped[str] = mapped_column(String(500), nullable=False)
     account_status: Mapped[str] = mapped_column(String(32), nullable=False, default="active")
 
     user = relationship("User", back_populates="passenger")

@@ -63,7 +63,19 @@ jobs:
           ENVIRONMENT: test
           SECRET_KEY: test-secret-key-for-ci
           DEBUG: "true"
-        run: uv run pytest -v --cov=app --cov-report=xml
+        run: uv run pytest -v --cov=app --cov-report=xml --cov-fail-under=70
+
+      - name: Validate Alembic migrations
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/mosafer_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: mosafer_test
+          POSTGRES_HOST: localhost
+          POSTGRES_PORT: 5432
+          ENVIRONMENT: test
+          SECRET_KEY: test-secret-key-for-ci
+        run: uv run alembic upgrade head
 
       - name: Upload coverage
         uses: codecov/codecov-action@v3

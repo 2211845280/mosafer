@@ -12,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.core.config import settings
+from app.core.file_validation import has_valid_magic_bytes
 from app.core.jwt import get_current_user
 from app.core.rbac import assert_user_has_permission, require_permission
 from app.core.ticket_pdf import build_ticket_pdf_bytes
@@ -260,6 +261,11 @@ async def upload_ticket_image(
     content = await file.read()
     if len(content) > settings.TICKET_UPLOAD_MAX_SIZE_BYTES:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="File too large")
+    if not has_valid_magic_bytes(content, file.content_type):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="File content does not match declared type",
+        )
 
     base_dir = Path(settings.TICKET_UPLOADS_DIR)
     base_dir.mkdir(parents=True, exist_ok=True)

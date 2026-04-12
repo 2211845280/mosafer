@@ -8,7 +8,9 @@ this class and only need to implement their domain-specific methods.
 from __future__ import annotations
 
 import asyncio
+from time import perf_counter
 from types import TracebackType
+from uuid import uuid4
 
 import httpx
 import structlog
@@ -88,11 +90,14 @@ class BaseExternalClient:
         last_exc: Exception | None = None
 
         for attempt in range(1, self._max_retries + 1):
+            trace_id = uuid4().hex
+            started_at = perf_counter()
             log = logger.bind(
                 service=self._service_name,
                 method=method,
                 path=path,
                 attempt=attempt,
+                trace_id=trace_id,
             )
             try:
                 log.debug("external_request.start")
@@ -106,6 +111,7 @@ class BaseExternalClient:
                 log.info(
                     "external_request.response",
                     status_code=response.status_code,
+                    elapsed_ms=round((perf_counter() - started_at) * 1000, 2),
                 )
                 response.raise_for_status()
                 return response

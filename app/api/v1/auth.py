@@ -85,7 +85,13 @@ async def register(
             detail="An account with this email already exists",
         ) from None
 
-    passenger = Passenger(user_id=user.id, full_name=data.name)
+    passenger = Passenger(
+        user_id=user.id,
+        full_name=data.name,
+        phone="unknown",
+        passport_image="placeholder://pending",
+        account_status="active",
+    )
     db.add(passenger)
     await db.commit()
     await db.refresh(user)

@@ -74,11 +74,34 @@ jobs:
       url: ${{ secrets.STAGING_URL }}
 
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install UV
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: "latest"
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: uv sync --dev
+
+      - name: Run DB migrations (staging)
+        env:
+          DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+          POSTGRES_PASSWORD: ${{ secrets.STAGING_POSTGRES_PASSWORD }}
+          SECRET_KEY: ${{ secrets.STAGING_SECRET_KEY }}
+          ENVIRONMENT: staging
+        run: uv run alembic upgrade head
+
       - name: Deploy to staging
         run: |
           echo "Deploy to staging environment"
-          # Add your deployment commands here
-          # Example: ssh, kubectl, docker-compose, etc.
+          echo "Image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}"
 
   deploy-production:
     if: github.ref == 'refs/heads/main'
@@ -89,8 +112,31 @@ jobs:
       url: ${{ secrets.PRODUCTION_URL }}
 
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install UV
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: "latest"
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: uv sync --dev
+
+      - name: Run DB migrations (production)
+        env:
+          DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
+          POSTGRES_PASSWORD: ${{ secrets.PRODUCTION_POSTGRES_PASSWORD }}
+          SECRET_KEY: ${{ secrets.PRODUCTION_SECRET_KEY }}
+          ENVIRONMENT: prod
+        run: uv run alembic upgrade head
+
       - name: Deploy to production
         run: |
           echo "Deploy to production environment"
-          # Add your deployment commands here
-          # Example: ssh, kubectl, docker-compose, etc.
+          echo "Image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}"
