@@ -39,7 +39,11 @@ class LLMClient:
             ],
         )
         text = response.choices[0].message.content or ""
-        logger.info("llm.chat.done", model=model, tokens=response.usage.total_tokens if response.usage else 0)
+        logger.info(
+            "llm.chat.done",
+            model=model,
+            tokens=response.usage.total_tokens if response.usage else 0,
+        )
         return text
 
     async def chat_json(
@@ -64,7 +68,11 @@ class LLMClient:
             ],
         )
         raw = response.choices[0].message.content or "{}"
-        logger.info("llm.chat_json.done", model=model, tokens=response.usage.total_tokens if response.usage else 0)
+        logger.info(
+            "llm.chat_json.done",
+            model=model,
+            tokens=response.usage.total_tokens if response.usage else 0,
+        )
         return json.loads(raw)
 
 

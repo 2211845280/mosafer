@@ -20,4 +20,6 @@ class NotificationRead(BaseModel):
 
 
 class NotificationMarkReadRequest(BaseModel):
-    ids: list[int] = Field(..., min_length=1, description="List of notification IDs to mark as read")
+    ids: list[int] = Field(
+        ..., min_length=1, description="List of notification IDs to mark as read"
+    )

@@ -90,9 +90,7 @@ async def get_airport(airport_id: int, db: AsyncSession = Depends(get_db)) -> Ai
 )
 async def get_airport_info(iata: str, db: AsyncSession = Depends(get_db)) -> AirportDetailRead:
     """Get full airport details by IATA code (terminal, amenities, location)."""
-    result = await db.execute(
-        select(Airport).where(Airport.iata_code == iata.upper())
-    )
+    result = await db.execute(select(Airport).where(Airport.iata_code == iata.upper()))
     airport = result.scalar_one_or_none()
     if airport is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Airport not found")

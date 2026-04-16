@@ -116,6 +116,7 @@ async def metrics_middleware(request: Request, call_next):
     REQUEST_LATENCY.labels(method=method, path=path).observe(elapsed)
     return response
 
+
 app.include_router(health_router, prefix="/api/v1", tags=["health"])
 app.include_router(users_router, prefix="/api/v1", tags=["users"])
 app.include_router(airports_router, prefix="/api/v1", tags=["airports"])

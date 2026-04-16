@@ -133,9 +133,7 @@ async def list_my_reservations(
     """List current user's reservations with flight info."""
     total = (
         await db.execute(
-            select(func.count())
-            .select_from(Reservation)
-            .where(Reservation.user_id == user.id)
+            select(func.count()).select_from(Reservation).where(Reservation.user_id == user.id)
         )
     ).scalar_one()
 

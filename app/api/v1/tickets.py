@@ -348,7 +348,9 @@ async def get_ticket(
     db: AsyncSession = Depends(get_db),
 ) -> TicketRead:
     """Get ticket by ticket number (owner or admin)."""
-    result = await db.execute(select(Ticket).where(Ticket.ticket_number == ticket_number.strip().upper()))
+    result = await db.execute(
+        select(Ticket).where(Ticket.ticket_number == ticket_number.strip().upper())
+    )
     ticket = result.scalar_one_or_none()
     if ticket is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ticket not found")

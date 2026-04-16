@@ -103,7 +103,9 @@ async def authed_user(db_session: AsyncSession) -> tuple[User, dict[str, str]]:
 
 @pytest_asyncio.fixture
 async def seeded_flight(db_session: AsyncSession) -> Flight:
-    origin = Airport(iata_code="CAI", name="Cairo", city="Cairo", country="Egypt", timezone="Africa/Cairo")
+    origin = Airport(
+        iata_code="CAI", name="Cairo", city="Cairo", country="Egypt", timezone="Africa/Cairo"
+    )
     destination = Airport(
         iata_code="DXB",
         name="Dubai",

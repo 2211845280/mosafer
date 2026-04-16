@@ -46,8 +46,12 @@ def build_ticket_pdf_bytes(
     pdf.cell(0, 8, text=f"Ticket number: {ticket_number}", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
     pdf.cell(0, 8, text=f"Booking ID: {booking_id}", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
     pdf.cell(0, 8, text=f"Seat: {seat}", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-    pdf.cell(0, 8, text=f"Flight: {carrier_code} {flight_number}", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-    pdf.cell(0, 8, text=f"Route: {origin_iata} - {destination_iata}", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+    pdf.cell(
+        0, 8, text=f"Flight: {carrier_code} {flight_number}", new_x=XPos.LMARGIN, new_y=YPos.NEXT
+    )
+    pdf.cell(
+        0, 8, text=f"Route: {origin_iata} - {destination_iata}", new_x=XPos.LMARGIN, new_y=YPos.NEXT
+    )
     pdf.cell(0, 8, text=f"Departure: {departure_at}", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
     pdf.cell(0, 8, text=f"Arrival: {arrival_at}", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
 

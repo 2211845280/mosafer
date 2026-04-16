@@ -220,9 +220,7 @@ async def verify_email(
     db: AsyncSession = Depends(get_db),
 ) -> EmailVerifyResponse:
     """Verify a user's email address using the token generated at registration."""
-    result = await db.execute(
-        select(User).where(User.email_verification_token == token)
-    )
+    result = await db.execute(select(User).where(User.email_verification_token == token))
     user = result.scalar_one_or_none()
     if user is None:
         raise HTTPException(status_code=400, detail="Invalid verification token")

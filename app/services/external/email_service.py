@@ -60,7 +60,11 @@ class EmailService:
                 "html": html_body,
             }
             response = await asyncio.to_thread(resend.Emails.send, params)
-            logger.info("email.sent", to=to, response_id=response.get("id") if isinstance(response, dict) else str(response))
+            logger.info(
+                "email.sent",
+                to=to,
+                response_id=response.get("id") if isinstance(response, dict) else str(response),
+            )
             return True
         except Exception:
             logger.exception("email.send_failed", to=to, subject=subject)

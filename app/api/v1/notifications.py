@@ -24,9 +24,7 @@ async def list_notifications(
 ) -> PaginatedResponse[NotificationRead]:
     """List current user's notifications (newest first, paginated)."""
     base = select(Notification).where(Notification.user_id == current_user.id)
-    total = (
-        await db.execute(select(func.count()).select_from(base.subquery()))
-    ).scalar_one()
+    total = (await db.execute(select(func.count()).select_from(base.subquery()))).scalar_one()
     offset = (page - 1) * page_size
     result = await db.execute(
         base.order_by(Notification.created_at.desc()).offset(offset).limit(page_size)

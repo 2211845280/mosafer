@@ -65,9 +65,7 @@ def get_logger(name: str | None = None) -> structlog.stdlib.BoundLogger:
 class RequestIDMiddleware(BaseHTTPMiddleware):
     """Inject a unique request ID into every request/response cycle."""
 
-    async def dispatch(
-        self, request: Request, call_next: RequestResponseEndpoint
-    ) -> Response:
+    async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
         request_id = request.headers.get(REQUEST_ID_HEADER) or uuid4().hex
         structlog.contextvars.clear_contextvars()
         structlog.contextvars.bind_contextvars(request_id=request_id)

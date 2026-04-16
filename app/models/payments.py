@@ -27,7 +27,10 @@ class Payment(Base):
     )
     provider: Mapped[str] = mapped_column(String(32), nullable=False, default="mock")
     provider_payment_id: Mapped[str] = mapped_column(
-        String(128), unique=True, nullable=False, index=True,
+        String(128),
+        unique=True,
+        nullable=False,
+        index=True,
     )
     amount: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
     currency: Mapped[str] = mapped_column(String(3), nullable=False, default="USD")

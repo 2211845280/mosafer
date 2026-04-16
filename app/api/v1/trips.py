@@ -229,7 +229,9 @@ async def get_departure_plan(
 ) -> DeparturePlanResult:
     """Recommend when to leave for the airport."""
     reservation, flight, airport = await _load_reservation_with_flight_and_airport(
-        reservation_id, user, db,
+        reservation_id,
+        user,
+        db,
     )
 
     if lat is None or lng is None:
@@ -298,7 +300,9 @@ async def location_check(
 ) -> LocationCheckResponse:
     """Check if user is at the airport; return in-airport context or departure plan."""
     reservation, flight, airport = await _load_reservation_with_flight_and_airport(
-        reservation_id, user, db,
+        reservation_id,
+        user,
+        db,
     )
 
     distance = round(
@@ -353,9 +357,7 @@ async def location_check(
             minutes_to_boarding=minutes_to_boarding,
         )
 
-    pref_result = await db.execute(
-        select(UserPreference).where(UserPreference.user_id == user.id)
-    )
+    pref_result = await db.execute(select(UserPreference).where(UserPreference.user_id == user.id))
     pref = pref_result.scalar_one_or_none()
     transport = _map_preferred_transport(pref.preferred_transport if pref else None)
 
@@ -397,7 +399,9 @@ async def get_airport_dashboard(
 ) -> AirportDashboardResponse:
     """Airport live dashboard for in-terminal experience."""
     _, flight, origin_airport = await _load_reservation_with_flight_and_airport(
-        reservation_id, user, db,
+        reservation_id,
+        user,
+        db,
     )
 
     distance = round(
@@ -542,9 +546,7 @@ async def get_packing_list(
     )
     dest_airport = dest_result.scalar_one_or_none()
 
-    origin_result = await db.execute(
-        select(Airport).where(Airport.iata_code == flight.origin_iata)
-    )
+    origin_result = await db.execute(select(Airport).where(Airport.iata_code == flight.origin_iata))
     origin_airport = origin_result.scalar_one_or_none()
 
     dest_city = dest_airport.city if dest_airport else flight.destination_iata
@@ -553,7 +555,9 @@ async def get_packing_list(
     dest_lat = float(dest_airport.latitude) if dest_airport and dest_airport.latitude else 0.0
 
     duration_days = max(1, (flight.arrival_at - flight.departure_at).days or 1)
-    travel_dates = f"{flight.departure_at.strftime('%Y-%m-%d')} to {flight.arrival_at.strftime('%Y-%m-%d')}"
+    travel_dates = (
+        f"{flight.departure_at.strftime('%Y-%m-%d')} to {flight.arrival_at.strftime('%Y-%m-%d')}"
+    )
 
     result = await generate_packing_list(
         destination_city=dest_city,
@@ -794,9 +798,7 @@ async def generate_timeline(
         select(Airport).where(Airport.iata_code == flight.destination_iata)
     )
     dest_airport = dest_result.scalar_one_or_none()
-    origin_result = await db.execute(
-        select(Airport).where(Airport.iata_code == flight.origin_iata)
-    )
+    origin_result = await db.execute(select(Airport).where(Airport.iata_code == flight.origin_iata))
     origin_airport = origin_result.scalar_one_or_none()
 
     dest_city = dest_airport.city if dest_airport else flight.destination_iata
@@ -824,11 +826,36 @@ async def generate_timeline(
     except Exception:
         logger.exception("timeline.llm_failed, using defaults")
         items = [
-            TimelineItem(days_before=14, title="Check passport validity", description="Ensure 6+ months validity", category="document"),
-            TimelineItem(days_before=7, title="Start packing essentials", description="Use AI packing list", category="packing"),
-            TimelineItem(days_before=3, title="Confirm reservation", description="Check flight status", category="task"),
-            TimelineItem(days_before=1, title="Charge devices", description="Phone, laptop, power bank", category="task"),
-            TimelineItem(days_before=0, title="Head to airport", description="Check departure plan for timing", category="task"),
+            TimelineItem(
+                days_before=14,
+                title="Check passport validity",
+                description="Ensure 6+ months validity",
+                category="document",
+            ),
+            TimelineItem(
+                days_before=7,
+                title="Start packing essentials",
+                description="Use AI packing list",
+                category="packing",
+            ),
+            TimelineItem(
+                days_before=3,
+                title="Confirm reservation",
+                description="Check flight status",
+                category="task",
+            ),
+            TimelineItem(
+                days_before=1,
+                title="Charge devices",
+                description="Phone, laptop, power bank",
+                category="task",
+            ),
+            TimelineItem(
+                days_before=0,
+                title="Head to airport",
+                description="Check departure plan for timing",
+                category="task",
+            ),
         ]
 
     timeline = TimelineResult(items=items)
