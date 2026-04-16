@@ -37,7 +37,7 @@ async def create_order(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> OrderResponse:
-    """Purchase a flight offer: creates reservation (paid) + ticket + QR."""
+    """Purchase a flight offer: creates reservation (booked) + ticket + QR."""
     seat = normalize_seat(data.seat)
     if not is_valid_seat(seat):
         raise HTTPException(
@@ -82,7 +82,7 @@ async def create_order(
         user_id=user.id,
         flight_id=flight.id,
         seat=seat,
-        status=ReservationStatus.PAID.value,
+        status=ReservationStatus.BOOKED.value,
         total_price=Decimal(offer["total_price"]),
         currency=offer["currency"],
     )
