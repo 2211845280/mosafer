@@ -65,6 +65,17 @@ def _haversine(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
     return 2 * _EARTH_RADIUS_KM * math.asin(math.sqrt(a))
 
 
+def _map_preferred_transport(value: str | None) -> TransportMode:
+    normalized = (value or "").strip().lower()
+    if normalized == "car":
+        return TransportMode.driving
+    if normalized in {"train", "bus"}:
+        return TransportMode.transit
+    if normalized == "taxi":
+        return TransportMode.taxi
+    return TransportMode.driving
+
+
 async def _load_reservation_with_flight_and_airport(
     reservation_id: int,
     user: User,
@@ -240,7 +251,7 @@ async def get_departure_plan(
             select(UserPreference).where(UserPreference.user_id == user.id)
         )
         pref2 = pref_result2.scalar_one_or_none()
-        mode = TransportMode(pref2.preferred_transport) if pref2 else TransportMode.driving
+        mode = _map_preferred_transport(pref2.preferred_transport if pref2 else None)
 
     cache_key = f"departure_plan:{reservation_id}:{round(lat, 4)}:{round(lng, 4)}:{mode.value}"
     cached = await cache.get(cache_key)
@@ -321,7 +332,8 @@ async def location_check(
                 ttl_seconds=120,
             )
 
-        boarding_time = flight.departure_at - timedelta(minutes=30)
+        adjusted_departure = flight.departure_at + timedelta(minutes=flight_status.delay_minutes)
+        boarding_time = adjusted_departure - timedelta(minutes=30)
         now = datetime.now(UTC)
         minutes_to_boarding = max(0, int((boarding_time - now).total_seconds() / 60))
 
@@ -345,7 +357,7 @@ async def location_check(
         select(UserPreference).where(UserPreference.user_id == user.id)
     )
     pref = pref_result.scalar_one_or_none()
-    transport = TransportMode(pref.preferred_transport) if pref else TransportMode.driving
+    transport = _map_preferred_transport(pref.preferred_transport if pref else None)
 
     dest_airport_result = await db.execute(
         select(Airport).where(Airport.iata_code == flight.destination_iata)

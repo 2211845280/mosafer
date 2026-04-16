@@ -13,6 +13,7 @@ from app.core.rbac import require_permission
 from app.db.database import get_db
 from app.models.payments import Payment
 from app.models.reservations import Reservation, ReservationStatus
+from app.models.tickets import Ticket, TicketStatus
 from app.models.users import User
 from app.schemas.payments import (
     PaymentCreateRequest,
@@ -64,6 +65,18 @@ async def create_payment_session(
         reservation_id=reservation.id,
         user_id=user.id,
     )
+
+    existing_result = await db.execute(
+        select(Payment).where(Payment.provider_payment_id == session["provider_payment_id"])
+    )
+    existing_payment = existing_result.scalar_one_or_none()
+    if existing_payment is not None:
+        return PaymentSessionResponse(
+            payment_id=existing_payment.id,
+            session_id=session["session_id"],
+            checkout_url=session["checkout_url"],
+            status=existing_payment.status,
+        )
 
     payment = Payment(
         reservation_id=reservation.id,
@@ -127,6 +140,12 @@ async def payment_webhook(
         logger.info("payment.completed", payment_id=payment.id)
     elif payload.status == "failed" and reservation:
         reservation.status = ReservationStatus.CANCELED.value
+        ticket_result = await db.execute(
+            select(Ticket).where(Ticket.booking_id == reservation.id)
+        )
+        ticket = ticket_result.scalar_one_or_none()
+        if ticket is not None:
+            ticket.status = TicketStatus.CANCELED.value
         await _dispatcher.dispatch(
             user_id=payment.user_id,
             event_type="payment_failed",
@@ -196,6 +215,12 @@ async def refund_payment(
     reservation = res_result.scalar_one_or_none()
     if reservation:
         reservation.status = ReservationStatus.CANCELED.value
+        ticket_result = await db.execute(
+            select(Ticket).where(Ticket.booking_id == reservation.id)
+        )
+        ticket = ticket_result.scalar_one_or_none()
+        if ticket is not None:
+            ticket.status = TicketStatus.CANCELED.value
 
     await _dispatcher.dispatch(
         user_id=payment.user_id,

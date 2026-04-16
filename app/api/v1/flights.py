@@ -101,7 +101,11 @@ async def list_flights_admin(
 async def search_flights(
     origin_iata: str = Query(..., min_length=3, max_length=3),
     destination_iata: str = Query(..., min_length=3, max_length=3),
-    departure_date: str = Query(..., description="YYYY-MM-DD"),
+    departure_date: str = Query(
+        ...,
+        description="YYYY-MM-DD",
+        pattern=r"^\d{4}-\d{2}-\d{2}$",
+    ),
     adults: int = Query(1, ge=1, le=9),
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
@@ -118,12 +122,18 @@ async def search_flights(
         logger.debug("flight_search.cache_hit", key=cache_key)
         all_offers = [FlightOfferRead(**item) for item in cached]
     else:
-        all_offers = await _mock_service.search_flights(
-            origin=origin_iata,
-            destination=destination_iata,
-            departure_date=departure_date,
-            adults=adults,
-        )
+        try:
+            all_offers = await _mock_service.search_flights(
+                origin=origin_iata,
+                destination=destination_iata,
+                departure_date=departure_date,
+                adults=adults,
+            )
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Invalid departure_date format. Expected YYYY-MM-DD",
+            ) from None
         await cache.set(
             cache_key,
             [o.model_dump(mode="json") for o in all_offers],
