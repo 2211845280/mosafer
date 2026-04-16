@@ -64,14 +64,12 @@ class NotificationDispatcher:
             logger.error("dispatcher.no_db_session")
             return
 
-        db.add(
-            Notification(
-                user_id=user_id,
-                type=event_type,
-                title=title,
-                body=body,
-            )
-        )
+        db.add(Notification(
+            user_id=user_id,
+            type=event_type,
+            title=title,
+            body=body,
+        ))
 
         if event_type in _PUSH_EVENTS:
             result = await db.execute(
@@ -80,10 +78,7 @@ class NotificationDispatcher:
             tokens = [row[0] for row in result.all()]
             if tokens:
                 sent = await self.fcm.send_push_multi(
-                    tokens=tokens,
-                    title=title,
-                    body=body,
-                    data=data,
+                    tokens=tokens, title=title, body=body, data=data,
                 )
                 logger.info(
                     "dispatcher.push_sent",
@@ -94,7 +89,9 @@ class NotificationDispatcher:
                 )
 
         if event_type in _EMAIL_EVENTS:
-            user_result = await db.execute(select(User.email).where(User.id == user_id))
+            user_result = await db.execute(
+                select(User.email).where(User.id == user_id)
+            )
             email = user_result.scalar_one_or_none()
             if email:
                 sent = await self.email.send_email(

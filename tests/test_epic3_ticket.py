@@ -26,3 +26,4 @@ def test_ticket_pdf_starts_with_pdf_header():
         qr_image_relative=None,
     )
     assert raw[:5] == b"%PDF-"
+

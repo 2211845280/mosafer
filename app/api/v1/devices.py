@@ -37,7 +37,9 @@ async def register_device(
     db: AsyncSession = Depends(get_db),
 ) -> DeviceRegisterResponse:
     """Register or update a device token for push notifications."""
-    result = await db.execute(select(DeviceToken).where(DeviceToken.token == body.token))
+    result = await db.execute(
+        select(DeviceToken).where(DeviceToken.token == body.token)
+    )
     existing = result.scalar_one_or_none()
 
     if existing:
@@ -46,9 +48,7 @@ async def register_device(
         await db.commit()
         await db.refresh(existing)
         return DeviceRegisterResponse(
-            id=existing.id,
-            token=existing.token,
-            platform=existing.platform,
+            id=existing.id, token=existing.token, platform=existing.platform,
         )
 
     device = DeviceToken(
@@ -60,9 +60,7 @@ async def register_device(
     await db.commit()
     await db.refresh(device)
     return DeviceRegisterResponse(
-        id=device.id,
-        token=device.token,
-        platform=device.platform,
+        id=device.id, token=device.token, platform=device.platform,
     )
 
 

@@ -5,12 +5,11 @@ Revises: 4bc576b22014
 Create Date: 2026-04-01 22:47:05.083024
 
 """
-
 from collections.abc import Sequence
 
 # revision identifiers, used by Alembic.
-revision: str = "e9c8816fa3f7"
-down_revision: str | None = "4bc576b22014"
+revision: str = 'e9c8816fa3f7'
+down_revision: str | None = '4bc576b22014'
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 

@@ -113,7 +113,8 @@ async def search_flights(
 ) -> FlightSearchResponse:
     """Search flights via Mock Flight API (cached for 10 min)."""
     cache_key = (
-        f"flights:search:{origin_iata.upper()}:{destination_iata.upper()}:{departure_date}:{adults}"
+        f"flights:search:{origin_iata.upper()}:{destination_iata.upper()}"
+        f":{departure_date}:{adults}"
     )
 
     cached = await cache.get(cache_key)

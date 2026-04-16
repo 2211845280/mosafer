@@ -20,13 +20,15 @@ depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
-    op.execute("ALTER TABLE tickets RENAME COLUMN reservation_id TO booking_id")
+    op.execute('ALTER TABLE tickets RENAME COLUMN reservation_id TO booking_id')
     op.execute("ALTER INDEX ix_tickets_reservation_id RENAME TO ix_tickets_booking_id")
     op.execute("ALTER TABLE tickets RENAME COLUMN qr_payload TO qr_code")
     op.execute("ALTER TABLE tickets RENAME COLUMN created_at TO issued_at")
 
     op.execute("UPDATE tickets SET status = 'valid' WHERE status = 'issued'")
-    op.execute("UPDATE tickets SET status = 'canceled' WHERE status IN ('cancelled', 'refunded')")
+    op.execute(
+        "UPDATE tickets SET status = 'canceled' WHERE status IN ('cancelled', 'refunded')"
+    )
     op.execute(
         """UPDATE tickets SET qr_code = ticket_number
            WHERE qr_code LIKE '{%' OR qr_code IS NULL OR qr_code = ''"""
@@ -42,9 +44,7 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_index(op.f("ix_ticket_images_id"), "ticket_images", ["id"], unique=False)
-    op.create_index(
-        op.f("ix_ticket_images_ticket_id"), "ticket_images", ["ticket_id"], unique=False
-    )
+    op.create_index(op.f("ix_ticket_images_ticket_id"), "ticket_images", ["ticket_id"], unique=False)
 
     now = datetime.utcnow()
     conn = op.get_bind()
@@ -102,14 +102,8 @@ def downgrade() -> None:
     op.drop_table("ticket_images")
 
     conn = op.get_bind()
-    conn.execute(
-        sa.text(
-            "DELETE FROM role_permissions WHERE permission_id IN (SELECT id FROM permissions WHERE name IN ('tickets.download', 'tickets.upload'))"
-        )
-    )
-    conn.execute(
-        sa.text("DELETE FROM permissions WHERE name IN ('tickets.download', 'tickets.upload')")
-    )
+    conn.execute(sa.text("DELETE FROM role_permissions WHERE permission_id IN (SELECT id FROM permissions WHERE name IN ('tickets.download', 'tickets.upload'))"))
+    conn.execute(sa.text("DELETE FROM permissions WHERE name IN ('tickets.download', 'tickets.upload')"))
 
     op.execute("UPDATE tickets SET status = 'issued' WHERE status = 'valid'")
     op.execute("UPDATE tickets SET status = 'cancelled' WHERE status = 'canceled'")

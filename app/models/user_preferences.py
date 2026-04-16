@@ -22,10 +22,14 @@ class UserPreference(Base):
     home_address: Mapped[str | None] = mapped_column(String(500), nullable=True)
     home_lat: Mapped[float | None] = mapped_column(Numeric(10, 7), nullable=True)
     home_lng: Mapped[float | None] = mapped_column(Numeric(10, 7), nullable=True)
-    preferred_transport: Mapped[str] = mapped_column(String(20), default="car", nullable=False)
+    preferred_transport: Mapped[str] = mapped_column(
+        String(20), default="car", nullable=False
+    )
     language: Mapped[str] = mapped_column(String(10), default="en", nullable=False)
     currency: Mapped[str] = mapped_column(String(10), default="USD", nullable=False)
-    notification_enabled: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    notification_enabled: Mapped[bool] = mapped_column(
+        Boolean, default=True, nullable=False
+    )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(UTC),

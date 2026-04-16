@@ -52,11 +52,7 @@ class MockFlightService:
 
             dep_h, dep_m = (int(p) for p in entry["departure_time"].split(":"))
             departure_at = datetime(
-                target_date.year,
-                target_date.month,
-                target_date.day,
-                dep_h,
-                dep_m,
+                target_date.year, target_date.month, target_date.day, dep_h, dep_m,
             )
             arrival_at = departure_at + timedelta(hours=entry["duration_hours"])
 

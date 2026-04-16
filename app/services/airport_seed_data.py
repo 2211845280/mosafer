@@ -207,20 +207,14 @@ AIRPORT_SEEDS: list[dict] = [
         "terminal_info": {
             "terminals": ["T1", "T2"],
             "gates": {
-                "T1": [f"A{i}" for i in range(1, 30)]
-                + [f"B{i}" for i in range(1, 50)]
-                + [f"Z{i}" for i in range(1, 60)],
+                "T1": [f"A{i}" for i in range(1, 30)] + [f"B{i}" for i in range(1, 50)] + [f"Z{i}" for i in range(1, 60)],
                 "T2": [f"D{i}" for i in range(1, 20)] + [f"E{i}" for i in range(1, 20)],
             },
         },
         "amenities": {
             "food": ["Paulaner", "McDonald's", "Starbucks", "Rewe To Go"],
             "shops": ["Heinemann Duty Free", "Hugo Boss", "Rimowa"],
-            "lounges": [
-                "Lufthansa Senator Lounge",
-                "Lufthansa First Class Terminal",
-                "Primeclass Lounge",
-            ],
+            "lounges": ["Lufthansa Senator Lounge", "Lufthansa First Class Terminal", "Primeclass Lounge"],
         },
         "map_url": "https://www.frankfurt-airport.com/en/flights-and-transfer/airport-map.html",
     },

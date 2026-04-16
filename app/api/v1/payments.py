@@ -43,7 +43,9 @@ async def create_payment_session(
     db: AsyncSession = Depends(get_db),
 ) -> PaymentSessionResponse:
     """Create a payment session for a reservation."""
-    result = await db.execute(select(Reservation).where(Reservation.id == body.reservation_id))
+    result = await db.execute(
+        select(Reservation).where(Reservation.id == body.reservation_id)
+    )
     reservation = result.scalar_one_or_none()
     if reservation is None:
         raise HTTPException(status_code=404, detail="Reservation not found")
@@ -104,8 +106,7 @@ async def payment_webhook(
 ) -> dict:
     """Handle payment provider callback (mock: always valid)."""
     verified = await _payment_service.verify_webhook(
-        payload.model_dump(),
-        payload.signature,
+        payload.model_dump(), payload.signature,
     )
     if not verified.get("valid"):
         raise HTTPException(status_code=400, detail="Invalid webhook signature")
@@ -139,7 +140,9 @@ async def payment_webhook(
         logger.info("payment.completed", payment_id=payment.id)
     elif payload.status == "failed" and reservation:
         reservation.status = ReservationStatus.CANCELED.value
-        ticket_result = await db.execute(select(Ticket).where(Ticket.booking_id == reservation.id))
+        ticket_result = await db.execute(
+            select(Ticket).where(Ticket.booking_id == reservation.id)
+        )
         ticket = ticket_result.scalar_one_or_none()
         if ticket is not None:
             ticket.status = TicketStatus.CANCELED.value
@@ -167,7 +170,9 @@ async def get_payment(
     db: AsyncSession = Depends(get_db),
 ) -> PaymentRead:
     """Get payment status."""
-    result = await db.execute(select(Payment).where(Payment.id == payment_id))
+    result = await db.execute(
+        select(Payment).where(Payment.id == payment_id)
+    )
     payment = result.scalar_one_or_none()
     if payment is None:
         raise HTTPException(status_code=404, detail="Payment not found")
@@ -186,7 +191,9 @@ async def refund_payment(
     db: AsyncSession = Depends(get_db),
 ) -> RefundResponse:
     """Refund a completed payment and cancel the reservation."""
-    result = await db.execute(select(Payment).where(Payment.id == payment_id))
+    result = await db.execute(
+        select(Payment).where(Payment.id == payment_id)
+    )
     payment = result.scalar_one_or_none()
     if payment is None:
         raise HTTPException(status_code=404, detail="Payment not found")
@@ -208,7 +215,9 @@ async def refund_payment(
     reservation = res_result.scalar_one_or_none()
     if reservation:
         reservation.status = ReservationStatus.CANCELED.value
-        ticket_result = await db.execute(select(Ticket).where(Ticket.booking_id == reservation.id))
+        ticket_result = await db.execute(
+            select(Ticket).where(Ticket.booking_id == reservation.id)
+        )
         ticket = ticket_result.scalar_one_or_none()
         if ticket is not None:
             ticket.status = TicketStatus.CANCELED.value

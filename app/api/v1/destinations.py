@@ -37,7 +37,9 @@ async def get_destination_tips(
         logger.debug("destination_tips.cache_hit", iata=iata_upper)
         return DestinationTipsResult(**cached)
 
-    result = await db.execute(select(Airport).where(Airport.iata_code == iata_upper))
+    result = await db.execute(
+        select(Airport).where(Airport.iata_code == iata_upper)
+    )
     airport = result.scalar_one_or_none()
     if airport is None:
         raise HTTPException(

@@ -30,5 +30,7 @@ def build_tips_prompt(
     country: str,
     iata: str,
 ) -> tuple[str, str]:
-    user_msg = f"Give me travel tips for {city}, {country} (airport code: {iata})."
+    user_msg = (
+        f"Give me travel tips for {city}, {country} (airport code: {iata})."
+    )
     return _SYSTEM, user_msg

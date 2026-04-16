@@ -28,7 +28,9 @@ _SPEED_KMH: dict[TransportMode, float] = {
 
 def _haversine(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
     """Return straight-line distance in km between two coordinates."""
-    rlat1, rlng1, rlat2, rlng2 = (math.radians(v) for v in (lat1, lng1, lat2, lng2))
+    rlat1, rlng1, rlat2, rlng2 = (
+        math.radians(v) for v in (lat1, lng1, lat2, lng2)
+    )
     dlat = rlat2 - rlat1
     dlng = rlng2 - rlng1
     a = math.sin(dlat / 2) ** 2 + math.cos(rlat1) * math.cos(rlat2) * math.sin(dlng / 2) ** 2
