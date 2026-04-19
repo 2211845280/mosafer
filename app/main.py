@@ -98,10 +98,21 @@ async def request_size_limit_middleware(request: Request, call_next):
 @app.middleware("http")
 async def security_headers_middleware(request: Request, call_next):
     response = await call_next(request)
+    default_csp = "default-src 'self'"
+    docs_csp = (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+        "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+        "img-src 'self' data: https://fastapi.tiangolo.com"
+    )
+    if request.url.path in ("/docs", "/docs/oauth2-redirect"):
+        csp_value = docs_csp
+    else:
+        csp_value = default_csp
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
-    response.headers["Content-Security-Policy"] = "default-src 'self'"
+    response.headers["Content-Security-Policy"] = csp_value
     return response
 
 
