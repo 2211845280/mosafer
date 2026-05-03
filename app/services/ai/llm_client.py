@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import base64
 import json
 
 import structlog
@@ -65,6 +66,45 @@ class LLMClient:
         )
         raw = response.choices[0].message.content or "{}"
         logger.info("llm.chat_json.done", model=model, tokens=response.usage.total_tokens if response.usage else 0)
+        return json.loads(raw)
+
+    async def chat_json_with_image(
+        self,
+        system_prompt: str,
+        user_message: str,
+        *,
+        image_bytes: bytes,
+        image_mime_type: str,
+        model: str = "gpt-4o-mini",
+        temperature: float = 0.2,
+        max_tokens: int = 2048,
+    ) -> dict:
+        """Send a multimodal chat request expecting a JSON response."""
+        logger.info("llm.chat_json_with_image.start", model=model, mime=image_mime_type)
+        image_b64 = base64.b64encode(image_bytes).decode("ascii")
+        image_url = f"data:{image_mime_type};base64,{image_b64}"
+        response = await self._client.chat.completions.create(
+            model=model,
+            temperature=temperature,
+            max_tokens=max_tokens,
+            response_format={"type": "json_object"},
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": user_message},
+                        {"type": "image_url", "image_url": {"url": image_url}},
+                    ],
+                },
+            ],
+        )
+        raw = response.choices[0].message.content or "{}"
+        logger.info(
+            "llm.chat_json_with_image.done",
+            model=model,
+            tokens=response.usage.total_tokens if response.usage else 0,
+        )
         return json.loads(raw)
 
 

@@ -1,7 +1,7 @@
 """Ticket API (Epic 3 — local ticketing)."""
 
 import json
-from datetime import datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from uuid import uuid4
 
@@ -25,12 +25,15 @@ from app.schemas.tickets import (
     FlightSummaryForTicket,
     QRScanRequest,
     QRScanResponse,
+    TicketImageDBMatch,
+    TicketImageScanResponse,
     TicketListItem,
     TicketRead,
     TicketReportResponse,
     TicketValidationResponse,
     ticket_list_item,
 )
+from app.services.ai.ticket_image_analyzer import analyze_ticket_image
 
 router = APIRouter()
 
@@ -80,6 +83,27 @@ async def _load_ticket_for_user(
     if ticket.booking.user_id != user.id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not your ticket")
     return ticket
+
+
+def _to_db_match(ticket: Ticket) -> TicketImageDBMatch:
+    booking = ticket.booking
+    flight = booking.flight
+    return TicketImageDBMatch(
+        ticket_number=ticket.ticket_number,
+        ticket_status=ticket.status,
+        reservation_id=booking.id,
+        reservation_status=booking.status,
+        flight=FlightSummaryForTicket(
+            carrier_code=flight.carrier_code,
+            flight_number=flight.flight_number,
+            origin_iata=flight.origin_iata,
+            destination_iata=flight.destination_iata,
+            departure_at=flight.departure_at,
+            arrival_at=flight.arrival_at,
+            seat=booking.seat,
+        ),
+        issued_at=ticket.issued_at,
+    )
 
 
 @router.get(
@@ -418,4 +442,124 @@ async def scan_ticket_qr(
             seat=booking.seat,
         ),
         issued_at=ticket.issued_at,
+    )
+
+
+@router.post(
+    "/tickets/scan-image",
+    response_model=TicketImageScanResponse,
+    dependencies=[Depends(require_permission("tickets.view"))],
+)
+async def scan_ticket_image(
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+) -> TicketImageScanResponse:
+    """Analyze a ticket image, warn invalid/expired, and return extracted data."""
+    allowed = {"image/jpeg", "image/png", "image/webp"}
+    if file.content_type not in allowed:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Unsupported file type",
+        )
+
+    content = await file.read()
+    if len(content) > settings.TICKET_IMAGE_ANALYSIS_MAX_SIZE_BYTES:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="File too large",
+        )
+    if not has_valid_magic_bytes(content, file.content_type):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="File content does not match declared type",
+        )
+
+    analysis = await analyze_ticket_image(content, file.content_type)
+    warnings = list(analysis.warnings)
+
+    if not analysis.looks_like_ticket:
+        if not warnings:
+            warnings.append("This image does not look like a valid ticket.")
+        return TicketImageScanResponse(
+            decision="invalid_ticket",
+            warnings=warnings,
+            normalized_ticket_number=analysis.normalized_ticket_number,
+            extracted_fields=analysis.extracted_fields,
+            field_confidence=analysis.field_confidence,
+            raw_text=analysis.raw_text,
+        )
+
+    if not analysis.normalized_ticket_number:
+        warnings.append("Ticket number could not be detected from the image.")
+        return TicketImageScanResponse(
+            decision="invalid_ticket",
+            warnings=warnings,
+            normalized_ticket_number=None,
+            extracted_fields=analysis.extracted_fields,
+            field_confidence=analysis.field_confidence,
+            raw_text=analysis.raw_text,
+        )
+
+    result = await db.execute(
+        select(Ticket)
+        .options(selectinload(Ticket.booking).selectinload(Reservation.flight))
+        .where(Ticket.ticket_number == analysis.normalized_ticket_number),
+    )
+    ticket = result.scalar_one_or_none()
+    if ticket is None:
+        warnings.append("No matching ticket was found in our records.")
+        return TicketImageScanResponse(
+            decision="invalid_ticket",
+            warnings=warnings,
+            normalized_ticket_number=analysis.normalized_ticket_number,
+            extracted_fields=analysis.extracted_fields,
+            field_confidence=analysis.field_confidence,
+            raw_text=analysis.raw_text,
+        )
+
+    if ticket.status != TicketStatus.VALID.value:
+        warnings.append("Ticket is not currently valid for check-in.")
+        return TicketImageScanResponse(
+            decision="invalid_ticket",
+            warnings=warnings,
+            normalized_ticket_number=analysis.normalized_ticket_number,
+            extracted_fields=analysis.extracted_fields,
+            field_confidence=analysis.field_confidence,
+            raw_text=analysis.raw_text,
+            db_match=_to_db_match(ticket),
+        )
+
+    departure_at = ticket.booking.flight.departure_at
+    if departure_at.tzinfo is None:
+        warnings.append("Departure time timezone is missing; cannot evaluate ticket expiry safely.")
+        return TicketImageScanResponse(
+            decision="invalid_ticket",
+            warnings=warnings,
+            normalized_ticket_number=analysis.normalized_ticket_number,
+            extracted_fields=analysis.extracted_fields,
+            field_confidence=analysis.field_confidence,
+            raw_text=analysis.raw_text,
+            db_match=_to_db_match(ticket),
+        )
+    expiry_deadline = departure_at + timedelta(minutes=settings.TICKET_EXPIRY_GRACE_MINUTES)
+    if datetime.now(UTC) > expiry_deadline:
+        warnings.append("Ticket is expired and can no longer be used.")
+        return TicketImageScanResponse(
+            decision="expired_ticket",
+            warnings=warnings,
+            normalized_ticket_number=analysis.normalized_ticket_number,
+            extracted_fields=analysis.extracted_fields,
+            field_confidence=analysis.field_confidence,
+            raw_text=analysis.raw_text,
+            db_match=_to_db_match(ticket),
+        )
+
+    return TicketImageScanResponse(
+        decision="valid_ticket",
+        warnings=warnings,
+        normalized_ticket_number=analysis.normalized_ticket_number,
+        extracted_fields=analysis.extracted_fields,
+        field_confidence=analysis.field_confidence,
+        raw_text=analysis.raw_text,
+        db_match=_to_db_match(ticket),
     )

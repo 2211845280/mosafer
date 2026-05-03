@@ -94,6 +94,59 @@ Protected endpoints require JWT bearer token:
 - Success `200`: ticket + reservation + flight summary.
 - Common errors: `400` malformed QR payload, `404` ticket not found.
 
+### Scan Ticket Image (Upload or Camera Capture)
+
+- `POST /api/v1/tickets/scan-image`
+- Requires permission: `tickets.view`
+- Request: `multipart/form-data` with file field name `file`
+- Allowed MIME types: `image/jpeg`, `image/png`, `image/webp`
+- Decision values in success `200` response:
+  - `invalid_ticket`: image is not a valid ticket, cannot detect ticket number, ticket not found, or ticket is not in `valid` status
+  - `expired_ticket`: ticket exists and is valid, but `now > departure_at + TICKET_EXPIRY_GRACE_MINUTES` (default 30)
+  - `valid_ticket`: ticket exists, status is `valid`, and not expired
+- Success `200` (example):
+```json
+{
+  "decision": "valid_ticket",
+  "warnings": [],
+  "normalized_ticket_number": "TN1234ABCD",
+  "extracted_fields": {
+    "ticket_number": "TN1234ABCD",
+    "passenger_name": "John Doe",
+    "carrier_code": "MS",
+    "flight_number": "123",
+    "origin_iata": "CAI",
+    "destination_iata": "DXB",
+    "departure_at": "2026-08-01T10:00:00Z",
+    "arrival_at": "2026-08-01T13:00:00Z",
+    "seat": "12A",
+    "ticket_status_hint": "valid"
+  },
+  "field_confidence": {
+    "ticket_number": 0.98,
+    "departure_at": 0.9
+  },
+  "raw_text": "MS 123 CAI DXB ...",
+  "db_match": {
+    "ticket_number": "TN1234ABCD",
+    "ticket_status": "valid",
+    "reservation_id": 10,
+    "reservation_status": "booked",
+    "flight": {
+      "carrier_code": "MS",
+      "flight_number": "123",
+      "origin_iata": "CAI",
+      "destination_iata": "DXB",
+      "departure_at": "2026-08-01T10:00:00Z",
+      "arrival_at": "2026-08-01T13:00:00Z",
+      "seat": "12A"
+    },
+    "issued_at": "2026-07-31T10:00:00Z"
+  }
+}
+```
+- Common errors: `400` unsupported image type, oversized upload, invalid file content signature.
+
 ---
 
 ## Payments

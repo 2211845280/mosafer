@@ -1,6 +1,7 @@
 """Pydantic schemas for tickets."""
 
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -67,6 +68,59 @@ class QRScanResponse(BaseModel):
     reservation_status: str
     flight: FlightSummaryForTicket
     issued_at: datetime
+
+
+class TicketImageExtractedFields(BaseModel):
+    """Structured fields extracted from a ticket image."""
+
+    ticket_number: str | None = None
+    passenger_name: str | None = None
+    carrier_code: str | None = None
+    flight_number: str | None = None
+    origin_iata: str | None = None
+    destination_iata: str | None = None
+    departure_at: datetime | None = None
+    arrival_at: datetime | None = None
+    seat: str | None = None
+    ticket_status_hint: str | None = None
+
+
+class TicketImageAnalysisResult(BaseModel):
+    """Raw LLM analysis response prior to DB validation."""
+
+    looks_like_ticket: bool = False
+    warnings: list[str] = Field(default_factory=list)
+    normalized_ticket_number: str | None = None
+    extracted_fields: TicketImageExtractedFields = Field(
+        default_factory=TicketImageExtractedFields
+    )
+    field_confidence: dict[str, float] = Field(default_factory=dict)
+    raw_text: str = ""
+
+
+class TicketImageDBMatch(BaseModel):
+    """Ticket and flight info loaded from DB when a match exists."""
+
+    ticket_number: str
+    ticket_status: str
+    reservation_id: int
+    reservation_status: str
+    flight: FlightSummaryForTicket
+    issued_at: datetime
+
+
+class TicketImageScanResponse(BaseModel):
+    """Decision response for image-based ticket scan."""
+
+    decision: Literal["invalid_ticket", "expired_ticket", "valid_ticket"]
+    warnings: list[str] = Field(default_factory=list)
+    normalized_ticket_number: str | None = None
+    extracted_fields: TicketImageExtractedFields = Field(
+        default_factory=TicketImageExtractedFields
+    )
+    field_confidence: dict[str, float] = Field(default_factory=dict)
+    raw_text: str = ""
+    db_match: TicketImageDBMatch | None = None
 
 
 def flight_summary_from_booking(booking) -> FlightSummaryForTicket:

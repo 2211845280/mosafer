@@ -57,9 +57,25 @@ class Settings(BaseSettings):
         default=5 * 1024 * 1024,
         description="Maximum ticket attachment upload size",
     )
+    TICKET_IMAGE_ANALYSIS_MAX_SIZE_BYTES: int = Field(
+        default=5 * 1024 * 1024,
+        description="Maximum image size for AI ticket analysis uploads",
+    )
+    TICKET_EXPIRY_GRACE_MINUTES: int = Field(
+        default=30,
+        description="Extra minutes after departure before a ticket is considered expired",
+    )
+    TICKET_IMAGE_ANALYSIS_MODEL: str = Field(
+        default="gpt-4o-mini",
+        description="OpenAI model used to analyze uploaded ticket images",
+    )
     CORS_ORIGINS: str = Field(
         default="http://localhost:3000,http://localhost:5173",
         description="Comma-separated list of allowed CORS origins (use * for all)",
+    )
+    CORS_ORIGIN_REGEX: str | None = Field(
+        default=None,
+        description="Optional regex for allowed CORS origins",
     )
     REDIS_URL: str = Field(
         default="redis://localhost:6379/0",
@@ -127,6 +143,15 @@ class Settings(BaseSettings):
         if self.CORS_ORIGINS.strip() == "*":
             return ["*"]
         return [o.strip() for o in self.CORS_ORIGINS.split(",") if o.strip()]
+
+    @property
+    def cors_origin_regex(self) -> str | None:
+        """Allow Flutter Web and other local dev servers that use random ports."""
+        if self.CORS_ORIGIN_REGEX:
+            return self.CORS_ORIGIN_REGEX.strip() or None
+        if self.is_development:
+            return r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$"
+        return None
 
     @property
     def database_url_async(self) -> str:
