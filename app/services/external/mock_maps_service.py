@@ -12,6 +12,7 @@ from datetime import datetime
 import structlog
 
 from app.schemas.departure_plan import DirectionsResult, TrafficLevel, TransportMode
+from app.services.external.polyline import encode_polyline
 
 logger = structlog.get_logger(__name__)
 
@@ -84,4 +85,12 @@ class MockMapsService:
             distance_km=road_km,
             mode=mode,
             traffic_level=traffic_level,
+            encoded_polyline=encode_polyline(
+                [(origin_lat, origin_lng), (dest_lat, dest_lng)],
+            ),
+            provider="mock",
+            origin_lat=origin_lat,
+            origin_lng=origin_lng,
+            destination_lat=dest_lat,
+            destination_lng=dest_lng,
         )

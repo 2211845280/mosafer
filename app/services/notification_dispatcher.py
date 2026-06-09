@@ -83,7 +83,7 @@ class NotificationDispatcher:
                 logger.info(
                     "dispatcher.push_sent",
                     user_id=user_id,
-                    event=event_type,
+                    event_type=event_type,
                     tokens=len(tokens),
                     successes=sent,
                 )
@@ -102,6 +102,6 @@ class NotificationDispatcher:
                 logger.info(
                     "dispatcher.email_sent",
                     user_id=user_id,
-                    event=event_type,
+                    event_type=event_type,
                     success=sent,
                 )

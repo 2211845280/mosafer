@@ -26,12 +26,19 @@ transport arrangements, device charging, and day-of tasks.
 - Be specific and actionable."""
 
 
+def _language_instruction(locale: str) -> str:
+    if locale == "ar":
+        return "\nWrite all title and description fields in Modern Standard Arabic."
+    return "\nWrite all title and description fields in English."
+
+
 def build_timeline_prompt(
     destination_city: str,
     destination_country: str,
     origin_country: str,
     departure_date: str,
     trip_duration_days: int,
+    locale: str = "en",
 ) -> tuple[str, str]:
     user_msg = (
         f"I'm traveling from {origin_country} to {destination_city}, {destination_country}.\n"
@@ -39,4 +46,4 @@ def build_timeline_prompt(
         f"Trip duration: {trip_duration_days} days.\n"
         f"Create a preparation timeline."
     )
-    return _SYSTEM, user_msg
+    return _SYSTEM + _language_instruction(locale), user_msg

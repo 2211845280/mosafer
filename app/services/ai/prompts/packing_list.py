@@ -22,6 +22,12 @@ or hard to find at the destination; essential documents; medication; power adapt
 - Keep each category to 5-10 items. Be specific (brand-level when relevant)."""
 
 
+def _language_instruction(locale: str) -> str:
+    if locale == "ar":
+        return "\nWrite all title and note fields in Modern Standard Arabic."
+    return "\nWrite all title and note fields in English."
+
+
 def build_packing_prompt(
     destination_city: str,
     destination_country: str,
@@ -29,6 +35,7 @@ def build_packing_prompt(
     trip_duration_days: int,
     travel_dates: str,
     season: str,
+    locale: str = "en",
 ) -> tuple[str, str]:
     user_msg = (
         f"I'm traveling from {origin_country} to {destination_city}, {destination_country}.\n"
@@ -37,4 +44,4 @@ def build_packing_prompt(
         f"Season at destination: {season}.\n"
         f"What should I pack?"
     )
-    return _SYSTEM, user_msg
+    return _SYSTEM + _language_instruction(locale), user_msg

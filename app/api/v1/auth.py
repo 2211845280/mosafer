@@ -6,7 +6,8 @@ from datetime import UTC, datetime, timedelta
 from typing import Annotated
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi.responses import RedirectResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
@@ -24,20 +25,29 @@ from app.models.roles import Role
 from app.models.users import User
 from app.schemas.auth import (
     EmailVerifyResponse,
+    ForgotPasswordRequest,
+    ForgotPasswordResponse,
     LoginRequest,
     LoginResponse,
     LogoutResponse,
     RefreshRequest,
     RegisterRequest,
     RegisterResponse,
+    ResetPasswordRequest,
+    ResetPasswordResponse,
     TokenResponse,
 )
 from app.services.auth_service import authenticate_user
+from app.services.external.email_service import get_email_service
 
 router = APIRouter()
 
 
 def _hash_refresh_token(raw_token: str) -> str:
+    return hashlib.sha256(raw_token.encode()).hexdigest()
+
+
+def _hash_password_reset_token(raw_token: str) -> str:
     return hashlib.sha256(raw_token.encode()).hexdigest()
 
 
@@ -93,13 +103,37 @@ async def register(
         account_status="active",
     )
     db.add(passenger)
+    await db.flush()
+
+    api_base = settings.API_PUBLIC_URL.rstrip("/")
+    verify_url = f"{api_base}/api/v1/auth/verify-email?token={verification_token}"
+    email_sent, email_fail_reason = await get_email_service().send_email_verification(
+        str(user.email),
+        verify_url,
+    )
+
+    if not email_sent and settings.is_production:
+        await db.rollback()
+        detail = "Could not send verification email. Please try again later."
+        if email_fail_reason == "smtp_auth":
+            detail = "Email delivery failed: SMTP authentication error."
+        elif email_fail_reason == "smtp_connection":
+            detail = "Email delivery failed: could not connect to SMTP server."
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=detail,
+        )
+
     await db.commit()
     await db.refresh(user)
+
+    dev_link = verify_url if not email_sent and settings.is_development else None
 
     return RegisterResponse(
         message="Registration successful. Please verify your email.",
         user_id=user.id,
         email=user.email,
+        verification_link=dev_link,
     )
 
 
@@ -214,12 +248,7 @@ async def logout(
     return LogoutResponse(message="Logout successful")
 
 
-@router.post("/verify-email", response_model=EmailVerifyResponse)
-async def verify_email(
-    token: str = Query(..., description="Email verification token"),
-    db: AsyncSession = Depends(get_db),
-) -> EmailVerifyResponse:
-    """Verify a user's email address using the token generated at registration."""
+async def _verify_email_token(token: str, db: AsyncSession) -> EmailVerifyResponse:
     result = await db.execute(
         select(User).where(User.email_verification_token == token)
     )
@@ -233,3 +262,116 @@ async def verify_email(
     user.email_verification_token = None
     await db.commit()
     return EmailVerifyResponse(message="Email verified successfully")
+
+
+@router.post("/verify-email", response_model=EmailVerifyResponse)
+async def verify_email(
+    token: str = Query(..., description="Email verification token"),
+    db: AsyncSession = Depends(get_db),
+) -> EmailVerifyResponse:
+    """Verify a user's email address using the token generated at registration."""
+    return await _verify_email_token(token, db)
+
+
+@router.get("/verify-email")
+async def verify_email_link(
+    token: str = Query(..., description="Email verification token"),
+    db: AsyncSession = Depends(get_db),
+) -> RedirectResponse:
+    """Browser-friendly verification link from email; redirects to the web app."""
+    await _verify_email_token(token, db)
+    web = settings.WEB_APP_URL.rstrip("/")
+    return RedirectResponse(url=f"{web}/en/login?verified=1", status_code=302)
+
+
+_FORGOT_PASSWORD_MESSAGE = (
+    "If an account with that email exists, a password reset link has been sent."
+)
+
+
+@router.post("/forgot-password", response_model=ForgotPasswordResponse)
+@limiter.limit("5/minute")
+async def forgot_password(
+    request: Request,
+    data: ForgotPasswordRequest,
+    db: AsyncSession = Depends(get_db),
+) -> ForgotPasswordResponse:
+    """Request a password reset email. Always returns a generic success message."""
+    result = await db.execute(select(User).where(User.email == data.email))
+    user = result.scalar_one_or_none()
+    reset_link: str | None = None
+
+    if user is not None and user.is_active:
+        raw_token = secrets.token_urlsafe(48)
+        user.password_reset_token_hash = _hash_password_reset_token(raw_token)
+        user.password_reset_expires_at = datetime.now(UTC) + timedelta(
+            minutes=settings.PASSWORD_RESET_EXPIRE_MINUTES,
+        )
+        db.add(user)
+        await db.flush()
+
+        api_base = settings.API_PUBLIC_URL.rstrip("/")
+        reset_url = f"{api_base}/api/v1/auth/reset-password?token={raw_token}"
+        email_sent, _ = await get_email_service().send_password_reset(
+            str(user.email),
+            reset_url,
+        )
+        if not email_sent and settings.is_development:
+            reset_link = reset_url
+        await db.commit()
+
+    return ForgotPasswordResponse(
+        message=_FORGOT_PASSWORD_MESSAGE,
+        reset_link=reset_link,
+    )
+
+
+async def _reset_password_with_token(
+    token: str,
+    new_password: str,
+    db: AsyncSession,
+) -> ResetPasswordResponse:
+    token_hash = _hash_password_reset_token(token)
+    result = await db.execute(
+        select(User).where(User.password_reset_token_hash == token_hash)
+    )
+    user = result.scalar_one_or_none()
+    if user is None:
+        raise HTTPException(status_code=400, detail="Invalid or expired reset token")
+    if (
+        user.password_reset_expires_at is None
+        or user.password_reset_expires_at < datetime.now(UTC)
+    ):
+        user.password_reset_token_hash = None
+        user.password_reset_expires_at = None
+        await db.commit()
+        raise HTTPException(status_code=400, detail="Invalid or expired reset token")
+
+    user.password_hash = hash_password(new_password)
+    user.password_reset_token_hash = None
+    user.password_reset_expires_at = None
+    await db.commit()
+    return ResetPasswordResponse(message="Password reset successfully")
+
+
+@router.post("/reset-password", response_model=ResetPasswordResponse)
+@limiter.limit("10/minute")
+async def reset_password(
+    request: Request,
+    data: ResetPasswordRequest,
+    db: AsyncSession = Depends(get_db),
+) -> ResetPasswordResponse:
+    """Set a new password using a valid reset token."""
+    return await _reset_password_with_token(data.token, data.new_password, db)
+
+
+@router.get("/reset-password")
+async def reset_password_link(
+    token: str = Query(..., description="Password reset token"),
+) -> RedirectResponse:
+    """Browser-friendly reset link from email; redirects to the web app."""
+    web = settings.WEB_APP_URL.rstrip("/")
+    return RedirectResponse(
+        url=f"{web}/en/reset-password?token={token}",
+        status_code=302,
+    )

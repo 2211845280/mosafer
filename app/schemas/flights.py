@@ -68,11 +68,15 @@ class FlightOfferRead(BaseModel):
     origin_iata: str
     destination_iata: str
     carrier_code: str
+    carrier_name: str | None = None
     flight_number: str
     departure_at: datetime
     arrival_at: datetime
     total_price: Decimal | None = None
     currency: str | None = None
+    cabin_class: str | None = None
+    baggage_allowance: str | None = None
+    departure_terminal: str | None = None
     source: str = "mock"
 
 
@@ -81,3 +85,11 @@ class FlightSearchResponse(BaseModel):
     total: int
     skip: int
     limit: int
+
+
+class FlightSeatAvailabilityRead(BaseModel):
+    provider_flight_id: str
+    rows: int
+    columns: list[str]
+    available_seats: list[str]
+    taken_seats: list[str]

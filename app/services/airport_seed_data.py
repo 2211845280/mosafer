@@ -6,7 +6,28 @@ lat/lng, terminal info, amenities, and map URLs.
 
 from __future__ import annotations
 
+from app.services.istanbul_gate_data import IST_DEMO_GATES
+
 AIRPORT_SEEDS: list[dict] = [
+    {
+        "iata_code": "MJI",
+        "name": "Mitiga International Airport",
+        "city": "Tripoli",
+        "country": "Libya",
+        "timezone": "Africa/Tripoli",
+        "latitude": 32.8941,
+        "longitude": 13.2760,
+        "terminal_info": {
+            "terminals": ["Main Terminal"],
+            "gates": {"Main Terminal": [f"G{i}" for i in range(1, 15)]},
+        },
+        "amenities": {
+            "food": ["Cafe", "Snack Bar"],
+            "shops": ["Duty Free"],
+            "lounges": [],
+        },
+        "map_url": None,
+    },
     {
         "iata_code": "AMM",
         "name": "Queen Alia International Airport",
@@ -58,7 +79,7 @@ AIRPORT_SEEDS: list[dict] = [
         "longitude": 28.7519,
         "terminal_info": {
             "terminals": ["Main Terminal"],
-            "gates": {"Main Terminal": [f"G{i}" for i in range(1, 80)]},
+            "gates": {"Main Terminal": list(IST_DEMO_GATES)},
         },
         "amenities": {
             "food": ["Starbucks", "Burger King", "Turkish Kitchen"],
@@ -217,5 +238,190 @@ AIRPORT_SEEDS: list[dict] = [
             "lounges": ["Lufthansa Senator Lounge", "Lufthansa First Class Terminal", "Primeclass Lounge"],
         },
         "map_url": "https://www.frankfurt-airport.com/en/flights-and-transfer/airport-map.html",
+    },
+    {
+        "iata_code": "BKK",
+        "name": "Suvarnabhumi Airport",
+        "city": "Bangkok",
+        "country": "Thailand",
+        "timezone": "Asia/Bangkok",
+        "latitude": 13.6900,
+        "longitude": 100.7501,
+        "terminal_info": {
+            "terminals": ["Main Terminal"],
+            "gates": {"Main Terminal": [f"G{i}" for i in range(1, 60)]},
+        },
+        "amenities": {
+            "food": ["Starbucks", "McDonald's", "Pret A Manger"],
+            "shops": ["King Power Duty Free", "Hermès"],
+            "lounges": ["Royal Silk Lounge", "Miracle Lounge"],
+        },
+        "map_url": "https://www.bangkokairportonline.com/map",
+    },
+    {
+        "iata_code": "SIN",
+        "name": "Changi Airport",
+        "city": "Singapore",
+        "country": "Singapore",
+        "timezone": "Asia/Singapore",
+        "latitude": 1.3644,
+        "longitude": 103.9915,
+        "terminal_info": {
+            "terminals": ["T1", "T2", "T3", "T4"],
+            "gates": {
+                "T1": [f"C{i}" for i in range(1, 40)],
+                "T3": [f"A{i}" for i in range(1, 30)],
+            },
+        },
+        "amenities": {
+            "food": ["Killiney Kopitiam", "Burger King", "Toast Box"],
+            "shops": ["Changi Recommends", "Duty Free"],
+            "lounges": ["KrisFlyer Gold Lounge", "Plaza Premium Lounge"],
+        },
+        "map_url": "https://www.changiairport.com/en/at-changi/map.html",
+    },
+    {
+        "iata_code": "KUL",
+        "name": "Kuala Lumpur International Airport",
+        "city": "Kuala Lumpur",
+        "country": "Malaysia",
+        "timezone": "Asia/Kuala_Lumpur",
+        "latitude": 2.7456,
+        "longitude": 101.7072,
+        "terminal_info": {
+            "terminals": ["KLIA", "KLIA2"],
+            "gates": {
+                "KLIA": [f"C{i}" for i in range(1, 40)],
+                "KLIA2": [f"J{i}" for i in range(1, 30)],
+            },
+        },
+        "amenities": {
+            "food": ["OldTown White Coffee", "McDonald's"],
+            "shops": ["Eraman Duty Free", "Harrods"],
+            "lounges": ["Golden Lounge", "Plaza Premium Lounge"],
+        },
+        "map_url": "https://www.klia.com.my/en/map",
+    },
+    {
+        "iata_code": "CGK",
+        "name": "Soekarno-Hatta International Airport",
+        "city": "Jakarta",
+        "country": "Indonesia",
+        "timezone": "Asia/Jakarta",
+        "latitude": -6.1256,
+        "longitude": 106.6559,
+        "terminal_info": {
+            "terminals": ["T1", "T2", "T3"],
+            "gates": {
+                "T3": [f"D{i}" for i in range(1, 30)],
+            },
+        },
+        "amenities": {
+            "food": ["Starbucks", "Burger King"],
+            "shops": ["Duty Free", "Planet Sport"],
+            "lounges": ["Garuda Indonesia Lounge", "Pearl Lounge"],
+        },
+        "map_url": None,
+    },
+    {
+        "iata_code": "MNL",
+        "name": "Ninoy Aquino International Airport",
+        "city": "Manila",
+        "country": "Philippines",
+        "timezone": "Asia/Manila",
+        "latitude": 14.5086,
+        "longitude": 121.0198,
+        "terminal_info": {
+            "terminals": ["T1", "T2", "T3"],
+            "gates": {
+                "T3": [f"G{i}" for i in range(100, 130)],
+            },
+        },
+        "amenities": {
+            "food": ["Jollibee", "Starbucks"],
+            "shops": ["Duty Free Philippines"],
+            "lounges": ["Mabuhay Lounge", "PAGSS Lounge"],
+        },
+        "map_url": None,
+    },
+    {
+        "iata_code": "HAN",
+        "name": "Noi Bai International Airport",
+        "city": "Hanoi",
+        "country": "Vietnam",
+        "timezone": "Asia/Ho_Chi_Minh",
+        "latitude": 21.2212,
+        "longitude": 105.8072,
+        "terminal_info": {
+            "terminals": ["T1", "T2"],
+            "gates": {
+                "T2": [f"A{i}" for i in range(1, 25)],
+            },
+        },
+        "amenities": {
+            "food": ["Highlands Coffee", "Lotteria"],
+            "shops": ["Duty Free", "Lotte Duty Free"],
+            "lounges": ["Lotus Lounge", "CIP Lounge"],
+        },
+        "map_url": None,
+    },
+    {
+        "iata_code": "SGN",
+        "name": "Tan Son Nhat International Airport",
+        "city": "Ho Chi Minh City",
+        "country": "Vietnam",
+        "timezone": "Asia/Ho_Chi_Minh",
+        "latitude": 10.8188,
+        "longitude": 106.6520,
+        "terminal_info": {
+            "terminals": ["T1", "T2", "T3"],
+            "gates": {
+                "T2": [f"D{i}" for i in range(1, 20)],
+            },
+        },
+        "amenities": {
+            "food": ["Pho 24", "Starbucks"],
+            "shops": ["Saigon Duty Free"],
+            "lounges": ["Le Saigonnais Lounge", "CIP Lounge"],
+        },
+        "map_url": None,
+    },
+    {
+        "iata_code": "DPS",
+        "name": "Ngurah Rai International Airport",
+        "city": "Bali",
+        "country": "Indonesia",
+        "timezone": "Asia/Makassar",
+        "latitude": -8.7482,
+        "longitude": 115.1672,
+        "terminal_info": {
+            "terminals": ["International Terminal"],
+            "gates": {"International Terminal": [f"G{i}" for i in range(1, 20)]},
+        },
+        "amenities": {
+            "food": ["Starbucks", "Hard Rock Cafe"],
+            "shops": ["Duty Free", "DFS"],
+            "lounges": ["Premier Lounge", "JAS Lounge"],
+        },
+        "map_url": None,
+    },
+    {
+        "iata_code": "PNH",
+        "name": "Phnom Penh International Airport",
+        "city": "Phnom Penh",
+        "country": "Cambodia",
+        "timezone": "Asia/Phnom_Penh",
+        "latitude": 11.5466,
+        "longitude": 104.8440,
+        "terminal_info": {
+            "terminals": ["International Terminal"],
+            "gates": {"International Terminal": [f"G{i}" for i in range(1, 15)]},
+        },
+        "amenities": {
+            "food": ["Coffee Corner", "Burger King"],
+            "shops": ["Duty Free"],
+            "lounges": ["CIP Lounge"],
+        },
+        "map_url": None,
     },
 ]

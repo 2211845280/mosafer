@@ -13,10 +13,16 @@ class Payment(Base):
     __tablename__ = "payments"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    reservation_id: Mapped[int] = mapped_column(
+    reservation_id: Mapped[int | None] = mapped_column(
         Integer,
         ForeignKey("reservations.id", ondelete="CASCADE"),
-        nullable=False,
+        nullable=True,
+        index=True,
+    )
+    checkout_session_id: Mapped[int | None] = mapped_column(
+        Integer,
+        ForeignKey("checkout_sessions.id", ondelete="SET NULL"),
+        nullable=True,
         index=True,
     )
     user_id: Mapped[int] = mapped_column(

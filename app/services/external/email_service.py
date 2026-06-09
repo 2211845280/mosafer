@@ -1,70 +1,77 @@
-"""Resend email service for transactional emails.
+"""SMTP email service for transactional emails.
 
-Uses the real Resend Python SDK. Falls back to logging when
-RESEND_API_KEY is not configured.
+Uses aiosmtplib. In development, Mailpit captures messages locally.
+In production, configure Gmail SMTP (or any SMTP provider).
 """
 
 from __future__ import annotations
 
-import asyncio
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 from functools import lru_cache
 
+import aiosmtplib
 import structlog
 
 from app.core.config import settings
 
 logger = structlog.get_logger(__name__)
 
-_resend_ready = False
-
-
-def _ensure_resend() -> bool:
-    global _resend_ready
-    if _resend_ready:
-        return True
-
-    if not settings.RESEND_API_KEY:
-        logger.warning("email.no_api_key")
-        return False
-
-    try:
-        import resend
-
-        resend.api_key = settings.RESEND_API_KEY
-        _resend_ready = True
-        logger.info("email.resend_initialised")
-        return True
-    except Exception:
-        logger.exception("email.resend_init_failed")
-        return False
-
 
 class EmailService:
-    """Send transactional emails via Resend."""
+    """Send transactional emails via SMTP."""
 
     def __init__(self) -> None:
-        self.from_email = settings.RESEND_FROM_EMAIL
+        self.from_email = settings.SMTP_FROM
 
-    async def send_email(self, to: str, subject: str, html_body: str) -> bool:
-        if not _ensure_resend():
-            logger.warning("email.send.skipped", to=to, subject=subject)
-            return False
+    @staticmethod
+    def _failure_reason(exc: Exception | None) -> str | None:
+        if exc is None:
+            return None
+        msg = str(exc).lower()
+        if "authentication" in msg or "535" in msg:
+            return "smtp_auth"
+        if "connection" in msg or "connect" in msg:
+            return "smtp_connection"
+        return "send_failed"
+
+    async def _send_email_with_reason(
+        self,
+        to: str,
+        subject: str,
+        html_body: str,
+    ) -> tuple[bool, str | None]:
+        message = MIMEMultipart("alternative")
+        message["From"] = self.from_email
+        message["To"] = to
+        message["Subject"] = subject
+        message.attach(MIMEText(html_body, "html", "utf-8"))
 
         try:
-            import resend
+            await aiosmtplib.send(
+                message,
+                hostname=settings.SMTP_HOST,
+                port=settings.SMTP_PORT,
+                username=settings.SMTP_USER,
+                password=settings.SMTP_PASSWORD,
+                use_tls=settings.SMTP_USE_TLS,
+                start_tls=settings.SMTP_START_TLS,
+            )
+            logger.info("email.sent", to=to, subject=subject)
+            return True, None
+        except Exception as exc:
+            reason = self._failure_reason(exc)
+            logger.exception(
+                "email.send_failed",
+                to=to,
+                subject=subject,
+                failure_reason=reason,
+            )
+            return False, reason
 
-            params = {
-                "from_": self.from_email,
-                "to": [to],
-                "subject": subject,
-                "html": html_body,
-            }
-            response = await asyncio.to_thread(resend.Emails.send, params)
-            logger.info("email.sent", to=to, response_id=response.get("id") if isinstance(response, dict) else str(response))
-            return True
-        except Exception:
-            logger.exception("email.send_failed", to=to, subject=subject)
-            return False
+    async def send_email(self, to: str, subject: str, html_body: str) -> bool:
+        sent, _ = await self._send_email_with_reason(to, subject, html_body)
+        return sent
 
     async def send_booking_confirmation(
         self,
@@ -113,6 +120,43 @@ class EmailService:
         <p>Don't forget to check your packing list in the Mosafer app!</p>
         """
         return await self.send_email(to, subject, html)
+
+    async def send_email_verification(self, to: str, verify_url: str) -> tuple[bool, str | None]:
+        subject = "Verify your Mosafer email"
+        html = f"""
+        <h2>Verify your email</h2>
+        <p>Thanks for signing up. Click the link below to verify your address:</p>
+        <p><a href="{verify_url}">Verify email</a></p>
+        <p>If you did not create an account, you can ignore this message.</p>
+        """
+        sent, reason = await self._send_email_with_reason(to, subject, html)
+        if not sent:
+            logger.warning(
+                "email.verification.skipped",
+                to=to,
+                verify_url=verify_url,
+                failure_reason=reason,
+            )
+        return sent, reason
+
+    async def send_password_reset(self, to: str, reset_url: str) -> tuple[bool, str | None]:
+        subject = "Reset your Mosafer password"
+        html = f"""
+        <h2>Reset your password</h2>
+        <p>We received a request to reset your password. Click the link below:</p>
+        <p><a href="{reset_url}">Reset password</a></p>
+        <p>This link expires in {settings.PASSWORD_RESET_EXPIRE_MINUTES} minutes.</p>
+        <p>If you did not request this, you can ignore this message.</p>
+        """
+        sent, reason = await self._send_email_with_reason(to, subject, html)
+        if not sent:
+            logger.warning(
+                "email.password_reset.skipped",
+                to=to,
+                reset_url=reset_url,
+                failure_reason=reason,
+            )
+        return sent, reason
 
 
 @lru_cache(maxsize=1)

@@ -12,6 +12,7 @@ from datetime import UTC, datetime, timedelta
 import structlog
 
 from app.schemas.flight_status import FlightStatusCode, FlightStatusRead
+from app.services.istanbul_gate_data import IST_MAIN_TERMINAL, gate_for_ist_flight
 
 logger = structlog.get_logger(__name__)
 
@@ -32,6 +33,8 @@ class MockFlightStatusService:
         carrier_code: str,
         flight_number: str,
         departure_at: datetime,
+        *,
+        origin_iata: str | None = None,
     ) -> FlightStatusRead:
         now = datetime.now(UTC)
         if departure_at.tzinfo is None:
@@ -41,11 +44,16 @@ class MockFlightStatusService:
 
         seed = _seed_int(flight_number)
         delay_minutes = seed % 46
-        gate_letter = _GATE_LETTERS[seed % len(_GATE_LETTERS)]
-        gate_number = (seed % 30) + 1
-        departure_gate = f"{gate_letter}{gate_number}"
+        origin = (origin_iata or "").upper()
+        if origin == "IST":
+            departure_gate = gate_for_ist_flight(flight_number)
+            terminal = IST_MAIN_TERMINAL
+        else:
+            gate_letter = _GATE_LETTERS[seed % len(_GATE_LETTERS)]
+            gate_number = (seed % 30) + 1
+            departure_gate = f"{gate_letter}{gate_number}"
+            terminal = _TERMINALS[seed % len(_TERMINALS)]
         arrival_gate = f"{_GATE_LETTERS[(seed + 3) % len(_GATE_LETTERS)]}{(seed % 20) + 1}"
-        terminal = _TERMINALS[seed % len(_TERMINALS)]
         counter_start = (seed % 50) + 1
         check_in_counter = f"{counter_start}-{counter_start + 3}"
 

@@ -36,10 +36,11 @@ USER appuser
 # Expose port
 EXPOSE 8001
 
-# Copy and set entrypoint
-COPY docker/entrypoint.sh /entrypoint.sh
+# Entrypoint scripts (wait for DB; migrations run via compose `migrate` service)
+COPY docker/entrypoint.sh docker/entrypoint-wait-db.sh docker/entrypoint-migrate.sh /docker/
 USER root
-RUN chmod +x /entrypoint.sh
+RUN chmod +x /docker/entrypoint.sh /docker/entrypoint-wait-db.sh /docker/entrypoint-migrate.sh \
+    && ln -sf /docker/entrypoint.sh /entrypoint.sh
 USER appuser
 
 ENTRYPOINT ["/entrypoint.sh"]

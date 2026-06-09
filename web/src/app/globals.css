@@ -1,0 +1,353 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html[data-theme="dark"],
+html:not([data-theme]) {
+  --background: #061326;
+  --foreground: #d9e5ff;
+  --card: #101f36;
+  --muted: #70819d;
+  --primary: #4a91f8;
+  --primary-foreground: #061326;
+  --accent: #ffa982;
+  --shell: #071a31;
+  --surface: #0c1b31;
+  --border-subtle: rgba(255, 255, 255, 0.1);
+  --border-strong: rgba(255, 255, 255, 0.2);
+  --shadow-card: 0 20px 60px rgba(0, 0, 0, 0.45);
+  color-scheme: dark;
+}
+
+html[data-theme="light"] {
+  --background: #f4f7fc;
+  --foreground: #0f1f38;
+  --card: #ffffff;
+  --muted: #64748b;
+  --primary: #1d6fe8;
+  --primary-foreground: #ffffff;
+  --accent: #f97316;
+  --shell: #ffffff;
+  --surface: #eef2f8;
+  --border-subtle: rgba(15, 35, 64, 0.1);
+  --border-strong: rgba(15, 35, 64, 0.18);
+  --shadow-card: 0 4px 24px rgba(15, 35, 64, 0.08);
+  color-scheme: light;
+}
+
+html {
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+}
+
+html[dir="rtl"] body {
+  font-family: "Segoe UI", "Tahoma", "Arial", sans-serif;
+}
+
+@layer components {
+  .flight-hero {
+    @apply relative overflow-visible;
+  }
+
+  .flight-hero--compact {
+    @apply border-b border-border-subtle;
+  }
+
+  .flight-hero-bg {
+    @apply pointer-events-none absolute inset-0;
+    background:
+      radial-gradient(ellipse 80% 60% at 50% -10%, rgba(74, 145, 248, 0.22), transparent),
+      radial-gradient(ellipse 50% 40% at 90% 20%, rgba(255, 169, 130, 0.12), transparent),
+      linear-gradient(180deg, #0a1e38 0%, var(--background) 100%);
+    animation: hero-bg-pulse 8s ease-in-out infinite;
+  }
+
+  html[data-theme="light"] .flight-hero-bg {
+    background:
+      radial-gradient(ellipse 80% 60% at 50% -10%, rgba(37, 99, 235, 0.08), transparent),
+      radial-gradient(ellipse 50% 40% at 90% 20%, rgba(249, 115, 22, 0.06), transparent),
+      linear-gradient(180deg, #e8eef8 0%, var(--background) 100%);
+  }
+
+  .hero-title-stage {
+    @apply overflow-visible;
+  }
+
+  .hero-fade-up {
+    animation: hero-fade-up 0.65s ease-out both;
+  }
+
+  .hero-fade-up--delay-1 {
+    animation-delay: 0.15s;
+  }
+
+  .hero-fade-up--delay-2 {
+    animation-delay: 0.35s;
+  }
+
+  @keyframes hero-bg-pulse {
+    0%,
+    100% {
+      opacity: 1;
+      filter: brightness(1);
+    }
+    50% {
+      opacity: 0.92;
+      filter: brightness(1.06);
+    }
+  }
+
+  @keyframes hero-fade-up {
+    from {
+      opacity: 0;
+      transform: translateY(18px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .hero-fade-up,
+    .flight-hero-bg {
+      animation: none !important;
+    }
+
+    .hero-fade-up {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  .flight-search-card {
+    @apply overflow-visible rounded-2xl border border-border-strong bg-card;
+    box-shadow: var(--shadow-card);
+  }
+
+  .flight-search-card--compact {
+    @apply rounded-xl shadow-lg;
+  }
+
+  .flight-field {
+    @apply flex flex-col gap-1 p-4 sm:p-5;
+  }
+
+  .flight-airport-field {
+    overflow: visible;
+  }
+
+  .flight-field-label {
+    @apply text-[11px] font-bold uppercase tracking-wider text-muted;
+  }
+
+  .flight-field-sub {
+    @apply text-xs text-muted;
+  }
+
+  .flight-iata-input {
+    @apply w-full bg-transparent text-2xl font-extrabold uppercase tracking-wide text-foreground outline-none;
+    max-width: 5rem;
+  }
+
+  .flight-date-input {
+    @apply w-full bg-transparent text-base font-bold text-foreground outline-none;
+  }
+
+  html[data-theme="dark"] .flight-date-input {
+    color-scheme: dark;
+  }
+
+  html[data-theme="light"] .flight-date-input {
+    color-scheme: light;
+  }
+
+  .flight-date-stack {
+    @apply gap-0;
+  }
+
+  .flight-iata-display {
+    @apply shrink-0 text-2xl font-extrabold uppercase tracking-wide text-foreground;
+    min-width: 3rem;
+  }
+
+  .flight-city-search-input {
+    @apply w-full bg-transparent text-sm font-semibold text-foreground outline-none;
+  }
+
+  .flight-city-search-input::placeholder {
+    color: var(--muted);
+    opacity: 0.85;
+  }
+
+  .airport-suggest-list {
+    @apply absolute inset-x-0 top-full z-[310] mt-2 max-h-72 overflow-auto rounded-xl border-2 bg-surface py-2;
+    border-color: color-mix(in srgb, var(--primary) 75%, transparent);
+    box-shadow:
+      0 24px 48px rgba(0, 0, 0, 0.35),
+      0 0 24px rgba(74, 145, 248, 0.2),
+      inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  }
+
+  html[data-theme="light"] .airport-suggest-list {
+    box-shadow:
+      0 16px 32px rgba(15, 35, 64, 0.12),
+      0 0 16px rgba(37, 99, 235, 0.12);
+  }
+
+  .airport-suggest-item {
+    @apply flex w-full items-center gap-3 border-b border-border-subtle px-4 py-3 text-start transition-colors last:border-b-0;
+  }
+
+  .airport-suggest-item:hover {
+    background-color: rgba(74, 145, 248, 0.12);
+  }
+
+  .airport-suggest-item--active {
+    background-color: rgba(74, 145, 248, 0.28);
+  }
+
+  .airport-suggest-iata {
+    @apply min-w-[2.75rem] text-base font-extrabold;
+    color: #6eb0ff;
+  }
+
+  .airport-suggest-city {
+    @apply text-sm font-bold text-foreground;
+  }
+
+  .flight-passengers-actions {
+    @apply flex w-full min-w-[11rem] flex-col gap-3 p-4 sm:p-5;
+  }
+
+  .flight-passengers-actions .flight-select,
+  .flight-passengers-actions .flight-search-btn {
+    @apply w-full;
+  }
+
+  .flight-select {
+    @apply w-full rounded-mosafer border border-border-subtle bg-surface px-3 py-2.5 text-sm font-semibold text-foreground outline-none;
+  }
+
+  .flight-select:focus {
+    border-color: var(--primary);
+  }
+
+  .flight-search-btn {
+    @apply w-full shrink-0 rounded-mosafer bg-accent px-8 py-3.5 text-sm font-extrabold uppercase tracking-wide text-primary-foreground transition-transform;
+  }
+
+  .flight-search-btn:hover {
+    filter: brightness(1.05);
+    transform: scale(1.02);
+  }
+
+  .flight-search-btn:active {
+    transform: scale(0.98);
+  }
+
+  .flight-result-card {
+    @apply rounded-2xl border border-border-subtle bg-card p-5 transition-all;
+  }
+
+  .flight-result-card:hover {
+    border-color: rgba(74, 145, 248, 0.3);
+    box-shadow: 0 8px 32px rgba(74, 145, 248, 0.12);
+  }
+
+  .flight-select-btn {
+    @apply shrink-0 rounded-mosafer bg-primary px-6 py-2.5 text-xs font-extrabold uppercase tracking-wide text-primary-foreground transition-colors;
+  }
+
+  .flight-select-btn:hover {
+    filter: brightness(1.08);
+  }
+
+  .auth-shell {
+    @apply relative mx-auto flex min-h-[calc(100dvh-65px)] max-w-md items-center px-4 py-12;
+  }
+
+  .auth-shell::before {
+    content: "";
+    @apply pointer-events-none absolute inset-0 -z-10;
+    background: radial-gradient(ellipse 70% 50% at 50% 0%, rgba(74, 145, 248, 0.15), transparent);
+  }
+
+  .auth-card {
+    @apply w-full rounded-2xl border border-border-subtle bg-card p-8;
+    box-shadow: var(--shadow-card);
+  }
+
+  .shadow-card {
+    box-shadow: var(--shadow-card);
+  }
+
+  .content-shell {
+    @apply mx-auto w-full max-w-6xl px-4 py-8 sm:px-6;
+  }
+
+  .scrollbar-none {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+
+  .form-input {
+    @apply rounded-mosafer border border-border-subtle bg-surface px-3 py-3 text-sm text-foreground outline-none text-start;
+  }
+
+  .form-input:focus {
+    box-shadow: 0 0 0 2px var(--primary);
+  }
+
+  .form-input-readonly {
+    @apply cursor-default opacity-90;
+    pointer-events: none;
+  }
+
+  .form-input-readonly:focus {
+    box-shadow: none;
+  }
+
+  .profile-hero {
+    @apply rounded-card border border-border-subtle bg-card p-6 sm:p-8;
+  }
+
+  .profile-field-label {
+    @apply text-[11px] font-bold uppercase tracking-wider text-muted;
+  }
+
+  .profile-field {
+    @apply block;
+  }
+
+  .profile-badge {
+    @apply rounded-full px-3 py-1 text-xs font-black uppercase;
+  }
+
+  .profile-avatar-shell {
+    transition: box-shadow 0.2s ease;
+  }
+
+  .profile-avatar-shell:hover,
+  .profile-avatar-shell:focus-visible {
+    box-shadow: 0 0 0 3px rgba(74, 145, 248, 0.35);
+  }
+
+  .profile-avatar-overlay {
+    @apply absolute inset-0 flex items-center justify-center text-white opacity-0 transition-opacity;
+    background: rgba(6, 19, 38, 0.55);
+  }
+
+  .group:hover .profile-avatar-overlay,
+  .group:focus-visible .profile-avatar-overlay {
+    opacity: 1;
+  }
+}

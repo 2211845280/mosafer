@@ -17,6 +17,7 @@ class RegisterResponse(BaseModel):
     message: str
     user_id: int
     email: str
+    verification_link: str | None = None
 
 
 class LoginRequest(BaseModel):
@@ -57,5 +58,31 @@ class LogoutResponse(BaseModel):
 
 class EmailVerifyResponse(BaseModel):
     """Schema for email verification response."""
+
+    message: str
+
+
+class ForgotPasswordRequest(BaseModel):
+    """Schema for forgot-password request."""
+
+    email: EmailStr
+
+
+class ForgotPasswordResponse(BaseModel):
+    """Schema for forgot-password response."""
+
+    message: str
+    reset_link: str | None = None
+
+
+class ResetPasswordRequest(BaseModel):
+    """Schema for reset-password request."""
+
+    token: str
+    new_password: str
+
+
+class ResetPasswordResponse(BaseModel):
+    """Schema for reset-password response."""
 
     message: str

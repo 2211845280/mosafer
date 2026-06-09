@@ -48,8 +48,9 @@ ENV PATH="/app/.venv/bin:$PATH"
 RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
 
 # Copy entrypoint and make it executable while still root
-COPY docker/entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+COPY docker/entrypoint.sh docker/entrypoint-wait-db.sh docker/entrypoint-migrate.sh /docker/
+RUN chmod +x /docker/entrypoint.sh /docker/entrypoint-wait-db.sh /docker/entrypoint-migrate.sh \
+    && ln -sf /docker/entrypoint.sh /entrypoint.sh
 
 USER appuser
 

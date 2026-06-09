@@ -19,12 +19,11 @@ def qr_content_for_ticket(
     carrier_code: str | None = None,
     flight_number: str | None = None,
     seat: str | None = None,
+    pnr: str | None = None,
+    passenger_name: str | None = None,
+    carrier_name: str | None = None,
 ) -> str:
-    """Encode ticket + flight context as a JSON string for QR scanning.
-
-    When called with only *ticket_number* (legacy path) the payload degrades
-    gracefully to ``{"ticket_number": "..."}``.
-    """
+    """Encode ticket + flight context as JSON for QR scanning."""
     payload: dict = {"ticket_number": ticket_number.strip().upper()}
     if flight_id is not None:
         payload["flight_id"] = flight_id
@@ -36,10 +35,16 @@ def qr_content_for_ticket(
         payload["departure_at"] = departure_at
     if carrier_code is not None:
         payload["carrier"] = carrier_code
+    if carrier_name is not None:
+        payload["carrier_name"] = carrier_name
     if flight_number is not None:
         payload["flight_number"] = flight_number
     if seat is not None:
         payload["seat"] = seat
+    if pnr is not None:
+        payload["pnr"] = pnr
+    if passenger_name is not None:
+        payload["passenger"] = passenger_name
     return json.dumps(payload, separators=(",", ":"))
 
 

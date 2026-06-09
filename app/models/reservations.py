@@ -43,12 +43,35 @@ class Reservation(Base):
     )
     total_price: Mapped[Decimal | None] = mapped_column(Numeric(12, 2), nullable=True)
     currency: Mapped[str | None] = mapped_column(String(3), nullable=True)
+    adults_count: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    pnr: Mapped[str | None] = mapped_column(String(8), nullable=True, index=True)
+    cabin_class: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    passenger_details_completed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(UTC),
         nullable=False,
     )
+    hidden_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+        index=True,
+    )
 
     user = relationship("User", backref="reservations")
     flight = relationship("Flight", back_populates="reservations")
     ticket = relationship("Ticket", back_populates="booking", uselist=False)
+    passengers = relationship(
+        "BookingPassenger",
+        back_populates="reservation",
+        cascade="all, delete-orphan",
+    )
+    reservation_seats = relationship(
+        "ReservationSeat",
+        back_populates="reservation",
+        cascade="all, delete-orphan",
+        order_by="ReservationSeat.sequence",
+    )

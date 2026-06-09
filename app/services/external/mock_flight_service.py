@@ -13,7 +13,10 @@ from decimal import Decimal
 import structlog
 
 from app.schemas.flights import FlightOfferRead
+from app.seed.schedule import mock_departure_datetime, mock_search_date_allowed
 from app.services.external.mock_flight_data import MOCK_FLIGHTS
+from app.services.external.mock_flight_enrichment import enrich_catalogue_entry
+from app.services.flight_identity import dated_provider_flight_id
 
 logger = structlog.get_logger(__name__)
 
@@ -30,8 +33,9 @@ class MockFlightService:
     ) -> list[FlightOfferRead]:
         """Return mock offers matching *origin* → *destination*.
 
-        ``departure_date`` is ``YYYY-MM-DD``. The catalogue times-of-day are
-        preserved but the date component is shifted to the requested day.
+        ``departure_date`` is ``YYYY-MM-DD``. Every catalogue offer is available
+        on each day between 2026-07-15 and 2026-09-30 with a deterministic
+        random departure time for that offer + date pair.
         """
         origin_upper = origin.upper()
         dest_upper = destination.upper()
@@ -45,34 +49,44 @@ class MockFlightService:
             adults=adults,
         )
 
+        if not mock_search_date_allowed(target_date):
+            logger.info("mock_flight.date_out_of_range", date=departure_date)
+            return []
+
         results: list[FlightOfferRead] = []
-        for entry in MOCK_FLIGHTS:
+        for idx, entry in enumerate(MOCK_FLIGHTS):
             if entry["origin_iata"] != origin_upper or entry["destination_iata"] != dest_upper:
                 continue
 
-            dep_h, dep_m = (int(p) for p in entry["departure_time"].split(":"))
-            departure_at = datetime(
-                target_date.year, target_date.month, target_date.day, dep_h, dep_m,
+            enriched = enrich_catalogue_entry(entry, slot_hint=idx)
+            departure_at = mock_departure_datetime(enriched["offer_id"], target_date)
+            arrival_at = departure_at + timedelta(hours=enriched["duration_hours"])
+            dated_id = dated_provider_flight_id(
+                enriched["provider_flight_id"],
+                departure_at,
             )
-            arrival_at = departure_at + timedelta(hours=entry["duration_hours"])
 
             results.append(
                 FlightOfferRead(
-                    offer_id=entry["offer_id"],
-                    provider_flight_id=entry["provider_flight_id"],
-                    origin_iata=entry["origin_iata"],
-                    destination_iata=entry["destination_iata"],
-                    carrier_code=entry["carrier_code"],
-                    flight_number=entry["flight_number"],
+                    offer_id=enriched["offer_id"],
+                    provider_flight_id=dated_id,
+                    origin_iata=enriched["origin_iata"],
+                    destination_iata=enriched["destination_iata"],
+                    carrier_code=enriched["carrier_code"],
+                    carrier_name=enriched.get("carrier_name"),
+                    flight_number=enriched["flight_number"],
                     departure_at=departure_at,
                     arrival_at=arrival_at,
-                    total_price=Decimal(entry["total_price"]),
-                    currency=entry["currency"],
+                    total_price=Decimal(enriched["total_price"]),
+                    currency=enriched["currency"],
+                    cabin_class=enriched.get("cabin_class"),
+                    baggage_allowance=enriched.get("baggage_allowance"),
+                    departure_terminal=enriched.get("departure_terminal"),
                     source="mock",
                 ),
             )
 
-        results.sort(key=lambda o: o.total_price or Decimal(0))
+        results.sort(key=lambda o: (o.departure_at, o.total_price or Decimal(0)))
 
         logger.info("mock_flight.results", count=len(results))
         return results

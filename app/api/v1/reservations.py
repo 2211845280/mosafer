@@ -1,8 +1,8 @@
 """Reservation (booking) API."""
 
-import uuid
+from datetime import UTC, datetime
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -11,17 +11,40 @@ from sqlalchemy.orm import selectinload
 from app.core.jwt import get_current_user
 from app.core.rbac import assert_user_has_permission, require_permission
 from app.core.ticket_qr import qr_content_for_ticket, write_qr_png
+from app.data.airlines import carrier_name
 from app.db.database import get_db
-from app.models.flights import Flight
 from app.models.reservations import Reservation, ReservationStatus
+from app.models.reservation_seats import ReservationSeat
 from app.models.tickets import Ticket, TicketStatus
 from app.models.users import User
+from app.schemas.blocked_passports import BlockedPassportsRead
+from app.schemas.booking_passengers import PassengerDetailsSubmit
 from app.schemas.flights import FlightRead
 from app.schemas.pagination import PaginatedResponse
-from app.schemas.reservations import ReservationCreate, ReservationRead, ReservationWithFlightRead
+from app.schemas.reservations import (
+    CancelReservationResponse,
+    ReservationCreate,
+    ReservationDetailRead,
+    ReservationRead,
+    ReservationWithFlightRead,
+    seats_for_reservation,
+)
+from app.services.booking_reference import generate_eticket_number
 from app.services.booking_utils import is_valid_seat, normalize_seat
+from app.services.flight_identity import resolve_flight_for_booking
+from app.services.passenger_details_service import get_reservation_detail, submit_passenger_details
+from app.services.passenger_duplicate import list_blocked_passports_on_flight
+from app.services.reservation_cancel_service import cancel_reservation_with_refund
 
 router = APIRouter()
+
+
+def _is_past_departure(departure_at: datetime) -> bool:
+    now = datetime.now(UTC)
+    today = datetime(now.year, now.month, now.day, tzinfo=UTC)
+    dep = departure_at if departure_at.tzinfo else departure_at.replace(tzinfo=UTC)
+    dep_day = datetime(dep.year, dep.month, dep.day, tzinfo=UTC)
+    return dep_day < today
 
 
 @router.post(
@@ -34,44 +57,60 @@ async def create_reservation(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> ReservationWithFlightRead:
-    """Create booking from selected offer; upserts local flight and issues ticket."""
-    seat = normalize_seat(data.seat)
-    if not is_valid_seat(seat):
+    """Create booking from selected offer; upserts local flight and issues provisional ticket."""
+    normalized_seats: list[str] = []
+    for raw in data.seats or []:
+        seat = normalize_seat(raw)
+        if not is_valid_seat(seat):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid seat format (use row 1-99 and letter A-F, e.g. 12A)",
+            )
+        normalized_seats.append(seat)
+
+    if len(set(normalized_seats)) != len(normalized_seats):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid seat format (use row 1-99 and letter A-F, e.g. 12A)",
+            detail="Duplicate seat numbers in the same booking",
         )
 
-    flight_result = await db.execute(
-        select(Flight).where(Flight.provider_flight_id == data.provider_flight_id.strip()),
+    primary_seat = normalized_seats[0]
+    flight = await resolve_flight_for_booking(
+        db,
+        provider_flight_id=data.provider_flight_id,
+        departure_at=data.departure_at,
+        arrival_at=data.arrival_at,
+        origin_iata=data.origin_iata,
+        destination_iata=data.destination_iata,
+        carrier_code=data.carrier_code,
+        flight_number=data.flight_number,
+        base_price=data.base_price,
+        currency=data.currency,
+        total_seats=None,
     )
-    flight = flight_result.scalar_one_or_none()
-    if flight is None:
-        flight = Flight(
-            provider_flight_id=data.provider_flight_id.strip(),
-            origin_iata=data.origin_iata.upper(),
-            destination_iata=data.destination_iata.upper(),
-            carrier_code=data.carrier_code.upper(),
-            flight_number=data.flight_number.strip(),
-            departure_at=data.departure_at,
-            arrival_at=data.arrival_at,
-            base_price=data.base_price,
-            currency=data.currency.upper() if data.currency else None,
-            total_seats=None,
-        )
-        db.add(flight)
-        await db.flush()
 
     reservation = Reservation(
         user_id=user.id,
         flight_id=flight.id,
-        seat=seat,
+        seat=primary_seat,
         status=ReservationStatus.BOOKED.value,
         total_price=data.total_price if data.total_price is not None else data.base_price,
         currency=(data.currency.upper() if data.currency else None),
+        adults_count=data.adults,
+        cabin_class=data.cabin_class,
     )
     db.add(reservation)
     try:
+        await db.flush()
+        for idx, seat_code in enumerate(normalized_seats, start=1):
+            db.add(
+                ReservationSeat(
+                    reservation_id=reservation.id,
+                    flight_id=flight.id,
+                    seat=seat_code,
+                    sequence=idx,
+                ),
+            )
         await db.flush()
     except IntegrityError:
         await db.rollback()
@@ -80,7 +119,7 @@ async def create_reservation(
             detail="Seat already taken",
         ) from None
 
-    ticket_number = uuid.uuid4().hex[:16].upper()
+    ticket_number = generate_eticket_number(flight.carrier_code)
     qr_plain = qr_content_for_ticket(
         ticket_number,
         flight_id=flight.id,
@@ -89,9 +128,10 @@ async def create_reservation(
         departure_at=flight.departure_at.isoformat(),
         carrier_code=flight.carrier_code,
         flight_number=flight.flight_number,
-        seat=seat,
+        seat=primary_seat,
+        carrier_name=carrier_name(flight.carrier_code),
     )
-    filename = f"{ticket_number}.png"
+    filename = f"{ticket_number.replace('-', '')}.png"
     qr_path = write_qr_png(qr_plain, filename)
 
     ticket = Ticket(
@@ -99,7 +139,7 @@ async def create_reservation(
         ticket_number=ticket_number,
         qr_code=qr_plain,
         qr_image_path=qr_path,
-        status=TicketStatus.VALID.value,
+        status=TicketStatus.PENDING_PASSENGER.value,
     )
     db.add(ticket)
     await db.commit()
@@ -114,8 +154,15 @@ async def create_reservation(
         status=reservation.status,
         total_price=reservation.total_price,
         currency=reservation.currency,
+        adults_count=reservation.adults_count,
+        pnr=reservation.pnr,
+        cabin_class=reservation.cabin_class,
+        passenger_details_completed_at=reservation.passenger_details_completed_at,
         created_at=reservation.created_at,
         flight=FlightRead.model_validate(flight),
+        ticket_number=ticket_number,
+        ticket_status=TicketStatus.PENDING_PASSENGER.value,
+        carrier_name=carrier_name(flight.carrier_code),
     )
 
 
@@ -131,19 +178,27 @@ async def list_my_reservations(
     page_size: int = Query(50, ge=1, le=200),
 ) -> PaginatedResponse[ReservationWithFlightRead]:
     """List current user's reservations with flight info."""
+    visible = (
+        Reservation.user_id == user.id,
+        Reservation.hidden_at.is_(None),
+    )
     total = (
         await db.execute(
             select(func.count())
             .select_from(Reservation)
-            .where(Reservation.user_id == user.id)
+            .where(*visible)
         )
     ).scalar_one()
 
     offset = (page - 1) * page_size
     result = await db.execute(
         select(Reservation)
-        .options(selectinload(Reservation.flight))
-        .where(Reservation.user_id == user.id)
+        .options(
+            selectinload(Reservation.flight),
+            selectinload(Reservation.ticket),
+            selectinload(Reservation.reservation_seats),
+        )
+        .where(*visible)
         .order_by(Reservation.created_at.desc())
         .offset(offset)
         .limit(page_size),
@@ -159,24 +214,126 @@ async def list_my_reservations(
                 status=r.status,
                 total_price=r.total_price,
                 currency=r.currency,
+                adults_count=r.adults_count,
+                pnr=r.pnr,
+                cabin_class=r.cabin_class,
+                passenger_details_completed_at=r.passenger_details_completed_at,
                 created_at=r.created_at,
                 flight=FlightRead.model_validate(r.flight),
+                ticket_number=r.ticket.ticket_number if r.ticket else None,
+                ticket_status=r.ticket.status if r.ticket else None,
+                carrier_name=carrier_name(r.flight.carrier_code),
+                qr_code=r.ticket.qr_code if r.ticket else None,
+                seats=seats_for_reservation(r),
             ),
         )
     return PaginatedResponse.create(items=items, total=total, page=page, page_size=page_size)
 
 
+@router.get(
+    "/reservations/{reservation_id}",
+    response_model=ReservationDetailRead,
+    dependencies=[Depends(require_permission("flights.read"))],
+)
+async def read_reservation(
+    reservation_id: int,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> ReservationDetailRead:
+    return await get_reservation_detail(db, reservation_id=reservation_id, user_id=user.id)
+
+
+@router.post(
+    "/reservations/{reservation_id}/hide",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(require_permission("flights.read"))],
+)
+async def hide_reservation(
+    reservation_id: int,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> Response:
+    """Hide a canceled or past reservation from the user's trip list."""
+    result = await db.execute(
+        select(Reservation)
+        .options(selectinload(Reservation.flight))
+        .where(Reservation.id == reservation_id),
+    )
+    reservation = result.scalar_one_or_none()
+    if reservation is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Reservation not found")
+    if reservation.user_id != user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not your reservation")
+
+    if reservation.hidden_at is not None:
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+    is_canceled = reservation.status == ReservationStatus.CANCELED.value
+    is_past = _is_past_departure(reservation.flight.departure_at)
+    if not is_canceled and not is_past:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Can only hide canceled or past reservations",
+        )
+
+    reservation.hidden_at = datetime.now(UTC)
+    await db.commit()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.get(
+    "/reservations/{reservation_id}/blocked-passports",
+    response_model=BlockedPassportsRead,
+    dependencies=[Depends(require_permission("bookings.create"))],
+)
+async def read_blocked_passports(
+    reservation_id: int,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> BlockedPassportsRead:
+    """Return passport numbers already booked on this reservation's flight."""
+    result = await db.execute(select(Reservation).where(Reservation.id == reservation_id))
+    reservation = result.scalar_one_or_none()
+    if reservation is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Reservation not found")
+    if reservation.user_id != user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not your reservation")
+
+    blocked = await list_blocked_passports_on_flight(db, flight_id=reservation.flight_id)
+    return BlockedPassportsRead(blocked_passports=blocked)
+
+
+@router.post(
+    "/reservations/{reservation_id}/passenger-details",
+    response_model=ReservationDetailRead,
+    dependencies=[Depends(require_permission("bookings.create"))],
+)
+async def post_passenger_details(
+    reservation_id: int,
+    body: PassengerDetailsSubmit,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> ReservationDetailRead:
+    return await submit_passenger_details(
+        db,
+        reservation_id=reservation_id,
+        user_id=user.id,
+        body=body,
+    )
+
+
 @router.post(
     "/reservations/{reservation_id}/cancel",
-    response_model=ReservationRead,
+    response_model=CancelReservationResponse,
     dependencies=[Depends(require_permission("bookings.cancel"))],
 )
 async def cancel_reservation(
     reservation_id: int,
+    request: Request,
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
-) -> ReservationRead:
-    """Cancel booking (owner or admin)."""
+) -> CancelReservationResponse:
+    """Cancel booking (owner or admin) with refund rules for paid bookings."""
     result = await db.execute(
         select(Reservation).where(Reservation.id == reservation_id),
     )
@@ -187,20 +344,17 @@ async def cancel_reservation(
     if reservation.user_id != user.id:
         await assert_user_has_permission(db, user, "users.admin.manage")
 
-    if reservation.status == ReservationStatus.CANCELED.value:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Already cancelled")
-    if reservation.status == ReservationStatus.PAID.value:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Paid booking cannot be canceled in Epic 2",
-        )
+    locale = (request.headers.get("accept-language") or "en").split(",")[0].strip()
 
-    reservation.status = ReservationStatus.CANCELED.value
-    ticket_r = await db.execute(select(Ticket).where(Ticket.booking_id == reservation.id))
-    ticket = ticket_r.scalar_one_or_none()
-    if ticket is not None:
-        ticket.status = TicketStatus.CANCELED.value
-
-    await db.commit()
-    await db.refresh(reservation)
-    return ReservationRead.model_validate(reservation)
+    cancel_result = await cancel_reservation_with_refund(
+        db,
+        reservation_id=reservation_id,
+        locale=locale,
+    )
+    return CancelReservationResponse(
+        reservation=ReservationRead.model_validate(cancel_result.reservation),
+        refunded_amount=cancel_result.refunded_amount,
+        penalty_amount=cancel_result.penalty_amount,
+        currency=cancel_result.currency,
+        refund_type=cancel_result.refund_type,
+    )

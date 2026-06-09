@@ -24,6 +24,9 @@ class MockPaymentService:
         currency: str,
         reservation_id: int,
         user_id: int,
+        *,
+        payment_id: int | None = None,
+        locale: str = "en",
     ) -> dict:
         raw = f"mock:{reservation_id}:{user_id}:{amount}:{currency}"
         session_id = hashlib.sha256(raw.encode()).hexdigest()[:24]

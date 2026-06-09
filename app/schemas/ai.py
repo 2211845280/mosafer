@@ -6,6 +6,8 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.schemas.departure_plan import WeatherCondition
+
 # ---------------------------------------------------------------------------
 # Packing List
 # ---------------------------------------------------------------------------
@@ -16,10 +18,18 @@ class PackingItem(BaseModel):
     note: str = ""
 
 
+class PackingWeatherContext(BaseModel):
+    destination_city: str
+    trip_duration_days: int
+    condition: WeatherCondition
+    temperature_c: float
+
+
 class PackingListResult(BaseModel):
     must_have: list[PackingItem] = []
     recommended: list[PackingItem] = []
     optional: list[PackingItem] = []
+    weather: PackingWeatherContext | None = None
 
 
 # ---------------------------------------------------------------------------

@@ -31,6 +31,12 @@ class DirectionsResult(BaseModel):
     distance_km: float
     mode: TransportMode
     traffic_level: TrafficLevel
+    encoded_polyline: str | None = None
+    provider: str = "mock"
+    origin_lat: float | None = None
+    origin_lng: float | None = None
+    destination_lat: float | None = None
+    destination_lng: float | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -66,9 +72,16 @@ class DeparturePlanResult(BaseModel):
     check_in_buffer_minutes: int
     weather_buffer_minutes: int
     weather: WeatherResult
+    destination_weather: WeatherResult | None = None
     transport_mode: TransportMode
     traffic_level: TrafficLevel
     flight_departure_at: datetime
+    encoded_polyline: str | None = None
+    route_provider: str = "mock"
+    origin_lat: float | None = None
+    origin_lng: float | None = None
+    airport_lat: float | None = None
+    airport_lng: float | None = None
 
 
 # ---------------------------------------------------------------------------

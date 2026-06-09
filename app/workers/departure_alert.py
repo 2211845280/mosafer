@@ -99,6 +99,17 @@ async def check_departure_alerts(ctx: dict) -> int:  # noqa: C901
                     origin_country=airport.country,
                     departure_at=flight.departure_at,
                     transport_mode=transport,
+                    destination_airport_lat=(
+                        float(dest_airport.latitude)
+                        if dest_airport and dest_airport.latitude
+                        else None
+                    ),
+                    destination_airport_lng=(
+                        float(dest_airport.longitude)
+                        if dest_airport and dest_airport.longitude
+                        else None
+                    ),
+                    arrival_at=flight.arrival_at,
                 )
             except Exception:
                 logger.exception(

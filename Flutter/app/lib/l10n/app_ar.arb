@@ -1,0 +1,520 @@
+{
+  "@@locale": "ar",
+  "appTitle": "مسافر",
+  "brandMosafer": "MOSAFER",
+  "navFlights": "الرحلات",
+  "navMyTrips": "رحلاتي",
+  "navProfile": "الحساب",
+  "retry": "إعادة المحاولة",
+  "cancel": "إلغاء",
+  "save": "حفظ",
+  "add": "إضافة",
+  "edit": "تعديل",
+  "delete": "حذف",
+  "ok": "حسناً",
+  "seeAll": "عرض الكل",
+  "settingsTitle": "الإعدادات",
+  "settingsNotificationsSection": "إعدادات الإشعارات",
+  "settingsAccountSection": "الحساب",
+  "settingsNotificationTileTitle": "إشعارات الرحلة",
+  "settingsNotificationTileSubtitle": "تلقَّ تحديثات رحلتك في الوقت المناسب",
+  "settingsChangePassword": "تغيير كلمة المرور",
+  "settingsSwitchAccount": "تبديل الحساب",
+  "settingsSwitchAccountSubtitle": "تسجيل الدخول ببريد إلكتروني آخر",
+  "settingsLogout": "تسجيل الخروج",
+  "settingsLanguage": "اللغة",
+  "settingsLanguageSubtitle": "لغة التطبيق واتجاه الواجهة",
+  "settingsChooseLanguageTitle": "اختر اللغة",
+  "languageEnglish": "English",
+  "languageArabic": "العربية",
+  "travelerDefault": "مسافر",
+  "mosaferAccountDefault": "حساب مسافر",
+  "settingsEditProfileTwoLines": "تعديل الملف الشخصي",
+  "loginTagline": "مرشدك الرقمي لرحلاتك بثقة وراحة",
+  "loginEmailLabel": "البريد الإلكتروني",
+  "loginEmailHint": "voyager@ethereal.com",
+  "loginPasswordLabel": "كلمة المرور",
+  "loginForgot": "هل نسيت كلمة المرور؟",
+  "loginButton": "تسجيل الدخول",
+  "loginNewToVoyage": "جديد معنا؟ ",
+  "loginRegisterNow": "أنشئ حساباً",
+  "forgotPasswordTitle": "إعادة تعيين كلمة المرور",
+  "forgotPasswordSubtitle": "أدخل بريدك الإلكتروني وسنرسل لك رابطاً لإعادة تعيين كلمة المرور.",
+  "forgotPasswordSubmit": "إرسال رابط الإعادة",
+  "forgotPasswordSuccess": "إذا وُجد حساب بهذا البريد، فقد أُرسل رابط إعادة التعيين.",
+  "forgotPasswordBackToLogin": "العودة لتسجيل الدخول",
+  "resetPasswordTitle": "كلمة مرور جديدة",
+  "resetPasswordSubtitle": "أدخل كلمة مرور جديدة لحسابك.",
+  "resetPasswordSubmit": "تحديث كلمة المرور",
+  "resetPasswordSuccess": "تم تحديث كلمة المرور. يمكنك تسجيل الدخول الآن.",
+  "resetPasswordInvalidLink": "رابط إعادة التعيين غير صالح أو منتهٍ الصلاحية.",
+  "registerStartJourneyTitle": "ابدأ رحلتك.",
+  "registerJoinCommunity": "انضم إلى مجتمع المسافرين حول العالم.",
+  "registerFullNameLabel": "الاسم الكامل",
+  "registerFullNameHint": "Julianne Smith",
+  "registerEmailHint": "curator@musafir.travel",
+  "registerPasswordLabel": "كلمة المرور",
+  "registerConfirmPasswordLabel": "تأكيد كلمة المرور",
+  "registerTermsNotAccepted": "يرجى الموافقة على شروط الاستخدام وسياسة الخصوصية.",
+  "registerAccountCreated": "تم إنشاء الحساب بنجاح!",
+  "registerCreateAccount": "إنشاء حساب",
+  "registerAlreadyHaveAccount": "لديك حساب بالفعل؟ ",
+  "registerLogIn": "سجّل الدخول",
+  "registerLoginArrow": "تسجيل الدخول ←",
+  "passwordStrengthWeak": "ضعيفة",
+  "passwordStrengthModerate": "متوسطة",
+  "passwordStrengthStrong": "قوية",
+  "passwordStrengthLabel": "قوة كلمة المرور: {strength}",
+  "termsAgreePrefix": "أوافق على ",
+  "termsOfService": "شروط الاستخدام",
+  "termsAnd": " و",
+  "termsPrivacyPolicy": "سياسة\nالخصوصية.",
+  "fieldRequired": "حقل {fieldName} مطلوب",
+  "emailRequired": "أدخل البريد الإلكتروني",
+  "emailInvalid": "صيغة البريد غير صحيحة",
+  "passwordRequired": "أدخل كلمة المرور",
+  "passwordMinLength": "كلمة المرور يجب أن تكون {count} أحرف على الأقل",
+  "confirmPasswordRequired": "أكد كلمة المرور",
+  "passwordsDoNotMatch": "كلمتا المرور غير متطابقتين",
+  "phoneRequired": "رقم الجوال مطلوب",
+  "phoneInvalid": "أدخل رقماً صحيحاً",
+  "validationFieldFullName": "الاسم الكامل",
+  "validationFieldCurrentPassword": "كلمة المرور الحالية",
+  "errorGeneric": "حدث خطأ. حاول مرة أخرى.",
+  "errorConnectionTimeout": "انتهت مهلة الاتصال. حاول مرة أخرى.",
+  "errorNoInternet": "لا يوجد اتصال بالإنترنت. تحقق من الشبكة وحاول مجدداً.",
+  "errorUnauthorized": "انتهت الجلسة. سجّل الدخول من جديد.",
+  "errorUnableUpdatePassword": "تعذّر تحديث كلمة المرور",
+  "flightsTitle": "الرحلات",
+  "flightsIntro": "يربط مسافر حجزك ورمز تذكرتك وتخطيط المغادرة وتجربة المطار وقائمة التجهيز والمهام والإشعارات في مساعد سفر واحد.",
+  "bookingHowTitle": "كيفية الحجز",
+  "bookingStep1": "افتح موقع الحجز واختر رحلتك.",
+  "bookingStep2": "أكمل الحجز واحتفظ بالتذكرة أو صورة رمز الاستجابة.",
+  "bookingStep3": "ارجع إلى مسافر، امسح التذكرة أو ارفعها، ثم أدر رحلتك.",
+  "openBookingWebsite": "فتح موقع الحجز",
+  "noActiveTripTitle": "لم تختر رحلة بعد.",
+  "noActiveTripSubtitle": "افتح رحلة أو امسح تذكرة لبدء المساعدة خطوة بخطوة.",
+  "scanTicket": "مسح التذكرة",
+  "sectionHome": "مخططات الرحلة",
+  "stageHomeTitle": "في المنزل",
+  "stageHomeSubtitle": "تخطيط المسار",
+  "stageOnWayTitle": "في الطريق",
+  "stageOnWaySubtitle": "الوقت المتوقع مباشرة",
+  "stageAirportTitle": "في المطار",
+  "stageAirportSubtitle": "جاهزية البوابة",
+  "prepDepartureTitle": "تخطيط المغادرة من المنزل",
+  "prepDepartureSubtitle": "وقت المغادرة، هامش المرور، والمسار على الخريطة.",
+  "prepTodosTitle": "المهام والجدول الزمني",
+  "prepTodosSubtitle": "جهّز الوثائق والتجهيز ومهام المطار.",
+  "boardingInMinutes": "الصعود خلال {minutes} د",
+  "flightMetaDate": "التاريخ",
+  "flightMetaGate": "البوابة",
+  "flightMetaTerminal": "المبنى",
+  "flightMetaSeat": "المقعد",
+  "departurePlan": "خطة المغادرة",
+  "packingList": "قائمة التجهيز",
+  "timeline": "الجدول الزمني",
+  "todosLabel": "المهام",
+  "attachmentsSection": "المرفقات",
+  "twoFiles": "ملفان",
+  "uploadAttachment": "رفع مرفق",
+  "openAirportExperience": "تجربة المطار",
+  "tripsSearchHint": "ابحث باسم المطار أو رقم الرحلة",
+  "tripsUpcoming": "القادمة",
+  "tripsAll": "الكل",
+  "tripsConfirmed": "مؤكدة",
+  "tripsCompleted": "مكتملة",
+  "tripsViewHistory": "عرض السجل",
+  "tripsOpenTrip": "عرض تفاصيل الرحلة",
+  "tripsExpired": "منتهية",
+  "tripsDeleteConfirmTitle": "حذف التذكرة؟",
+  "tripsDeleteConfirmBody": "ستُنقل التذكرة إلى سلة المحذوفات. يمكنك استرجاعها من الإعدادات.",
+  "tripsDeleteConfirm": "حذف",
+  "tripsDeleteCancel": "إلغاء",
+  "settingsDeletedTrips": "سلة المحذوفات",
+  "settingsDeletedTripsSubtitle": "استرجاع التذاكر المحذوفة",
+  "deletedTripsTitle": "سلة المحذوفات",
+  "deletedTripsEmpty": "لا توجد تذاكر محذوفة.",
+  "deletedTripsRestore": "استرجاع",
+  "deletedTripsDeletePermanent": "حذف نهائي",
+  "deletedTripsDeleteConfirmTitle": "حذف نهائي؟",
+  "deletedTripsDeleteConfirmBody": "لن يمكن استرجاع هذه التذكرة.",
+  "deletedTripsAutoPurgeNotice": "بعد مرور 7 أيام على حذف التذكرة، تُحذف تلقائياً ولا يمكن استرجاعها.",
+  "scanPastePayload": "الصق محتوى رمز التذكرة",
+  "scanPayloadHint": "نص الرمز أو رقم التذكرة",
+  "validateTicket": "التحقق من التذكرة",
+  "scanValidateTicketError": "تعذّر التحقق من التذكرة.",
+  "scanTabScanQr": "مسح الرمز",
+  "scanTabUploadImage": "رفع صورة",
+  "scanUploadTitle": "رفع صورة التذكرة",
+  "scanUploadBody": "اختر تذكرة أو بطاقة صعود من معرض الصور. يقرأها مسافر ويضيف الرحلة إن كانت صالحة.",
+  "scanChooseImage": "اختيار صورة",
+  "scanChooseImageLoading": "جاري قراءة التذكرة...",
+  "scanCenterQr": "ضع رمز التذكرة داخل\nالإطار.",
+  "scanScanNow": "مسح الآن",
+  "notificationsReadAll": "تعيين الكل كمقروء",
+  "notificationsNoYet": "لا توجد إشعارات بعد.",
+  "notificationsToday": "اليوم",
+  "notificationsEarlier": "سابقاً",
+  "timeAgoNow": "الآن",
+  "timeAgoMinutes": "منذ {minutes} د",
+  "timeAgoHours": "منذ {hours} س",
+  "timeAgoDays": "منذ {days} ي",
+  "planDepartureSelectTrip": "اختر رحلة",
+  "planDepartureSafeToLeave": "آمن للمغادرة",
+  "planDepartureHeroSubtitle": "أفضل وقت لمغادرة المنزل نحو الرحلة",
+  "planDepartureTransportMode": "وسيلة التنقل",
+  "planDepartureModeCar": "سيارة",
+  "planDepartureModeTrain": "قطار",
+  "planDepartureModeTaxi": "أجرة",
+  "planDepartureTitle": "خطة المغادرة",
+  "planDepartureRouteSummary": "ملخص المسار",
+  "planDepartureDemoRoute": "ميدان تقسيم ← مطار {airportCode}",
+  "@planDepartureDemoRoute": {
+    "placeholders": {
+      "airportCode": {"type": "String"}
+    }
+  },
+  "planDepartureLiveTraffic": "حركة\nمباشرة",
+  "planDepartureDistance": "المسافة",
+  "planDepartureDistanceValue": "{km} كم",
+  "@planDepartureDistanceValue": {
+    "placeholders": {
+      "km": {"type": "String"}
+    }
+  },
+  "trafficLow": "ازدحام خفيف",
+  "trafficModerate": "ازدحام متوسط",
+  "trafficHeavy": "ازدحام شديد",
+  "onWayTraffic": "الازدحام",
+  "onWayOpenInMaps": "فتح في خرائط Google",
+  "planDepartureTravelTime": "مدة الطريق",
+  "planDepartureBuffer": "هامش الأمان",
+  "planDepartureNoTrainsInCountry": "لا يوجد قطارات داخل هذه البلد",
+  "planDepartureEstArrival": "الوصول المتوقع",
+  "planDepartureUnitMinutes": "د",
+  "onWaySubtitle": "من موقعك الحالي إلى مطار {airportCode}",
+  "@onWaySubtitle": {
+    "placeholders": {
+      "airportCode": {"type": "String"}
+    }
+  },
+  "onWayDemoSubtitle": "مسار تجريبي من ميدان تقسيم إلى مطار {airportCode}",
+  "@onWayDemoSubtitle": {
+    "placeholders": {
+      "airportCode": {"type": "String"}
+    }
+  },
+  "packingLinenShirtDescription": "مثالي لنسيم دبي\nالمسائي والرطوبة.",
+  "openTripFirstSnackbar": "افتح رحلة أولاً.",
+  "openTripFirstAirportFull": "افتح رحلة أولاً لاستخدام تجربة المطار.",
+  "unableOpenMaps": "تعذّر فتح الخرائط على هذا الجهاز.",
+  "profileImageUpdated": "تم تحديث صورة الملف.",
+  "unableUploadProfileImage": "تعذّر رفع الصورة.",
+  "editProfileTitle": "تعديل الملف",
+  "editProfileVoyagerTag": "مسافر فوياجر",
+  "travelPreferences": "تفضيلات السفر",
+  "fullNameLabel": "الاسم",
+  "emailAddressLabel": "البريد الإلكتروني",
+  "phoneNumberLabel": "رقم الجوال",
+  "homeLocationLabel": "موقع المنزل",
+  "saveChanges": "حفظ التغييرات",
+  "changePasswordTitle": "تغيير كلمة المرور",
+  "changePasswordCurrentLabel": "كلمة المرور الحالية",
+  "changePasswordCurrentHint": "أدخل كلمة المرور الحالية",
+  "changePasswordNewLabel": "كلمة المرور الجديدة",
+  "changePasswordNewHint": "أدخل كلمة المرور الجديدة",
+  "changePasswordConfirmLabel": "تأكيد كلمة المرور الجديدة",
+  "changePasswordConfirmHint": "أعد إدخال كلمة المرور الجديدة",
+  "changePasswordSave": "حفظ كلمة المرور",
+  "changePasswordRepeatHint": "كرر كلمة المرور الجديدة",
+  "passwordStrengthMeterTitle": "قوة كلمة المرور",
+  "passwordStrengthMeterWeak": "ضعيفة",
+  "passwordStrengthMeterGood": "جيدة",
+  "passwordStrengthMeterStrong": "قوية",
+  "safetyTipTitle": "نصيحة أمان",
+  "safetyTipBody": "امزج بين أحرف وأرقام\nورموز لتكون كلمة المرور\nأقوى.",
+  "profilePersonalInfo": "المعلومات الشخصية",
+  "profileTravelPreferences": "تفضيلات السفر",
+  "profileAddPhone": "أضف رقم الجوال",
+  "profileFullNameLabel": "الاسم",
+  "profileEmailLabel": "البريد الإلكتروني",
+  "profilePhoneLabel": "رقم الجوال",
+  "profileHomeLocationLabel": "موقع المنزل",
+  "airportConcierge": "كونسيرج",
+  "airportLiveExperience": "تجربة مباشرة",
+  "airportWelcomeLine": "مرحباً بك في\n{airportName} • {terminal}",
+  "airportAtAirportPill": "في\nالمطار",
+  "airportTerminalLabel": "المبنى",
+  "airportAssignedGate": "البوابة المخصصة",
+  "airportBoardingInMin": "الصعود خلال {minutes} د",
+  "airportWalkEstimate": "مشي تقريبي {minutes} د",
+  "airportWalkFollowSigns": "اتبع إرشادات المطار نحو {gate}",
+  "airportCurrentLocation": "موقعك الحالي",
+  "airportYouPin": "أنت",
+  "airportExpandMap": "توسيع الخريطة",
+  "airportShopsNear": "متاجر قرب {gate}",
+  "airportNearGate": "قرب بوابتك",
+  "airportOpenNow": "مفتوح الآن",
+  "airportProceedToGate": "التوجه إلى {gate}",
+  "indoorMapTitle": "خريطة المطار الداخلية",
+  "indoorMapUnsupported": "الخريطة الداخلية متاحة حالياً لمطار إسطنبول (IST) فقط.",
+  "indoorMapGateHighlight": "البوابة المحددة: {gate}",
+  "@indoorMapGateHighlight": {
+    "placeholders": {
+      "gate": {"type": "String"}
+    }
+  },
+  "indoorMapGoToGate": "الذهاب إلى {gate}",
+  "@indoorMapGoToGate": {
+    "placeholders": {
+      "gate": {"type": "String"}
+    }
+  },
+  "indoorMapHideRoute": "إخفاء المسار",
+  "indoorMapRouteTitle": "مسار تجريبي إلى {gate}",
+  "@indoorMapRouteTitle": {
+    "placeholders": {
+      "gate": {"type": "String"}
+    }
+  },
+  "indoorMapRouteEta": "{minutes} د",
+  "@indoorMapRouteEta": {
+    "placeholders": {
+      "minutes": {"type": "int"}
+    }
+  },
+  "indoorMapOpenLevelUpSource": "خريطة OpenLevelUp مباشرة من OpenStreetMap.",
+  "indoorMapOpenFullMap": "فتح خريطة OSM كاملة",
+  "indoorMapRetry": "إعادة المحاولة",
+  "indoorMapBack": "رجوع",
+  "indoorMapLoading": "جاري تحميل الخريطة الداخلية…",
+  "indoorMapGateLevel": "البوابة {gate} · المستوى {level}",
+  "@indoorMapGateLevel": {
+    "placeholders": {
+      "gate": {"type": "String"},
+      "level": {"type": "String"}
+    }
+  },
+  "indoorMapRouteWrongLevel": "المسار يظهر على مستوى البوابة فقط.",
+  "indoorMapLevelBadge": "OpenLevelUp · IST · المستوى {level}",
+  "@indoorMapLevelBadge": {
+    "placeholders": {
+      "level": {"type": "String"}
+    }
+  },
+  "indoorMapHighlightBadge": "المستوى {level} · إبراز {category}",
+  "@indoorMapHighlightBadge": {
+    "placeholders": {
+      "level": {"type": "String"},
+      "category": {"type": "String"}
+    }
+  },
+  "indoorMapCoffeeNearGate": "قهوة قرب {gate}",
+  "@indoorMapCoffeeNearGate": {
+    "placeholders": {
+      "gate": {"type": "String"}
+    }
+  },
+  "indoorMapFoodNearGate": "وجبات سريعة قرب {gate}",
+  "@indoorMapFoodNearGate": {
+    "placeholders": {
+      "gate": {"type": "String"}
+    }
+  },
+  "indoorMapRouteStepEntrance": "المدخل 7",
+  "indoorMapRouteStepSecurity": "التفتيش الأمني",
+  "indoorMapRouteStepDutyFree": "قاعة Duty Free",
+  "indoorMapRouteStepConcourse": "اتبع ممر G",
+  "indoorMapRouteStepArrive": "الوصول إلى البوابة {gate}",
+  "@indoorMapRouteStepArrive": {
+    "placeholders": {
+      "gate": {"type": "String"}
+    }
+  },
+  "airportQrNoTicket": "لا توجد تذكرة صعود لهذا الحجز.",
+  "airportQrInvalidTicket": "توجد تذكرة لكن بيانات الرمز غير صالحة.",
+  "airportLoungeFallback": "صالة المطار",
+  "airportCoffeeFallback": "مقهى",
+  "airportGateDash": "بوابة --",
+  "airportArrivedAtAirport": "وصلت إلى المطار",
+  "airportArrivalStatusTitle": "حالة الوصول",
+  "airportCheckInTitle": "تسجيل الوصول",
+  "airportCheckInDisclaimer": "تجريبي فقط — ليس تسجيل وصول حقيقي لشركة الطيران.",
+  "airportCheckInGateLabel": "بوابتك: {gate}",
+  "@airportCheckInGateLabel": {
+    "placeholders": {
+      "gate": {"type": "String"}
+    }
+  },
+  "airportCheckInStepArrived": "وصلت إلى المطار",
+  "airportCheckInStepStarted": "بدأ تسجيل الوصول",
+  "airportCheckInStepBoardingPass": "بطاقة الصعود جاهزة",
+  "airportCheckInStepSecurity": "توجّه إلى الأمن",
+  "airportCheckInStepGoToGate": "اذهب إلى البوابة {gate}",
+  "@airportCheckInStepGoToGate": {
+    "placeholders": {
+      "gate": {"type": "String"}
+    }
+  },
+  "airportCheckInNextStep": "الخطوة التالية",
+  "airportCheckInReset": "إعادة ضبط",
+  "airportOpenGateMap": "فتح خريطة البوابة",
+  "@airportOpenGateMap": {
+    "placeholders": {
+      "gate": {"type": "String"}
+    }
+  },
+  "onWayTitle": "في الطريق",
+  "onWayStartNavigation": "بدء التوجيه",
+  "onWayTrackingStarted": "التتبع نشط",
+  "onWayLocationUnavailable": "إذن الموقع أو الخدمة غير متاح.",
+  "onWayTrackingActive": "التتبع المباشر يعمل.",
+  "onWayYou": "أنت",
+  "onWayLiveConnected": "الموقع المباشر متصل",
+  "onWayPressStart": "اضغط بدء التوجيه لربط الموقع المباشر",
+  "onWayDemoOriginName": "ميدان تقسيم",
+  "onWayDemoOriginActive": "يتم استخدام ميدان تقسيم كنقطة بداية تجريبية",
+  "onWayDistance": "المسافة",
+  "onWayEta": "الوقت المتوقع",
+  "onWayTracking": "التتبع",
+  "onWayTrackingActiveState": "نشط",
+  "onWayTrackingNotStarted": "لم يبدأ",
+  "onWayDepartureAddressTitle": "عنوان الانطلاق",
+  "onWayDepartureAddressSubtitle": "اختر GPS أو أدخل عنوان منزلك لتخطيط المسار.",
+  "onWayUseCurrentLocation": "الموقع الحالي (GPS)",
+  "onWayUseCurrentLocationHint": "استخدم GPS المباشر عند توفره",
+  "onWayUseSavedAddress": "عنواني المحفوظ",
+  "onWaySavedAddressReady": "العنوان المحفوظ جاهز",
+  "onWaySavedAddressMissing": "أضف عنواناً أدناه أولاً",
+  "onWayManualOriginActive": "نستخدم عنوانك المحفوظ كنقطة انطلاق",
+  "onWayManualSubtitle": "من عنوانك المحفوظ إلى مطار {airportCode}",
+  "@onWayManualSubtitle": {
+    "placeholders": {
+      "airportCode": {"type": "String"}
+    }
+  },
+  "onWayDepartureFrom": "الانطلاق من",
+  "onWayChangeAddress": "تغيير",
+  "homeAddressHint": "الشارع، المدينة، الدولة",
+  "homeAddressSave": "حفظ العنوان",
+  "homeAddressTooShort": "أدخل 3 أحرف على الأقل",
+  "homeAddressGeocodeFailed": "تعذّر العثور على هذا العنوان. جرّب إضافة المدينة والدولة.",
+  "homeAddressSaved": "تم حفظ عنوان المنزل",
+  "flightWeatherTitle": "طقس يوم الرحلة",
+  "flightWeatherDepartureDay": "المغادرة · {city}",
+  "@flightWeatherDepartureDay": {
+    "placeholders": {
+      "city": {"type": "String"}
+    }
+  },
+  "flightWeatherArrivalDay": "الوصول · {city}",
+  "@flightWeatherArrivalDay": {
+    "placeholders": {
+      "city": {"type": "String"}
+    }
+  },
+  "flightWeatherBufferAdded": "تمت إضافة {minutes} د بسبب الطقس",
+  "@flightWeatherBufferAdded": {
+    "placeholders": {
+      "minutes": {"type": "int"}
+    }
+  },
+  "timelineJourneyTag": "رحلة مسافر",
+  "timelineYourJourney": "رحلتك",
+  "addingEllipsis": "جاري الإضافة...",
+  "addSelectedToTodos": "إضافة {count} المحدد إلى المهام",
+  "addSelectedToTripTodos": "إضافة {count} المحدد إلى مهام الرحلة",
+  "packingOpenTripFirst": "افتح رحلة أولاً.",
+  "timelineOpenTripFirst": "افتح رحلة أولاً.",
+  "packingLoading": "جاري إنشاء قائمة التجهيز...",
+  "timelineLoading": "جاري إنشاء الجدول الزمني...",
+  "packingLoadFailed": "تعذّر تحميل قائمة التجهيز.",
+  "timelineLoadFailed": "تعذّر تحميل الجدول الزمني.",
+  "timelineNoUpcomingTasks": "لا توجد مهام قادمة في الجدول الزمني لهذه الرحلة.",
+  "packingRetry": "إعادة المحاولة",
+  "timelineRetry": "إعادة المحاولة",
+  "timelineDayBefore": "قبل {days} يوم",
+  "@timelineDayBefore": {
+    "placeholders": {
+      "days": {"type": "int"}
+    }
+  },
+  "todosOpenTripFirst": "افتح رحلة أولاً.",
+  "todosOpenTripFirstView": "افتح رحلة أولاً لعرض مهامها.",
+  "todoAddTitle": "إضافة مهمة",
+  "todoEditTitle": "تعديل المهمة",
+  "todoTitleHint": "عنوان المهمة",
+  "todoAdded": "تمت إضافة المهمة.",
+  "todosEmptyDefault": "لا توجد مهام في هذا التصنيف بعد.",
+  "todosAddTodo": "إضافة مهمة",
+  "todosCategoryAll": "الكل",
+  "todosCategoryPacking": "التجهيز",
+  "todosCategoryDocuments": "الوثائق",
+  "todosTabDocuments": "الوثائق",
+  "todosTabPacking": "التجهيز",
+  "todosTabLogistics": "الخدمات",
+  "tripTaskDefault": "مهمة الرحلة",
+  "packingMustHave": "ضروري",
+  "packingAllItemsInTodos": "كل عناصر التجهيز موجودة في مهام الرحلة.",
+  "packingWeatherSummary": "{days} أيام في {city} • {condition} • {temp}°C",
+  "@packingWeatherSummary": {
+    "placeholders": {
+      "days": {"type": "int"},
+      "city": {"type": "String"},
+      "condition": {"type": "String"},
+      "temp": {"type": "int"}
+    }
+  },
+  "weatherClear": "مشمس",
+  "weatherCloudy": "غائم",
+  "weatherRain": "ممطر",
+  "weatherSnow": "ثلج",
+  "weatherStorm": "عاصف",
+  "packingRecommended": "موصى به",
+  "packingOptional": "اختياري",
+  "packingTagCrucial": "أساسي",
+  "packingOptionalTag": "اختياري",
+  "packingResortDay": "يوم المنتجع",
+  "packingTransitLeisure": "أثناء التنقل",
+  "packingItemPassport": "جواز السفر",
+  "packingItemFlightTickets": "تذاكر الطيران",
+  "packingItemPowerAdapter": "محول الطاقة",
+  "packingItemSunglasses": "نظارة شمسية",
+  "packingItemSunscreen": "واقي شمس",
+  "packingItemSwimwear": "ملابس سباحة",
+  "packingItemReadingBook": "كتاب للقراءة",
+  "packingItemLinenShirt": "قميص كتان خفيف",
+  "timelineTaskPassport": "تحقق من صلاحية الجواز",
+  "timelineTaskVisa": "تقديم طلب التأشيرة",
+  "timelineTaskSecurity": "جدولة أمان المنزل",
+  "timelineTaskPet": "ترتيب إقامة الحيوان",
+  "timelineTaskPacking": "إكمال قائمة التجهيز",
+  "timelineTaskTaxi": "حجز أجرة للمطار",
+  "timelineDay14": "قبل 14 يوماً",
+  "timelineDay7": "قبل 7 أيام",
+  "timelineDay1": "قبل يوم",
+  "timelineBadgeDocument": "وثائق",
+  "timelineBadgeTask": "مهمة",
+  "timelineBadgePacking": "تجهيز",
+  "timelineTitleDocuments": "وثائق السفر",
+  "timelineTitlePreparation": "التحضير",
+  "timelineTitlePacking": "التجهيز والخدمات",
+  "ticketBoardingPass": "بطاقة الصعود",
+  "ticketScanForBoarding": "امسح للصعود",
+  "ticketSafeWorkSecure": "عمل آمن\nومحمي",
+  "ticketDirect": "مباشرة",
+  "ticketDeparture": "المغادرة",
+  "timelineItemsAddedToTodos": "تمت إضافة {count} عنصراً من الجدول إلى المهام.",
+  "@timelineItemsAddedToTodos": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "packingItemsAddedToTodos": "تمت إضافة {count} عنصراً من التجهيز إلى المهام.",
+  "@packingItemsAddedToTodos": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  }
+}

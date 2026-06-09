@@ -33,6 +33,42 @@ services:
     networks:
       - mosafer_network
 
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: mosafer_mailpit_dev
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+    networks:
+      - mosafer_network
+
+  # Runs Alembic exactly once before api/worker start (avoids migration race).
+  migrate:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.dev
+    container_name: mosafer_migrate_dev
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-mosafer}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-mosafer}
+      POSTGRES_HOST: db
+      POSTGRES_PORT: 5432
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-kasalalem@gmail.com}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-Kass@123456789}
+    volumes:
+      - .:/app
+      - /app/.venv
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - mosafer_network
+    restart: "no"
+    entrypoint: []
+    command: ["/bin/bash", "/app/docker/entrypoint-migrate.sh"]
+
   api:
     build:
       context: .
@@ -45,12 +81,24 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-mosafer}
       POSTGRES_HOST: db
       POSTGRES_PORT: 5432
-      ENVIRONMENT: dev
+      ENVIRONMENT: ${ENVIRONMENT:-dev}
       SECRET_KEY: ${SECRET_KEY:-dev-secret-key-change-in-production}
-      DEBUG: "true"
+      DEBUG: ${DEBUG:-true}
       REDIS_URL: redis://redis:6379/0
       API_HOST: 0.0.0.0
       API_PORT: 8001
+      API_PUBLIC_URL: ${API_PUBLIC_URL:-http://localhost:8001}
+      WEB_APP_URL: ${WEB_APP_URL:-http://localhost:3000}
+      SMTP_HOST: ${SMTP_HOST:-mailpit}
+      SMTP_PORT: ${SMTP_PORT:-1025}
+      SMTP_FROM: ${SMTP_FROM:-noreply@mosafer.local}
+      GOOGLE_MAPS_API_KEY: ${GOOGLE_MAPS_API_KEY:-}
+      GOOGLE_MAPS_SERVER_API_KEY: ${GOOGLE_MAPS_SERVER_API_KEY:-}
+      GOOGLE_ROUTES_ENABLED: ${GOOGLE_ROUTES_ENABLED:-false}
+      PAYMENT_PROVIDER: ${PAYMENT_PROVIDER:-mock}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+      STRIPE_PUBLISHABLE_KEY: ${STRIPE_PUBLISHABLE_KEY:-}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
     ports:
       - "8001:8001"
     volumes:
@@ -60,13 +108,30 @@ services:
       # Docker will preserve the container-built /app/.venv at this path.
       - /app/.venv
     depends_on:
+      migrate:
+        condition: service_completed_successfully
       db:
         condition: service_healthy
       redis:
         condition: service_healthy
+      mailpit:
+        condition: service_started
     networks:
       - mosafer_network
-    command: ["uv", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8001", "--reload"]
+    command:
+      [
+        "/bin/bash",
+        "/app/docker/entrypoint.sh",
+        "uv",
+        "run",
+        "uvicorn",
+        "app.main:app",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "8001",
+        "--reload",
+      ]
 
     # Compose Watch (>= 2.22.0): syncs host files into the container on save,
     # enabling hot-reload without a full rebuild. The .venv/ ignore rule is
@@ -101,20 +166,30 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-mosafer}
       POSTGRES_HOST: db
       POSTGRES_PORT: 5432
-      ENVIRONMENT: dev
+      ENVIRONMENT: ${ENVIRONMENT:-dev}
       SECRET_KEY: ${SECRET_KEY:-dev-secret-key-change-in-production}
       REDIS_URL: redis://redis:6379/0
     volumes:
       - .:/app
       - /app/.venv
     depends_on:
+      migrate:
+        condition: service_completed_successfully
       db:
         condition: service_healthy
       redis:
         condition: service_healthy
     networks:
       - mosafer_network
-    command: ["uv", "run", "arq", "app.workers.settings.WorkerSettings"]
+    command:
+      [
+        "/bin/bash",
+        "/app/docker/entrypoint.sh",
+        "uv",
+        "run",
+        "arq",
+        "app.workers.settings.WorkerSettings",
+      ]
     develop:
       watch:
         - action: sync

@@ -13,6 +13,12 @@ from app.schemas.tickets import FlightSummaryForTicket
 class OrderCreateRequest(BaseModel):
     offer_id: str = Field(..., min_length=1, description="Mock offer ID from search results")
     seat: str = Field(..., min_length=1, max_length=8, description="Seat code e.g. 12A")
+    departure_date: str | None = Field(
+        None,
+        min_length=10,
+        max_length=10,
+        description="Departure date YYYY-MM-DD (defaults to today UTC)",
+    )
 
 
 class OrderResponse(BaseModel):
