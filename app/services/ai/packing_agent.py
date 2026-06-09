@@ -50,6 +50,7 @@ async def generate_packing_list(
     travel_dates: str,
     destination_latitude: float = 0.0,
     departure_month: int = 6,
+    locale: str = "en",
 ) -> PackingListResult:
     """Generate a packing list via the LLM, with fallback."""
     season = _season_from_month(departure_month, destination_latitude)
@@ -67,6 +68,7 @@ async def generate_packing_list(
         trip_duration_days=trip_duration_days,
         travel_dates=travel_dates,
         season=season,
+        locale=locale,
     )
 
     try:

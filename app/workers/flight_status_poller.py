@@ -93,6 +93,7 @@ async def poll_flight_statuses(ctx: dict) -> int:  # noqa: C901
                 carrier_code=flight.carrier_code,
                 flight_number=flight.flight_number,
                 departure_at=flight.departure_at,
+                origin_iata=flight.origin_iata,
             )
             new_data = new_status.model_dump(mode="json")
 

@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/profile_repository.dart';
@@ -69,7 +71,7 @@ class ProfileController extends StateNotifier<AsyncValue<ProfileState>> {
     required String email,
     required String phoneNumber,
   }) async {
-    state = const AsyncValue.loading();
+    final previous = state.valueOrNull;
     final result = await _repository.updateProfile(
       fullName: fullName,
       email: email,
@@ -81,13 +83,18 @@ class ProfileController extends StateNotifier<AsyncValue<ProfileState>> {
         return true;
       },
       failure: (error) {
-        state = AsyncValue.error(error, StackTrace.current);
+        if (previous != null) {
+          state = AsyncValue.data(previous);
+        } else {
+          state = AsyncValue.error(error, StackTrace.current);
+        }
         return false;
       },
     );
   }
 
   Future<bool> uploadAvatar(String filePath) async {
+    final previous = state.valueOrNull;
     final result = await _repository.uploadAvatar(filePath);
     return result.when(
       success: (profile) {
@@ -95,7 +102,30 @@ class ProfileController extends StateNotifier<AsyncValue<ProfileState>> {
         return true;
       },
       failure: (error) {
-        state = AsyncValue.error(error, StackTrace.current);
+        if (previous != null) {
+          state = AsyncValue.data(previous);
+        } else {
+          state = AsyncValue.error(error, StackTrace.current);
+        }
+        return false;
+      },
+    );
+  }
+
+  Future<bool> uploadAvatarBytes(Uint8List bytes) async {
+    final previous = state.valueOrNull;
+    final result = await _repository.uploadAvatarBytes(bytes);
+    return result.when(
+      success: (profile) {
+        state = AsyncValue.data(profile);
+        return true;
+      },
+      failure: (error) {
+        if (previous != null) {
+          state = AsyncValue.data(previous);
+        } else {
+          state = AsyncValue.error(error, StackTrace.current);
+        }
         return false;
       },
     );
@@ -120,6 +150,6 @@ class ProfileController extends StateNotifier<AsyncValue<ProfileState>> {
 }
 
 final profileControllerProvider =
-    StateNotifierProvider<ProfileController, AsyncValue<ProfileState>>(
+    StateNotifierProvider.autoDispose<ProfileController, AsyncValue<ProfileState>>(
       (ref) => ProfileController(ref.watch(profileRepositoryProvider)),
     );

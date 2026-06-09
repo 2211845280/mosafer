@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'app_colors.dart';
 
 class AppTheme {
   AppTheme._();
 
-  static ThemeData get lightTheme {
+  static ThemeData get lightTheme => _buildTheme('Roboto');
+
+  static ThemeData _buildTheme(String fontFamily) {
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.dark,
-      fontFamily: 'Roboto',
+      fontFamily: fontFamily,
       colorScheme: const ColorScheme(
         brightness: Brightness.dark,
         primary: AppColors.primary,
@@ -125,7 +128,18 @@ class AppTheme {
     );
   }
 
-  static ThemeData get darkTheme {
+  static ThemeData get darkTheme => lightTheme;
+
+  static ThemeData themeFor(Locale locale) {
+    if (locale.languageCode == 'ar') {
+      final fontFamily = GoogleFonts.cairo().fontFamily!;
+      final base = _buildTheme(fontFamily);
+      final cairoTextTheme = GoogleFonts.cairoTextTheme(base.textTheme);
+      return base.copyWith(
+        textTheme: cairoTextTheme,
+        primaryTextTheme: cairoTextTheme,
+      );
+    }
     return lightTheme;
   }
 }

@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/localization/error_message_localizer.dart';
+import '../../../l10n/app_localizations.dart';
+import 'notification_time_format.dart';
 import 'notifications_controller.dart';
 
 class NotificationsPage extends ConsumerWidget {
@@ -9,6 +12,7 @@ class NotificationsPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final state = ref.watch(notificationsControllerProvider);
     final controller = ref.read(notificationsControllerProvider.notifier);
 
@@ -18,13 +22,14 @@ class NotificationsPage extends ConsumerWidget {
         bottom: false,
         child: Column(
           children: [
-            _NotificationsAppBar(onReadAll: controller.markAllRead),
+            _NotificationsAppBar(l10n: l10n, onReadAll: controller.markAllRead),
             Expanded(
               child: state.when(
                 loading: () => const Center(child: CircularProgressIndicator()),
                 error: (error, _) => _NotificationsMessage(
-                  message: error.toString(),
+                  message: localizeUserFacingError(error, l10n),
                   onRetry: controller.load,
+                  retryLabel: l10n.retry,
                 ),
                 data: (notifications) {
                   final today = notifications
@@ -34,8 +39,8 @@ class NotificationsPage extends ConsumerWidget {
                       .where((item) => !item.isToday)
                       .toList();
                   if (notifications.isEmpty) {
-                    return const _NotificationsMessage(
-                      message: 'No notifications yet.',
+                    return _NotificationsMessage(
+                      message: l10n.notificationsNoYet,
                     );
                   }
 
@@ -49,14 +54,16 @@ class NotificationsPage extends ConsumerWidget {
                             children: [
                               if (today.isNotEmpty)
                                 _NotificationSectionBlock(
-                                  title: 'TODAY',
+                                  l10n: l10n,
+                                  title: l10n.notificationsToday,
                                   notifications: today,
                                 ),
                               if (today.isNotEmpty && earlier.isNotEmpty)
                                 const SizedBox(height: 27),
                               if (earlier.isNotEmpty)
                                 _NotificationSectionBlock(
-                                  title: 'EARLIER',
+                                  l10n: l10n,
+                                  title: l10n.notificationsEarlier,
                                   notifications: earlier,
                                 ),
                             ],
@@ -76,9 +83,10 @@ class NotificationsPage extends ConsumerWidget {
 }
 
 class _NotificationsAppBar extends StatelessWidget {
+  final AppLocalizations l10n;
   final VoidCallback onReadAll;
 
-  const _NotificationsAppBar({required this.onReadAll});
+  const _NotificationsAppBar({required this.l10n, required this.onReadAll});
 
   @override
   Widget build(BuildContext context) {
@@ -93,7 +101,7 @@ class _NotificationsAppBar extends StatelessWidget {
               width: 40,
               height: 40,
               child: Align(
-                alignment: Alignment.centerLeft,
+                alignment: AlignmentDirectional.centerStart,
                 child: Icon(
                   Icons.arrow_back,
                   color: _NotificationColors.title,
@@ -103,10 +111,10 @@ class _NotificationsAppBar extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 9),
-          const Expanded(
+          Expanded(
             child: Text(
-              'MOSAFER',
-              style: TextStyle(
+              l10n.brandMosafer,
+              style: const TextStyle(
                 color: _NotificationColors.title,
                 fontSize: 18,
                 fontWeight: FontWeight.w900,
@@ -120,9 +128,9 @@ class _NotificationsAppBar extends StatelessWidget {
               foregroundColor: _NotificationColors.title,
               padding: const EdgeInsets.symmetric(horizontal: 6),
             ),
-            child: const Text(
-              'Read All',
-              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w900),
+            child: Text(
+              l10n.notificationsReadAll,
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900),
             ),
           ),
         ],
@@ -132,10 +140,12 @@ class _NotificationsAppBar extends StatelessWidget {
 }
 
 class _NotificationSectionBlock extends StatelessWidget {
+  final AppLocalizations l10n;
   final String title;
   final List<AppNotification> notifications;
 
   const _NotificationSectionBlock({
+    required this.l10n,
     required this.title,
     required this.notifications,
   });
@@ -146,7 +156,7 @@ class _NotificationSectionBlock extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.only(left: 7),
+          padding: const EdgeInsetsDirectional.only(start: 7),
           child: Text(
             title,
             style: const TextStyle(
@@ -161,7 +171,7 @@ class _NotificationSectionBlock extends StatelessWidget {
         ...notifications.map(
           (notification) => Padding(
             padding: const EdgeInsets.only(bottom: 14),
-            child: _NotificationCard(notification: notification),
+            child: _NotificationCard(l10n: l10n, notification: notification),
           ),
         ),
       ],
@@ -170,9 +180,10 @@ class _NotificationSectionBlock extends StatelessWidget {
 }
 
 class _NotificationCard extends StatelessWidget {
+  final AppLocalizations l10n;
   final AppNotification notification;
 
-  const _NotificationCard({required this.notification});
+  const _NotificationCard({required this.l10n, required this.notification});
 
   @override
   Widget build(BuildContext context) {
@@ -233,7 +244,7 @@ class _NotificationCard extends StatelessWidget {
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      notification.timeAgo,
+                      formatNotificationTimeAgo(notification.createdAt, l10n),
                       style: const TextStyle(
                         color: _NotificationColors.muted,
                         fontSize: 7,
@@ -305,11 +316,17 @@ class _UnreadIndicator extends StatelessWidget {
 class _NotificationsMessage extends StatelessWidget {
   final String message;
   final VoidCallback? onRetry;
+  final String? retryLabel;
 
-  const _NotificationsMessage({required this.message, this.onRetry});
+  const _NotificationsMessage({
+    required this.message,
+    this.onRetry,
+    this.retryLabel,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -327,7 +344,10 @@ class _NotificationsMessage extends StatelessWidget {
             ),
             if (onRetry != null) ...[
               const SizedBox(height: 16),
-              ElevatedButton(onPressed: onRetry, child: const Text('Retry')),
+              ElevatedButton(
+                onPressed: onRetry,
+                child: Text(retryLabel ?? l10n.retry),
+              ),
             ],
           ],
         ),

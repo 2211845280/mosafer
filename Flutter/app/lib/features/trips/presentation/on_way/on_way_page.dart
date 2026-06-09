@@ -1,15 +1,34 @@
 import 'dart:async';
-import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 
+import '../../../../core/network/api_client.dart';
+import '../../../../core/services/google_directions_service.dart';
 import '../../../../core/services/location_service.dart';
+import '../../../../core/services/maps_service.dart';
+import '../../../../core/utils/departure_plan_formatters.dart';
+import '../../../../core/models/flight_weather.dart';
+import '../../../../core/models/home_address.dart';
+import '../../../../core/services/home_address_controller.dart';
+import '../../../../core/utils/trip_origin_resolver.dart';
+import '../../../../l10n/app_localizations.dart';
+import '../../data/trips_repository.dart';
 import '../active_trip_controller.dart';
+import '../shared/flight_weather_section.dart';
+import 'on_way_address_sheet.dart';
+import 'on_way_airport_lookup.dart';
+import 'on_way_googleMap.dart';
+import 'on_way_map_args.dart';
+import 'on_way_route_map.dart';
+import 'on_way_theme.dart';
 
 class OnWayPage extends ConsumerStatefulWidget {
-  const OnWayPage({super.key});
+  final bool embedded;
+
+  const OnWayPage({super.key, this.embedded = false});
 
   @override
   ConsumerState<OnWayPage> createState() => _OnWayPageState();
@@ -17,10 +36,33 @@ class OnWayPage extends ConsumerStatefulWidget {
 
 class _OnWayPageState extends ConsumerState<OnWayPage> {
   final LocationService _locationService = LocationService();
+  final MapsService _mapsService = MapsService();
+  GoogleDirectionsService? _directionsService;
   StreamSubscription<Position>? _positionSubscription;
   Position? _currentPosition;
+  LatLng? _routeOrigin;
+  List<LatLng> _routePoints = const [];
+  AirportPoint? _routeAirport;
+  double? _routeDistanceKm;
+  int? _routeEtaMinutes;
+  String? _trafficLevel;
+  DateTime? _lastRouteRefresh;
   bool _isTracking = false;
+  bool _usingManualOrigin = false;
+  String? _originLabel;
+  FlightWeatherForecast? _originWeather;
+  FlightWeatherForecast? _destinationWeather;
+  int? _weatherBufferMinutes;
   String? _message;
+
+  @override
+  void initState() {
+    super.initState();
+    _directionsService = GoogleDirectionsService(
+      apiClient: ref.read(apiClientProvider),
+    );
+    WidgetsBinding.instance.addPostFrameCallback((_) => _loadInitialRoute());
+  }
 
   @override
   void dispose() {
@@ -28,99 +70,327 @@ class _OnWayPageState extends ConsumerState<OnWayPage> {
     super.dispose();
   }
 
+  OnWayMapArgs _mapArgs(AppLocalizations l10n, AirportPoint mapAirport) {
+    final homeAddress = ref.read(homeAddressControllerProvider);
+    final originLabel = _usingManualOrigin
+        ? (_originLabel ?? homeAddress.address ?? l10n.onWaySavedAddressReady)
+        : (_currentPosition != null ? l10n.onWayYou : l10n.onWayDemoOriginName);
+    final mapCaption = _usingManualOrigin
+        ? l10n.onWayManualOriginActive
+        : (_currentPosition != null
+              ? l10n.onWayLiveConnected
+              : (_routeOrigin != null
+                    ? l10n.onWayDemoOriginActive
+                    : l10n.onWayPressStart));
+
+    return OnWayMapArgs.fromPageState(
+      fromCode: ref.read(activeTripProvider)?.fromCode,
+      fromCity: ref.read(activeTripProvider)?.fromCity ?? mapAirport.code,
+      mapAirport: mapAirport,
+      currentPosition: _usingManualOrigin ? null : _currentPosition,
+      routeOrigin: _routeOrigin,
+      routePoints: _routePoints,
+      isTracking: _isTracking && !_usingManualOrigin,
+      originLabel: originLabel,
+      mapCaption: mapCaption,
+    );
+  }
+
+  void _openFullScreenMap(OnWayMapArgs args) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => OnWayGoogleMapPage(args: args)),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final trip = ref.watch(activeTripProvider);
-    final airport = _airportFor(trip?.fromCode);
+    final homeAddress = ref.watch(homeAddressControllerProvider);
+    final airport = airportFor(trip?.fromCode);
+    final mapAirport = _routeAirport ?? airport;
+    final mapArgs = _mapArgs(l10n, mapAirport);
     final distanceKm = _currentPosition == null
         ? null
-        : _distanceKm(
+        : distanceKmBetween(
             _currentPosition!.latitude,
             _currentPosition!.longitude,
-            airport.lat,
-            airport.lng,
+            mapAirport.lat,
+            mapAirport.lng,
           );
 
-    return Scaffold(
-      backgroundColor: _OnWayColors.background,
-      body: SafeArea(
-        bottom: false,
-        child: CustomScrollView(
-          slivers: [
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(16, 18, 16, 124),
-              sliver: SliverList.list(
-                children: [
-                  const Text(
-                    'On way',
-                    style: TextStyle(
-                      color: _OnWayColors.title,
-                      fontSize: 28,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: -0.8,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'From your current location to ${airport.code} airport',
-                    style: const TextStyle(
-                      color: _OnWayColors.muted,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  _RouteMapCard(
-                    airport: airport,
-                    hasLiveLocation: _currentPosition != null,
-                    isTracking: _isTracking,
-                  ),
-                  const SizedBox(height: 18),
-                  _RouteStatsCard(
-                    distanceKm: distanceKm,
-                    isTracking: _isTracking,
-                    message: _message,
-                  ),
-                ],
+    final scrollContent = CustomScrollView(
+      slivers: [
+        SliverPadding(
+          padding: EdgeInsets.fromLTRB(16, widget.embedded ? 0 : 18, 16, 124),
+          sliver: SliverList.list(
+            children: [
+              Text(
+                l10n.onWayTitle,
+                style: const TextStyle(
+                  color: OnWayColors.title,
+                  fontSize: 28,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: -0.8,
+                ),
               ),
-            ),
-          ],
+              const SizedBox(height: 8),
+              Text(
+                _usingManualOrigin
+                    ? l10n.onWayManualSubtitle(airport.code)
+                    : (_currentPosition == null && _routeOrigin != null
+                          ? l10n.onWayDemoSubtitle(airport.code)
+                          : l10n.onWaySubtitle(airport.code)),
+                style: const TextStyle(
+                  color: OnWayColors.muted,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 14),
+              _DepartureOriginCard(
+                l10n: l10n,
+                homeAddress: homeAddress,
+                usingManualOrigin: _usingManualOrigin,
+                originLabel: _originLabel,
+                onEdit: () => showOnWayAddressSheet(
+                  context,
+                  ref,
+                  onSaved: _reloadOriginAndRoute,
+                ),
+              ),
+              const SizedBox(height: 20),
+              Container(
+                height: 330,
+                decoration: BoxDecoration(
+                  color: OnWayColors.card,
+                  borderRadius: BorderRadius.circular(28),
+                ),
+                child: Stack(
+                  children: [
+                    Positioned.fill(
+                      child: OnWayRouteMap(
+                        args: OnWayMapArgs(
+                          airportCode: mapArgs.airportCode,
+                          airportName: mapArgs.airportName,
+                          airport: mapArgs.airport,
+                          origin: mapArgs.origin,
+                          routePoints: mapArgs.routePoints,
+                          isTracking: mapArgs.isTracking,
+                          showLiveLocation: mapArgs.showLiveLocation,
+                          originLabel: mapArgs.originLabel,
+                          mapCaption: mapArgs.mapCaption,
+                        ),
+                        directionsService: _directionsService,
+                        borderRadius: BorderRadius.circular(28),
+                      ),
+                    ),
+                    Positioned(
+                      left: 16,
+                      right: 16,
+                      bottom: 56,
+                      child: Row(
+                        children: [
+                          IconButton.filled(
+                            onPressed: _openExternalDirections,
+                            style: IconButton.styleFrom(
+                              backgroundColor: OnWayColors.card,
+                              foregroundColor: OnWayColors.title,
+                            ),
+                            tooltip: l10n.onWayOpenInMaps,
+                            icon: const Icon(Icons.open_in_new, size: 20),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: SizedBox(
+                              height: 46,
+                              child: ElevatedButton(
+                                onPressed: () => _openFullScreenMap(mapArgs),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: OnWayColors.card,
+                                  foregroundColor: OnWayColors.title,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(30),
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const Icon(Icons.fullscreen, size: 20),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      l10n.onWayOpenInMaps,
+                                      style: const TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 18),
+              _RouteStatsCard(
+                distanceKm: _routeDistanceKm ?? distanceKm,
+                etaMinutes: _routeEtaMinutes,
+                trafficLevel: _trafficLevel,
+                isTracking: _isTracking,
+                message: _message,
+              ),
+              if (_originWeather != null || _destinationWeather != null) ...[
+                const SizedBox(height: 18),
+                FlightWeatherSection(
+                  l10n: l10n,
+                  originWeather: _originWeather,
+                  destinationWeather: _destinationWeather,
+                  originLabel: trip?.fromCity ?? mapAirport.code,
+                  destinationLabel: trip?.toCity ?? trip?.toCode ?? '--',
+                  weatherBufferMinutes: _weatherBufferMinutes,
+                  cardColor: OnWayColors.card,
+                  titleColor: OnWayColors.title,
+                  mutedColor: OnWayColors.muted,
+                  iconBackground: OnWayColors.iconBackground,
+                ),
+              ],
+            ],
+          ),
         ),
-      ),
-      bottomNavigationBar: SafeArea(
-        top: false,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 96),
-          child: SizedBox(
-            height: 54,
-            child: ElevatedButton.icon(
-              onPressed: _isTracking ? null : _startNavigation,
-              icon: const Icon(Icons.navigation),
-              label: Text(
-                _isTracking ? 'TRACKING STARTED' : 'START NAVIGATION',
-              ),
+      ],
+    );
+
+    final startButton = SafeArea(
+      top: false,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 96),
+        child: SizedBox(
+          height: 54,
+          child: ElevatedButton.icon(
+            onPressed: _isTracking ? null : _startNavigation,
+            icon: const Icon(Icons.navigation),
+            label: Text(
+              _isTracking
+                  ? l10n.onWayTrackingStarted
+                  : l10n.onWayStartNavigation,
             ),
           ),
         ),
       ),
     );
+
+    if (widget.embedded) {
+      return ColoredBox(
+        color: OnWayColors.background,
+        child: Column(
+          children: [
+            Expanded(child: scrollContent),
+            startButton,
+          ],
+        ),
+      );
+    }
+
+    return Scaffold(
+      backgroundColor: OnWayColors.background,
+      body: SafeArea(bottom: false, child: scrollContent),
+      bottomNavigationBar: startButton,
+    );
+  }
+
+  Future<void> _reloadOriginAndRoute() async {
+    final homeAddress = ref.read(homeAddressControllerProvider);
+    final position = homeAddress.isUsableManualOrigin
+        ? null
+        : await _locationService.currentPosition();
+    if (!mounted) return;
+
+    final resolved = TripOriginResolver.resolve(
+      homeAddress: homeAddress,
+      gpsPosition: position,
+    );
+
+    setState(() {
+      _usingManualOrigin = resolved.isManual;
+      _originLabel = resolved.label;
+      _currentPosition = resolved.isManual ? null : position;
+      _routeOrigin = LatLng(resolved.lat, resolved.lng);
+      if (resolved.isManual) {
+        _isTracking = false;
+        _positionSubscription?.cancel();
+        _positionSubscription = null;
+      }
+    });
+
+    await _refreshRouteFromCoordinates(
+      resolved.lat,
+      resolved.lng,
+      force: true,
+    );
+  }
+
+  Future<void> _loadInitialRoute() async {
+    await ref.read(homeAddressControllerProvider.notifier).ensureLoaded();
+    await _reloadOriginAndRoute();
+  }
+
+  Future<void> _openExternalDirections() async {
+    final l10n = AppLocalizations.of(context)!;
+    final trip = ref.read(activeTripProvider);
+    final airport = _routeAirport ?? airportFor(trip?.fromCode);
+    final origin = _currentPosition == null ? _routeOrigin : null;
+    final opened = await _mapsService.openDirectionsToCoordinates(
+      destinationLat: airport.lat,
+      destinationLng: airport.lng,
+      originLat: _currentPosition?.latitude ?? origin?.latitude,
+      originLng: _currentPosition?.longitude ?? origin?.longitude,
+    );
+    if (!mounted || opened) return;
+    setState(() => _message = l10n.onWayLocationUnavailable);
   }
 
   Future<void> _startNavigation() async {
+    final homeAddress = ref.read(homeAddressControllerProvider);
+    if (homeAddress.isUsableManualOrigin) {
+      await _reloadOriginAndRoute();
+      if (!mounted) return;
+      setState(() {
+        _isTracking = true;
+        _message = AppLocalizations.of(context)!.onWayManualOriginActive;
+      });
+      return;
+    }
+
     final firstPosition = await _locationService.currentPosition();
     if (!mounted) return;
+    final l10n = AppLocalizations.of(context)!;
     if (firstPosition == null) {
-      setState(
-        () => _message = 'Location permission or service is not available.',
+      setState(() {
+        _routeOrigin = demoOriginLatLng;
+        _message = l10n.onWayDemoOriginActive;
+      });
+      await _refreshRouteFromCoordinates(
+        demoOriginLatLng.latitude,
+        demoOriginLatLng.longitude,
+        force: true,
       );
       return;
     }
 
     setState(() {
       _currentPosition = firstPosition;
+      _routeOrigin = LatLng(firstPosition.latitude, firstPosition.longitude);
       _isTracking = true;
-      _message = 'Live tracking is active.';
+      _usingManualOrigin = false;
+      _message = l10n.onWayTrackingActive;
     });
+    await _refreshRoute(firstPosition, force: true);
 
     _positionSubscription?.cancel();
     _positionSubscription =
@@ -131,180 +401,184 @@ class _OnWayPageState extends ConsumerState<OnWayPage> {
           ),
         ).listen((position) {
           if (mounted) {
-            setState(() => _currentPosition = position);
+            setState(() {
+              _currentPosition = position;
+              _routeOrigin = LatLng(position.latitude, position.longitude);
+            });
+            _refreshRoute(position);
           }
         });
   }
+
+  Future<void> _refreshRoute(Position position, {bool force = false}) async {
+    await _refreshRouteFromCoordinates(
+      position.latitude,
+      position.longitude,
+      force: force,
+    );
+  }
+
+  Future<void> _refreshRouteFromCoordinates(
+    double lat,
+    double lng, {
+    bool force = false,
+  }) async {
+    final trip = ref.read(activeTripProvider);
+    if (trip == null || trip.reservationId == 0) return;
+    final now = DateTime.now();
+    if (!force &&
+        _lastRouteRefresh != null &&
+        now.difference(_lastRouteRefresh!) < const Duration(seconds: 90)) {
+      return;
+    }
+    _lastRouteRefresh = now;
+
+    final result = await ref
+        .read(tripsRepositoryProvider)
+        .getDeparturePlan(
+          reservationId: trip.reservationId,
+          lat: lat,
+          lng: lng,
+          mode: 'driving',
+        );
+
+    result.when(
+      success: (data) {
+        final encoded = data['encoded_polyline'] as String?;
+        final points = encoded == null
+            ? const <LatLng>[]
+            : (_directionsService?.decodePolyline(encoded) ?? const <LatLng>[]);
+        final airportLat = (data['airport_lat'] as num?)?.toDouble();
+        final airportLng = (data['airport_lng'] as num?)?.toDouble();
+        final originLat = (data['origin_lat'] as num?)?.toDouble() ?? lat;
+        final originLng = (data['origin_lng'] as num?)?.toDouble() ?? lng;
+        if (!mounted) return;
+        setState(() {
+          _routePoints = points;
+          _routeOrigin = LatLng(originLat, originLng);
+          _routeDistanceKm = (data['distance_km'] as num?)?.toDouble();
+          _routeEtaMinutes = (data['travel_minutes'] as num?)?.round();
+          _trafficLevel = data['traffic_level'] as String?;
+          _originWeather = parseFlightWeather(data['weather']);
+          _destinationWeather = parseFlightWeather(data['destination_weather']);
+          _weatherBufferMinutes = (data['weather_buffer_minutes'] as num?)?.round();
+          if (airportLat != null && airportLng != null) {
+            _routeAirport = AirportPoint(trip.fromCode, airportLat, airportLng);
+          }
+        });
+      },
+      failure: (_) {
+        // Keep live location usable even if the server-side route refresh fails.
+      },
+    );
+  }
 }
 
-class _RouteMapCard extends StatelessWidget {
-  final _AirportPoint airport;
-  final bool hasLiveLocation;
-  final bool isTracking;
+double distanceKmBetween(double lat1, double lon1, double lat2, double lon2) =>
+    distanceKm(lat1, lon1, lat2, lon2);
 
-  const _RouteMapCard({
-    required this.airport,
-    required this.hasLiveLocation,
-    required this.isTracking,
+class _DepartureOriginCard extends StatelessWidget {
+  final AppLocalizations l10n;
+  final HomeAddress homeAddress;
+  final bool usingManualOrigin;
+  final String? originLabel;
+  final VoidCallback onEdit;
+
+  const _DepartureOriginCard({
+    required this.l10n,
+    required this.homeAddress,
+    required this.usingManualOrigin,
+    required this.originLabel,
+    required this.onEdit,
   });
 
   @override
   Widget build(BuildContext context) {
+    final subtitle = usingManualOrigin
+        ? (originLabel ?? homeAddress.address ?? l10n.onWaySavedAddressReady)
+        : l10n.onWayUseCurrentLocationHint;
+
     return Container(
-      height: 330,
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: _OnWayColors.card,
-        borderRadius: BorderRadius.circular(28),
+        color: OnWayColors.card,
+        borderRadius: BorderRadius.circular(18),
       ),
-      child: Stack(
+      child: Row(
         children: [
-          Positioned.fill(
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(28),
-              child: CustomPaint(
-                painter: _OnWayMapPainter(isTracking: isTracking),
-              ),
+          CircleAvatar(
+            backgroundColor: OnWayColors.iconBackground,
+            child: Icon(
+              usingManualOrigin ? Icons.home_outlined : Icons.my_location,
+              color: OnWayColors.title,
             ),
           ),
-          const Positioned(
-            left: 28,
-            bottom: 40,
-            child: _MapPoint(label: 'YOU', icon: Icons.person_pin_circle),
-          ),
-          Positioned(
-            right: 26,
-            top: 48,
-            child: _MapPoint(label: airport.code, icon: Icons.local_airport),
-          ),
-          Positioned(
-            left: 18,
-            right: 18,
-            bottom: 18,
-            child: Text(
-              hasLiveLocation
-                  ? 'Live location connected'
-                  : 'Press Start Navigation to connect live location',
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: _OnWayColors.title,
-                fontSize: 12,
-                fontWeight: FontWeight.w800,
-              ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  l10n.onWayDepartureFrom,
+                  style: const TextStyle(
+                    color: OnWayColors.muted,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  subtitle,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: OnWayColors.title,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
             ),
           ),
+          TextButton(onPressed: onEdit, child: Text(l10n.onWayChangeAddress)),
         ],
       ),
     );
   }
 }
 
-class _OnWayMapPainter extends CustomPainter {
-  final bool isTracking;
-
-  const _OnWayMapPainter({required this.isTracking});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final gridPaint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.045)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1;
-    for (var i = 0.0; i < size.width; i += 28) {
-      canvas.drawLine(Offset(i, 0), Offset(i, size.height), gridPaint);
-    }
-    for (var i = 0.0; i < size.height; i += 28) {
-      canvas.drawLine(Offset(0, i), Offset(size.width, i), gridPaint);
-    }
-
-    final path = Path()
-      ..moveTo(size.width * 0.18, size.height * 0.75)
-      ..cubicTo(
-        size.width * 0.28,
-        size.height * 0.55,
-        size.width * 0.58,
-        size.height * 0.58,
-        size.width * 0.72,
-        size.height * 0.38,
-      )
-      ..cubicTo(
-        size.width * 0.78,
-        size.height * 0.29,
-        size.width * 0.84,
-        size.height * 0.23,
-        size.width * 0.88,
-        size.height * 0.19,
-      );
-
-    final routePaint = Paint()
-      ..color = isTracking ? _OnWayColors.salmon : _OnWayColors.blue
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round
-      ..strokeWidth = 5;
-    canvas.drawPath(path, routePaint);
-  }
-
-  @override
-  bool shouldRepaint(covariant _OnWayMapPainter oldDelegate) {
-    return oldDelegate.isTracking != isTracking;
-  }
-}
-
-class _MapPoint extends StatelessWidget {
-  final String label;
-  final IconData icon;
-
-  const _MapPoint({required this.label, required this.icon});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        CircleAvatar(
-          radius: 22,
-          backgroundColor: _OnWayColors.blue,
-          child: Icon(icon, color: _OnWayColors.background, size: 24),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          label,
-          style: const TextStyle(
-            color: _OnWayColors.title,
-            fontSize: 11,
-            fontWeight: FontWeight.w900,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
 class _RouteStatsCard extends StatelessWidget {
   final double? distanceKm;
+  final int? etaMinutes;
+  final String? trafficLevel;
   final bool isTracking;
   final String? message;
 
   const _RouteStatsCard({
     required this.distanceKm,
+    required this.etaMinutes,
+    required this.trafficLevel,
     required this.isTracking,
     required this.message,
   });
 
   @override
   Widget build(BuildContext context) {
-    final etaMinutes = distanceKm == null
-        ? null
-        : (distanceKm! / 55 * 60).round();
+    final l10n = AppLocalizations.of(context)!;
+    final computedEta =
+        etaMinutes ??
+        (distanceKm == null ? null : (distanceKm! / 55 * 60).round());
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: _OnWayColors.card,
+        color: OnWayColors.card,
         borderRadius: BorderRadius.circular(20),
       ),
       child: Column(
         children: [
           _StatRow(
             icon: Icons.route,
-            label: 'Distance',
+            label: l10n.onWayDistance,
             value: distanceKm == null
                 ? '-- km'
                 : '${distanceKm!.toStringAsFixed(1)} km',
@@ -312,14 +586,29 @@ class _RouteStatsCard extends StatelessWidget {
           const SizedBox(height: 14),
           _StatRow(
             icon: Icons.timer_outlined,
-            label: 'ETA',
-            value: etaMinutes == null ? '-- mins' : '$etaMinutes mins',
+            label: l10n.onWayEta,
+            value: computedEta == null
+                ? '--'
+                : '$computedEta ${l10n.planDepartureUnitMinutes}',
+          ),
+          const SizedBox(height: 14),
+          _StatRow(
+            icon: Icons.traffic,
+            label: l10n.onWayTraffic,
+            value: trafficLevel == null
+                ? '--'
+                : trafficLevelLabel(l10n, trafficLevel),
+            valueColor: trafficLevel == null
+                ? null
+                : trafficLevelColor(trafficLevel),
           ),
           const SizedBox(height: 14),
           _StatRow(
             icon: isTracking ? Icons.gps_fixed : Icons.gps_not_fixed,
-            label: 'Tracking',
-            value: isTracking ? 'Active' : 'Not started',
+            label: l10n.onWayTracking,
+            value: isTracking
+                ? l10n.onWayTrackingActiveState
+                : l10n.onWayTrackingNotStarted,
           ),
           if (message != null) ...[
             const SizedBox(height: 14),
@@ -327,7 +616,7 @@ class _RouteStatsCard extends StatelessWidget {
               message!,
               textAlign: TextAlign.center,
               style: const TextStyle(
-                color: _OnWayColors.muted,
+                color: OnWayColors.muted,
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
               ),
@@ -343,11 +632,13 @@ class _StatRow extends StatelessWidget {
   final IconData icon;
   final String label;
   final String value;
+  final Color? valueColor;
 
   const _StatRow({
     required this.icon,
     required this.label,
     required this.value,
+    this.valueColor,
   });
 
   @override
@@ -355,15 +646,15 @@ class _StatRow extends StatelessWidget {
     return Row(
       children: [
         CircleAvatar(
-          backgroundColor: _OnWayColors.iconBackground,
-          child: Icon(icon, color: _OnWayColors.title, size: 20),
+          backgroundColor: OnWayColors.iconBackground,
+          child: Icon(icon, color: OnWayColors.title, size: 20),
         ),
         const SizedBox(width: 14),
         Expanded(
           child: Text(
             label,
             style: const TextStyle(
-              color: _OnWayColors.muted,
+              color: OnWayColors.muted,
               fontSize: 12,
               fontWeight: FontWeight.w800,
             ),
@@ -371,8 +662,8 @@ class _StatRow extends StatelessWidget {
         ),
         Text(
           value,
-          style: const TextStyle(
-            color: _OnWayColors.title,
+          style: TextStyle(
+            color: valueColor ?? OnWayColors.title,
             fontSize: 15,
             fontWeight: FontWeight.w900,
           ),
@@ -380,49 +671,4 @@ class _StatRow extends StatelessWidget {
       ],
     );
   }
-}
-
-class _AirportPoint {
-  final String code;
-  final double lat;
-  final double lng;
-
-  const _AirportPoint(this.code, this.lat, this.lng);
-}
-
-_AirportPoint _airportFor(String? code) {
-  return switch ((code ?? '').toUpperCase()) {
-    'CAI' => const _AirportPoint('CAI', 30.1219, 31.4056),
-    'DXB' => const _AirportPoint('DXB', 25.2532, 55.3657),
-    'LHR' => const _AirportPoint('LHR', 51.4700, -0.4543),
-    'JFK' => const _AirportPoint('JFK', 40.6413, -73.7781),
-    _ => _AirportPoint(code?.toUpperCase() ?? 'AIRPORT', 25.2532, 55.3657),
-  };
-}
-
-double _distanceKm(double lat1, double lon1, double lat2, double lon2) {
-  const radiusKm = 6371.0;
-  final dLat = _degToRad(lat2 - lat1);
-  final dLon = _degToRad(lon2 - lon1);
-  final a =
-      math.sin(dLat / 2) * math.sin(dLat / 2) +
-      math.cos(_degToRad(lat1)) *
-          math.cos(_degToRad(lat2)) *
-          math.sin(dLon / 2) *
-          math.sin(dLon / 2);
-  return radiusKm * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
-}
-
-double _degToRad(double value) => value * math.pi / 180;
-
-class _OnWayColors {
-  _OnWayColors._();
-
-  static const Color background = Color(0xFF061326);
-  static const Color card = Color(0xFF101F36);
-  static const Color title = Color(0xFFD5E4FF);
-  static const Color muted = Color(0xFF8FA0BA);
-  static const Color blue = Color(0xFF4A91F8);
-  static const Color salmon = Color(0xFFFFACA6);
-  static const Color iconBackground = Color(0xFF1D2D46);
 }

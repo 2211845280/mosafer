@@ -9,7 +9,8 @@ from pydantic import BaseModel, ConfigDict
 
 
 class PaymentCreateRequest(BaseModel):
-    reservation_id: int
+    checkout_session_id: int
+    locale: str = "en"
 
 
 class PaymentSessionResponse(BaseModel):
@@ -17,13 +18,27 @@ class PaymentSessionResponse(BaseModel):
     session_id: str
     checkout_url: str
     status: str
+    provider: str = "mock"
+    publishable_key: str | None = None
+    stripe_test_mode: bool = False
+
+
+class PaymentConfigResponse(BaseModel):
+    provider: str
+    publishable_key: str | None = None
+    stripe_test_mode: bool = False
+
+
+class StripeVerifyRequest(BaseModel):
+    session_id: str
 
 
 class PaymentRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
-    reservation_id: int
+    reservation_id: int | None = None
+    checkout_session_id: int | None = None
     user_id: int
     provider: str
     provider_payment_id: str

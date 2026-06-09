@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/localization/error_message_localizer.dart';
+import '../../../../l10n/app_localizations.dart';
 import '../../domain/trip.dart';
 import '../active_trip_controller.dart';
 import 'my_trips_controller.dart';
@@ -11,6 +13,7 @@ class MyTripsPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final state = ref.watch(myTripsControllerProvider);
     final controller = ref.read(myTripsControllerProvider.notifier);
 
@@ -28,14 +31,14 @@ class MyTripsPage extends ConsumerWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  error.toString(),
+                  localizeUserFacingError(error, l10n),
                   textAlign: TextAlign.center,
                   style: const TextStyle(color: _TripsColors.coral),
                 ),
                 const SizedBox(height: 16),
                 ElevatedButton(
                   onPressed: controller.loadTrips,
-                  child: const Text('Retry'),
+                  child: Text(l10n.retry),
                 ),
               ],
             ),
@@ -54,9 +57,14 @@ class MyTripsPage extends ConsumerWidget {
                     padding: const EdgeInsets.fromLTRB(14, 28, 14, 0),
                     sliver: SliverList.list(
                       children: [
-                        _SearchField(onChanged: controller.updateSearchQuery),
+                        _SearchField(
+                          hintText: l10n.tripsSearchHint,
+                          onChanged: controller.updateSearchQuery,
+                        ),
                         const SizedBox(height: 20),
                         _TripsSegmentedControl(
+                          upcomingLabel: l10n.tripsUpcoming,
+                          allLabel: l10n.tripsAll,
                           showUpcomingOnly: state.showUpcomingOnly,
                           onUpcomingPressed: controller.showUpcoming,
                           onAllPressed: controller.showAll,
@@ -72,14 +80,21 @@ class MyTripsPage extends ConsumerWidget {
                       separatorBuilder: (context, index) =>
                           const SizedBox(height: 18),
                       itemBuilder: (context, index) {
-                        return _TripCard(trip: trips[index]);
+                        return _TripCard(
+                          trip: trips[index],
+                          onDelete: () => _confirmDeleteTrip(
+                            context,
+                            ref,
+                            trips[index],
+                          ),
+                        );
                       },
                     ),
                   ),
                 ],
               ),
-              Positioned(
-                right: 18,
+              PositionedDirectional(
+                end: 18,
                 bottom: 104,
                 child: FloatingActionButton(
                   onPressed: () => context.goNamed('scan'),
@@ -96,12 +111,53 @@ class MyTripsPage extends ConsumerWidget {
       },
     );
   }
+
+  Future<void> _confirmDeleteTrip(
+    BuildContext context,
+    WidgetRef ref,
+    Trip trip,
+  ) async {
+    final l10n = AppLocalizations.of(context)!;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          backgroundColor: _TripsColors.card,
+          title: Text(
+            l10n.tripsDeleteConfirmTitle,
+            style: const TextStyle(color: _TripsColors.title),
+          ),
+          content: Text(
+            l10n.tripsDeleteConfirmBody,
+            style: const TextStyle(color: _TripsColors.muted),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: Text(l10n.tripsDeleteCancel),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: Text(l10n.tripsDeleteConfirm),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed != true || !context.mounted) {
+      return;
+    }
+    await ref.read(myTripsControllerProvider.notifier).softDeleteTrip(trip);
+    ref.invalidate(deletedTripsProvider);
+  }
 }
 
 class _SearchField extends StatelessWidget {
+  final String hintText;
   final ValueChanged<String> onChanged;
 
-  const _SearchField({required this.onChanged});
+  const _SearchField({required this.hintText, required this.onChanged});
 
   @override
   Widget build(BuildContext context) {
@@ -110,7 +166,7 @@ class _SearchField extends StatelessWidget {
       cursorColor: _TripsColors.blue,
       style: const TextStyle(color: _TripsColors.title, fontSize: 13),
       decoration: InputDecoration(
-        hintText: 'Search by city or flight #',
+        hintText: hintText,
         hintStyle: const TextStyle(
           color: _TripsColors.muted,
           fontSize: 12,
@@ -142,11 +198,15 @@ class _SearchField extends StatelessWidget {
 }
 
 class _TripsSegmentedControl extends StatelessWidget {
+  final String upcomingLabel;
+  final String allLabel;
   final bool showUpcomingOnly;
   final VoidCallback onUpcomingPressed;
   final VoidCallback onAllPressed;
 
   const _TripsSegmentedControl({
+    required this.upcomingLabel,
+    required this.allLabel,
     required this.showUpcomingOnly,
     required this.onUpcomingPressed,
     required this.onAllPressed,
@@ -165,14 +225,14 @@ class _TripsSegmentedControl extends StatelessWidget {
         children: [
           Expanded(
             child: _SegmentButton(
-              label: 'Upcoming',
+              label: upcomingLabel,
               isSelected: showUpcomingOnly,
               onPressed: onUpcomingPressed,
             ),
           ),
           Expanded(
             child: _SegmentButton(
-              label: 'All',
+              label: allLabel,
               isSelected: !showUpcomingOnly,
               onPressed: onAllPressed,
             ),
@@ -215,52 +275,110 @@ class _SegmentButton extends StatelessWidget {
 
 class _TripCard extends StatelessWidget {
   final Trip trip;
+  final VoidCallback onDelete;
 
-  const _TripCard({required this.trip});
+  const _TripCard({required this.trip, required this.onDelete});
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final isCompleted = trip.status == TripStatus.completed;
-    final foreground = isCompleted
-        ? _TripsColors.disabledText
-        : _TripsColors.title;
+    final isExpired = trip.isExpired;
+    final isDisabled = isCompleted || isExpired;
+    final foreground = isDisabled ? _TripsColors.disabledText : _TripsColors.title;
+    final opacity = isExpired ? 0.4 : isCompleted ? 0.55 : 1.0;
 
     return Opacity(
-      opacity: isCompleted ? 0.55 : 1,
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(18, 20, 18, 18),
-        decoration: BoxDecoration(
-          color: _TripsColors.card,
+      opacity: opacity,
+      child: GestureDetector(
+        onLongPress: isDisabled ? null : onDelete,
+        child: ClipRRect(
           borderRadius: BorderRadius.circular(18),
-        ),
-        child: Column(
-          children: [
-            Row(
-              children: [
-                _AirlineAvatar(label: trip.imageLabel),
-                const SizedBox(width: 11),
-                Expanded(
-                  child: Text(
-                    trip.airline,
-                    style: TextStyle(
-                      color: foreground,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w900,
+          child: Stack(
+            children: [
+              Positioned.fill(
+                child: Image.asset(
+                  'assets/images/trips/plane.jpg',
+                  fit: BoxFit.cover,
+                ),
+              ),
+              Positioned.fill(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.black.withValues(alpha: 0.55),
+                        Colors.black.withValues(alpha: 0.82),
+                      ],
                     ),
                   ),
                 ),
-                _StatusPill(status: trip.status),
-              ],
-            ),
-            const SizedBox(height: 27),
-            _RouteSummary(trip: trip, foreground: foreground),
-            const SizedBox(height: 22),
-            const Divider(color: _TripsColors.divider, height: 1),
-            const SizedBox(height: 19),
-            _TripMetaRow(trip: trip, foreground: foreground),
-            const SizedBox(height: 19),
-            _TripActionButton(trip: trip, isCompleted: isCompleted),
-          ],
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(18, 20, 18, 18),
+                child: Column(
+                  children: [
+                    Row(
+                      children: [
+                        _AirlineAvatar(label: trip.imageLabel),
+                        const SizedBox(width: 11),
+                        Expanded(
+                          child: Text(
+                            trip.airline,
+                            style: TextStyle(
+                              color: foreground,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ),
+                        if (isExpired)
+                          _ExpiredPill(label: l10n.tripsExpired)
+                        else
+                          _StatusPill(status: trip.status),
+                      ],
+                    ),
+                    const SizedBox(height: 27),
+                    _RouteSummary(trip: trip, foreground: foreground),
+                    const SizedBox(height: 22),
+                    const Divider(color: _TripsColors.divider, height: 1),
+                    const SizedBox(height: 19),
+                    _TripMetaRow(trip: trip, foreground: foreground),
+                    const SizedBox(height: 19),
+                    _TripActionButton(trip: trip, isDisabled: isDisabled),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ExpiredPill extends StatelessWidget {
+  final String label;
+
+  const _ExpiredPill({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: _TripsColors.completedPill,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(
+          color: _TripsColors.disabledText,
+          fontSize: 8,
+          fontWeight: FontWeight.w900,
+          letterSpacing: 1,
         ),
       ),
     );
@@ -306,6 +424,7 @@ class _StatusPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final isConfirmed = status == TripStatus.confirmed;
 
     return Container(
@@ -317,7 +436,7 @@ class _StatusPill extends StatelessWidget {
         borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
-        isConfirmed ? 'CONFIRMED' : 'COMPLETED',
+        isConfirmed ? l10n.tripsConfirmed : l10n.tripsCompleted,
         style: TextStyle(
           color: isConfirmed ? _TripsColors.green : _TripsColors.disabledText,
           fontSize: 8,
@@ -404,13 +523,21 @@ class _AirportBlock extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 4),
-        Text(
-          city,
-          style: TextStyle(
-            color: foreground,
-            fontSize: 10,
-            fontWeight: FontWeight.w700,
-            letterSpacing: 0.45,
+        SizedBox(
+          width: 92,
+          child: Text(
+            city,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            textAlign: alignment == CrossAxisAlignment.end
+                ? TextAlign.end
+                : TextAlign.start,
+            style: TextStyle(
+              color: foreground,
+              fontSize: 9,
+              fontWeight: FontWeight.w300,
+              height: 1.2,
+            ),
           ),
         ),
       ],
@@ -426,12 +553,13 @@ class _TripMetaRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final locale = Localizations.localeOf(context);
     return Row(
       children: [
         Expanded(
           child: _MetaItem(
             icon: Icons.calendar_month_outlined,
-            label: trip.dateTime,
+            label: trip.formattedDeparture(locale),
             foreground: foreground,
           ),
         ),
@@ -478,37 +606,43 @@ class _MetaItem extends StatelessWidget {
 
 class _TripActionButton extends ConsumerWidget {
   final Trip trip;
-  final bool isCompleted;
+  final bool isDisabled;
 
-  const _TripActionButton({required this.trip, required this.isCompleted});
+  const _TripActionButton({required this.trip, required this.isDisabled});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return SizedBox(
-      height: 43,
-      width: double.infinity,
-      child: ElevatedButton(
-        onPressed: isCompleted
-            ? () {}
-            : () {
-                ref.read(activeTripProvider.notifier).state = trip;
-                context.goNamed('dashboard');
-              },
-        style: ElevatedButton.styleFrom(
-          backgroundColor: isCompleted
-              ? _TripsColors.inactiveButton
-              : _TripsColors.blue,
-          foregroundColor: isCompleted
-              ? _TripsColors.disabledText
-              : _TripsColors.background,
-          elevation: 0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(11),
+    final l10n = AppLocalizations.of(context)!;
+    final isCompleted = trip.status == TripStatus.completed;
+
+    return IgnorePointer(
+      ignoring: isDisabled,
+      child: SizedBox(
+        height: 43,
+        width: double.infinity,
+        child: ElevatedButton(
+          onPressed: isDisabled
+              ? null
+              : () {
+                  ref.read(activeTripProvider.notifier).state = trip;
+                  context.goNamed('dashboard');
+                },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: isDisabled
+                ? _TripsColors.inactiveButton
+                : _TripsColors.blue,
+            foregroundColor: isDisabled
+                ? _TripsColors.disabledText
+                : _TripsColors.background,
+            elevation: 0,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(11),
+            ),
           ),
-        ),
-        child: Text(
-          isCompleted ? 'View History' : 'Open Trip',
-          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900),
+          child: Text(
+            isCompleted ? l10n.tripsViewHistory : l10n.tripsOpenTrip,
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900),
+          ),
         ),
       ),
     );

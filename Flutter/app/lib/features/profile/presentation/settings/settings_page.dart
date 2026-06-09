@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../auth/data/auth_repository_impl.dart';
-import '../../../auth/presentation/auth_session_controller.dart';
+import '../../../../core/localization/locale_providers.dart';
+import '../../../../l10n/app_localizations.dart';
+import '../../../auth/presentation/auth_session_reset.dart';
+import '../notification_settings/notification_settings_state.dart';
+import '../profile_guest_avatar.dart';
 import '../profile_state.dart';
 
 class SettingsPage extends ConsumerWidget {
@@ -12,20 +15,24 @@ class SettingsPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final profile = ref.watch(profileControllerProvider).valueOrNull;
+    final notificationsEnabled = ref.watch(
+      notificationSettingsControllerProvider.select((s) => s.enabled),
+    );
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: _SettingsColors.background,
       body: SafeArea(
         bottom: false,
         child: Column(
           children: [
-            const _SettingsAppBar(),
+            _SettingsAppBar(l10n: l10n),
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(14, 34, 14, 130),
                 children: [
-                  const Text(
-                    'Settings',
-                    style: TextStyle(
+                  Text(
+                    l10n.settingsTitle,
+                    style: const TextStyle(
                       color: _SettingsColors.title,
                       fontSize: 22,
                       fontWeight: FontWeight.w900,
@@ -33,31 +40,54 @@ class SettingsPage extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(height: 22),
-                  _UserSummaryCard(profile: profile),
+                  _UserSummaryCard(l10n: l10n, profile: profile),
                   const SizedBox(height: 25),
-                  const _SettingsSectionTitle('NOTIFICATION SETTINGS'),
+                  _SettingsSectionTitle(l10n.settingsNotificationsSection),
                   const SizedBox(height: 12),
-                  _SettingsTile(
+                  _SettingsToggleTile(
                     icon: Icons.notifications_none_outlined,
-                    title: 'Notification Setting',
-                    subtitle: 'Stay updated on your flights',
-                    onTap: () => context.goNamed('notificationSettings'),
+                    title: l10n.settingsNotificationTileTitle,
+                    subtitle: l10n.settingsNotificationTileSubtitle,
+                    value: notificationsEnabled,
+                    onChanged: ref
+                        .read(notificationSettingsControllerProvider.notifier)
+                        .setEnabled,
                   ),
                   const SizedBox(height: 26),
-                  const _SettingsSectionTitle('ACCOUNT'),
+                  _SettingsTile(
+                    icon: Icons.language_outlined,
+                    title: l10n.settingsLanguage,
+                    subtitle:
+                        '${ref.watch(appLocaleProvider).languageCode == 'ar' ? l10n.languageArabic : l10n.languageEnglish} · ${l10n.settingsLanguageSubtitle}',
+                    onTap: () => _showLanguagePicker(context, ref),
+                  ),
+                  const SizedBox(height: 26),
+                  _SettingsSectionTitle(l10n.settingsAccountSection),
+                  const SizedBox(height: 12),
+                  _SettingsTile(
+                    icon: Icons.delete_outline,
+                    title: l10n.settingsDeletedTrips,
+                    subtitle: l10n.settingsDeletedTripsSubtitle,
+                    onTap: () => context.goNamed('deletedTrips'),
+                  ),
+                  const SizedBox(height: 12),
+                  _SettingsTile(
+                    icon: Icons.swap_horiz,
+                    title: l10n.settingsSwitchAccount,
+                    subtitle: l10n.settingsSwitchAccountSubtitle,
+                    onTap: () => context.go('/login?switch=1'),
+                  ),
                   const SizedBox(height: 12),
                   _SettingsTile(
                     icon: Icons.lock_outline,
-                    title: 'Change Password',
+                    title: l10n.settingsChangePassword,
                     onTap: () => context.goNamed('changePassword'),
                   ),
                   const SizedBox(height: 22),
                   _LogoutButton(
+                    l10n: l10n,
                     onPressed: () async {
-                      await ref.read(authRepositoryProvider).logout();
-                      await ref
-                          .read(authSessionControllerProvider.notifier)
-                          .clear();
+                      await logoutUser(ref);
                       if (context.mounted) {
                         context.goNamed('login');
                       }
@@ -73,8 +103,62 @@ class SettingsPage extends ConsumerWidget {
   }
 }
 
+Future<void> _showLanguagePicker(BuildContext context, WidgetRef ref) async {
+  final l10n = AppLocalizations.of(context)!;
+  final current = ref.read(appLocaleProvider);
+  await showDialog<void>(
+    context: context,
+    builder: (ctx) {
+      return AlertDialog(
+        backgroundColor: _SettingsColors.card,
+        title: Text(
+          l10n.settingsChooseLanguageTitle,
+          style: const TextStyle(color: _SettingsColors.title),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              title: Text(
+                l10n.languageEnglish,
+                style: const TextStyle(color: _SettingsColors.title),
+              ),
+              trailing: current.languageCode == 'en'
+                  ? const Icon(Icons.check, color: _SettingsColors.salmon)
+                  : null,
+              onTap: () async {
+                await ref
+                    .read(appLocaleProvider.notifier)
+                    .setLocale(const Locale('en'));
+                if (ctx.mounted) Navigator.of(ctx).pop();
+              },
+            ),
+            ListTile(
+              title: Text(
+                l10n.languageArabic,
+                style: const TextStyle(color: _SettingsColors.title),
+              ),
+              trailing: current.languageCode == 'ar'
+                  ? const Icon(Icons.check, color: _SettingsColors.salmon)
+                  : null,
+              onTap: () async {
+                await ref
+                    .read(appLocaleProvider.notifier)
+                    .setLocale(const Locale('ar'));
+                if (ctx.mounted) Navigator.of(ctx).pop();
+              },
+            ),
+          ],
+        ),
+      );
+    },
+  );
+}
+
 class _SettingsAppBar extends StatelessWidget {
-  const _SettingsAppBar();
+  final AppLocalizations l10n;
+
+  const _SettingsAppBar({required this.l10n});
 
   @override
   Widget build(BuildContext context) {
@@ -99,9 +183,9 @@ class _SettingsAppBar extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 3),
-          const Text(
-            'MOSAFER',
-            style: TextStyle(
+          Text(
+            l10n.brandMosafer,
+            style: const TextStyle(
               color: _SettingsColors.title,
               fontSize: 15,
               fontWeight: FontWeight.w900,
@@ -115,9 +199,10 @@ class _SettingsAppBar extends StatelessWidget {
 }
 
 class _UserSummaryCard extends StatelessWidget {
+  final AppLocalizations l10n;
   final ProfileState? profile;
 
-  const _UserSummaryCard({required this.profile});
+  const _UserSummaryCard({required this.l10n, required this.profile});
 
   @override
   Widget build(BuildContext context) {
@@ -129,40 +214,20 @@ class _UserSummaryCard extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Stack(
-            clipBehavior: Clip.none,
-            children: [
-              Container(
-                width: 50,
-                height: 50,
-                decoration: BoxDecoration(
-                  color: _SettingsColors.avatarBackground,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Icon(
-                  Icons.person,
-                  color: _SettingsColors.title,
-                  size: 34,
-                ),
-              ),
-              Positioned(
-                right: -3,
-                bottom: -3,
-                child: Container(
-                  width: 16,
-                  height: 16,
-                  decoration: const BoxDecoration(
-                    color: _SettingsColors.salmon,
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.edit,
-                    color: _SettingsColors.background,
-                    size: 10,
-                  ),
-                ),
-              ),
-            ],
+          Container(
+            width: 50,
+            height: 50,
+            decoration: BoxDecoration(
+              color: _SettingsColors.avatarBackground,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: ProfileAvatarImage(
+              avatarPath: profile?.avatarPath,
+              size: 50,
+              showGradientRing: false,
+              borderRadius: 12,
+            ),
           ),
           const SizedBox(width: 13),
           Expanded(
@@ -170,7 +235,7 @@ class _UserSummaryCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  profile?.fullName ?? 'Traveler',
+                  profile?.fullName ?? l10n.travelerDefault,
                   style: const TextStyle(
                     color: _SettingsColors.title,
                     fontSize: 14,
@@ -178,9 +243,9 @@ class _UserSummaryCard extends StatelessWidget {
                     height: 1.15,
                   ),
                 ),
-                SizedBox(height: 4),
+                const SizedBox(height: 4),
                 Text(
-                  profile?.email ?? 'Mosafer account',
+                  profile?.email ?? l10n.mosaferAccountDefault,
                   style: const TextStyle(
                     color: _SettingsColors.body,
                     fontSize: 10,
@@ -191,28 +256,26 @@ class _UserSummaryCard extends StatelessWidget {
               ],
             ),
           ),
-          SizedBox(
-            width: 60,
-            height: 35,
-            child: ElevatedButton(
-              onPressed: () => context.goNamed('editProfile'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _SettingsColors.chip,
-                foregroundColor: _SettingsColors.title,
-                elevation: 0,
-                padding: const EdgeInsets.symmetric(horizontal: 17),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
+          ElevatedButton(
+            onPressed: () => context.goNamed('editProfile'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _SettingsColors.blue,
+              foregroundColor: _SettingsColors.background,
+              elevation: 0,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              minimumSize: const Size(0, 35),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
               ),
-              child: const Text(
-                'Edit\nProfile',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 8,
-                  fontWeight: FontWeight.w900,
-                  height: 1.15,
-                ),
+            ),
+            child: Text(
+              l10n.settingsEditProfileTwoLines,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 9,
+                fontWeight: FontWeight.w900,
+                height: 1.2,
               ),
             ),
           ),
@@ -239,6 +302,83 @@ class _SettingsSectionTitle extends StatelessWidget {
           fontWeight: FontWeight.w900,
           letterSpacing: 1.5,
         ),
+      ),
+    );
+  }
+}
+
+class _SettingsToggleTile extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String? subtitle;
+  final bool value;
+  final ValueChanged<bool> onChanged;
+
+  const _SettingsToggleTile({
+    required this.icon,
+    required this.title,
+    this.subtitle,
+    required this.value,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      constraints: const BoxConstraints(minHeight: 48),
+      padding: const EdgeInsets.fromLTRB(12, 10, 8, 10),
+      decoration: BoxDecoration(
+        color: _SettingsColors.card,
+        borderRadius: BorderRadius.circular(9),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 29,
+            height: 29,
+            decoration: BoxDecoration(
+              color: _SettingsColors.iconBackground,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, color: _SettingsColors.title, size: 17),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    color: _SettingsColors.title,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                if (subtitle != null) ...[
+                  const SizedBox(height: 3),
+                  Text(
+                    subtitle!,
+                    style: const TextStyle(
+                      color: _SettingsColors.body,
+                      fontSize: 8,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          Switch.adaptive(
+            value: value,
+            onChanged: onChanged,
+            activeTrackColor: _SettingsColors.blue,
+            activeThumbColor: _SettingsColors.title,
+            inactiveThumbColor: _SettingsColors.body,
+            inactiveTrackColor: _SettingsColors.iconBackground,
+          ),
+        ],
       ),
     );
   }
@@ -321,9 +461,10 @@ class _SettingsTile extends StatelessWidget {
 }
 
 class _LogoutButton extends StatelessWidget {
+  final AppLocalizations l10n;
   final VoidCallback onPressed;
 
-  const _LogoutButton({required this.onPressed});
+  const _LogoutButton({required this.l10n, required this.onPressed});
 
   @override
   Widget build(BuildContext context) {
@@ -339,9 +480,9 @@ class _LogoutButton extends StatelessWidget {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(9)),
         ),
         icon: const Icon(Icons.logout, size: 17),
-        label: const Text(
-          'Logout',
-          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900),
+        label: Text(
+          l10n.settingsLogout,
+          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900),
         ),
       ),
     );
@@ -353,7 +494,6 @@ class _SettingsColors {
 
   static const Color background = Color(0xFF061326);
   static const Color card = Color(0xFF101F36);
-  static const Color chip = Color(0xFF2A3A56);
   static const Color iconBackground = Color(0xFF1C2D48);
   static const Color avatarBackground = Color(0xFFE7F2FF);
   static const Color logoutBackground = Color(0xFF2A0D23);
@@ -361,5 +501,6 @@ class _SettingsColors {
   static const Color title = Color(0xFFD5E4FF);
   static const Color body = Color(0xFF9FB0CE);
   static const Color section = Color(0xFF8FA2C2);
+  static const Color blue = Color(0xFF4A91F8);
   static const Color salmon = Color(0xFFFFACA6);
 }

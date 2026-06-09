@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../../l10n/app_localizations.dart';
+
 class TicketDetailsPage extends StatelessWidget {
   const TicketDetailsPage({super.key});
 
@@ -12,12 +14,12 @@ class TicketDetailsPage extends StatelessWidget {
           SliverPadding(
             padding: const EdgeInsets.fromLTRB(14, 12, 14, 110),
             sliver: SliverList.list(
-              children: const [
-                _BoardingPassPreview(),
-                SizedBox(height: 19),
-                _BoardingTitle(),
-                SizedBox(height: 25),
-                _TicketInfoCard(),
+              children: [
+                const _BoardingPassPreview(),
+                const SizedBox(height: 19),
+                const _BoardingTitle(),
+                const SizedBox(height: 25),
+                const _TicketInfoCard(),
               ],
             ),
           ),
@@ -32,6 +34,7 @@ class _BoardingPassPreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       height: 224,
       margin: const EdgeInsets.symmetric(horizontal: 16),
@@ -62,18 +65,18 @@ class _BoardingPassPreview extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'BOARDING PASS',
-                      style: TextStyle(
+                    Text(
+                      l10n.ticketBoardingPass,
+                      style: const TextStyle(
                         color: Colors.black,
                         fontSize: 5,
                         fontWeight: FontWeight.w900,
                       ),
                     ),
                     const SizedBox(height: 3),
-                    const Text(
-                      'MOSAFER',
-                      style: TextStyle(
+                    Text(
+                      l10n.brandMosafer,
+                      style: const TextStyle(
                         color: Colors.black,
                         fontSize: 4,
                         fontWeight: FontWeight.w600,
@@ -87,9 +90,12 @@ class _BoardingPassPreview extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 4),
-                    const Text(
-                      'Safe work\nsecure',
-                      style: TextStyle(color: Colors.black54, fontSize: 4),
+                    Text(
+                      l10n.ticketSafeWorkSecure,
+                      style: const TextStyle(
+                        color: Colors.black54,
+                        fontSize: 4,
+                      ),
                     ),
                   ],
                 ),
@@ -107,21 +113,22 @@ class _BoardingTitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Column(
+    final l10n = AppLocalizations.of(context)!;
+    return Column(
       children: [
         Text(
-          'BOARDING PASS',
-          style: TextStyle(
+          l10n.ticketBoardingPass,
+          style: const TextStyle(
             color: _TicketColors.muted,
             fontSize: 9,
             fontWeight: FontWeight.w900,
             letterSpacing: 3,
           ),
         ),
-        SizedBox(height: 7),
+        const SizedBox(height: 7),
         Text(
-          'Scan for Boarding',
-          style: TextStyle(
+          l10n.ticketScanForBoarding,
+          style: const TextStyle(
             color: _TicketColors.title,
             fontSize: 18,
             fontWeight: FontWeight.w900,
@@ -137,6 +144,7 @@ class _TicketInfoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 26, 20, 20),
       decoration: BoxDecoration(
@@ -145,14 +153,14 @@ class _TicketInfoCard extends StatelessWidget {
         border: Border.all(color: _TicketColors.border),
       ),
       child: Column(
-        children: const [
-          _TicketHeaderRow(),
-          SizedBox(height: 12),
-          _TicketRouteRow(),
-          SizedBox(height: 26),
-          Divider(color: _TicketColors.divider, height: 1),
-          SizedBox(height: 22),
-          _TicketDetailsGrid(),
+        children: [
+          const _TicketHeaderRow(),
+          const SizedBox(height: 12),
+          const _TicketRouteRow(),
+          const SizedBox(height: 26),
+          const Divider(color: _TicketColors.divider, height: 1),
+          const SizedBox(height: 22),
+          _TicketDetailsGrid(l10n: l10n),
         ],
       ),
     );
@@ -164,9 +172,10 @@ class _TicketHeaderRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Row(
+    final l10n = AppLocalizations.of(context)!;
+    return Row(
       children: [
-        Expanded(
+        const Expanded(
           child: Text(
             'SKY-442',
             style: TextStyle(
@@ -177,8 +186,8 @@ class _TicketHeaderRow extends StatelessWidget {
           ),
         ),
         Text(
-          'DIRECT',
-          style: TextStyle(
+          l10n.ticketDirect,
+          style: const TextStyle(
             color: _TicketColors.coral,
             fontSize: 9,
             fontWeight: FontWeight.w800,
@@ -267,34 +276,39 @@ class _TicketAirport extends StatelessWidget {
 }
 
 class _TicketDetailsGrid extends StatelessWidget {
-  const _TicketDetailsGrid();
+  final AppLocalizations l10n;
+
+  const _TicketDetailsGrid({required this.l10n});
 
   @override
   Widget build(BuildContext context) {
-    return const Column(
+    return Column(
       children: [
         Row(
           children: [
             Expanded(
               child: _DetailCell(
-                label: 'SEAT',
+                label: l10n.flightMetaSeat,
                 value: '12A',
                 suffix: ' (Window)',
               ),
             ),
             Expanded(
-              child: _DetailCell(label: 'GATE', value: 'B24'),
+              child: _DetailCell(label: l10n.flightMetaGate, value: 'B24'),
             ),
           ],
         ),
-        SizedBox(height: 25),
+        const SizedBox(height: 25),
         Row(
           children: [
             Expanded(
-              child: _DetailCell(label: 'TERMINAL', value: '5'),
+              child: _DetailCell(label: l10n.flightMetaTerminal, value: '5'),
             ),
             Expanded(
-              child: _DetailCell(label: 'DEPARTURE', value: '10:00 AM'),
+              child: _DetailCell(
+                label: l10n.ticketDeparture,
+                value: '10:00 AM',
+              ),
             ),
           ],
         ),

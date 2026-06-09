@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/api_client.dart';
 import '../../../shared/models/result.dart';
+import '../domain/ai_travel.dart';
 import '../domain/trip.dart';
+import 'airport_name_resolver.dart';
 
 final tripsRepositoryProvider = Provider<TripsRepository>((ref) {
   return TripsRepository(ref.watch(apiClientProvider));
@@ -11,20 +13,31 @@ final tripsRepositoryProvider = Provider<TripsRepository>((ref) {
 
 class TripsRepository {
   final ApiClient _apiClient;
+  late final AirportNameResolver _airportNames;
 
-  TripsRepository(this._apiClient);
+  TripsRepository(this._apiClient) {
+    _airportNames = AirportNameResolver(_apiClient);
+  }
 
   Future<Result<List<Trip>>> getMyTrips() async {
     try {
-      final response = await _apiClient.get<dynamic>('/reservations/me');
+      final response = await _apiClient.get<dynamic>(
+        '/reservations/me',
+        queryParameters: {'page': 1, 'page_size': 50},
+      );
       final items = _extractListFromPayload(response.data);
       final trips = <Trip>[];
       for (final item in items) {
         final json = _asJsonMap(item);
         if (json == null) continue;
+        final status = (json['status'] as String? ?? '').toLowerCase();
+        if (status == 'canceled' || status == 'cancelled') {
+          continue;
+        }
         trips.add(Trip.fromReservationJson(json));
       }
-      return Success(trips);
+      final enriched = await _enrichAirportNames(trips);
+      return Success(enriched);
     } catch (e) {
       return Failure(_message(e));
     }
@@ -126,6 +139,60 @@ class TripsRepository {
     }
   }
 
+  Future<Result<Map<String, dynamic>>> airportIndoorMap({
+    required int reservationId,
+    String? gate,
+    String? highlight,
+  }) async {
+    try {
+      final response = await _apiClient.get<Map<String, dynamic>>(
+        '/trips/$reservationId/airport-indoor-map',
+        queryParameters: {
+          if (gate != null && gate.isNotEmpty) 'gate': gate,
+          if (highlight != null && highlight.isNotEmpty) 'highlight': highlight,
+        },
+      );
+      return Success(response.data ?? const {});
+    } catch (e) {
+      return Failure(_message(e));
+    }
+  }
+
+  Future<Result<PackingListResult>> fetchPackingList(int reservationId) async {
+    try {
+      final response = await _apiClient.post<Map<String, dynamic>>(
+        '/trips/$reservationId/packing-list',
+      );
+      return Success(
+        PackingListResult.fromJson(response.data ?? const {}),
+      );
+    } catch (e) {
+      return Failure(_message(e));
+    }
+  }
+
+  Future<Result<TimelineResult>> fetchTimeline(int reservationId) async {
+    try {
+      final response = await _apiClient.post<Map<String, dynamic>>(
+        '/trips/$reservationId/timeline',
+      );
+      return Success(TimelineResult.fromJson(response.data ?? const {}));
+    } catch (e) {
+      return Failure(_message(e));
+    }
+  }
+
+  Future<Result<int>> populateTodosFromPacking(int reservationId) async {
+    try {
+      final response = await _apiClient.post<List<dynamic>>(
+        '/trips/$reservationId/todos/populate',
+      );
+      return Success((response.data ?? const []).length);
+    } catch (e) {
+      return Failure(_message(e));
+    }
+  }
+
   Future<Result<List<Map<String, dynamic>>>> getTodos(int reservationId) async {
     try {
       final response = await _apiClient.get<List<dynamic>>(
@@ -219,6 +286,22 @@ class TripsRepository {
 
   String _message(Object error) {
     return error.toString().replaceFirst('DioException [bad response]: ', '');
+  }
+
+  Future<List<Trip>> _enrichAirportNames(List<Trip> trips) async {
+    if (trips.isEmpty) {
+      return trips;
+    }
+    final codes = trips.expand((trip) => [trip.fromCode, trip.toCode]);
+    final names = await _airportNames.resolveMany(codes);
+    return trips
+        .map(
+          (trip) => trip.copyWith(
+            fromCity: names[trip.fromCode.toUpperCase()] ?? trip.fromCode,
+            toCity: names[trip.toCode.toUpperCase()] ?? trip.toCode,
+          ),
+        )
+        .toList();
   }
 
   List<dynamic> _extractListFromPayload(dynamic payload) {

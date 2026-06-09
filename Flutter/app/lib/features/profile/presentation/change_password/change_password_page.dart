@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/utils/validators.dart';
+import '../../../../core/localization/error_message_localizer.dart';
+import '../../../../l10n/app_localizations.dart';
 import '../profile_state.dart';
 
 class ChangePasswordPage extends ConsumerStatefulWidget {
@@ -58,14 +60,18 @@ class _ChangePasswordPageState extends ConsumerState<ChangePasswordPage> {
       context.goNamed('settings');
     } else if (mounted) {
       final error = ref.read(profileControllerProvider).error;
+      final l10n = AppLocalizations.of(context)!;
       setState(
-        () => _formError = error?.toString() ?? 'Unable to update password',
+        () => _formError = error != null
+            ? localizeUserFacingError(error, l10n)
+            : l10n.errorUnableUpdatePassword,
       );
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: _ChangePasswordColors.background,
       body: SafeArea(
@@ -80,34 +86,38 @@ class _ChangePasswordPageState extends ConsumerState<ChangePasswordPage> {
                   padding: const EdgeInsets.fromLTRB(19, 18, 19, 24),
                   children: [
                     _PasswordField(
-                      label: 'CURRENT PASSWORD',
-                      hint: 'Enter current password',
+                      label: l10n.changePasswordCurrentLabel,
+                      hint: l10n.changePasswordCurrentHint,
                       controller: _currentPasswordController,
                       obscureText: _obscureCurrent,
                       onToggleVisibility: () =>
                           setState(() => _obscureCurrent = !_obscureCurrent),
                       validator: (value) => Validators.required(
                         value,
-                        fieldName: 'Current password',
+                        l10n,
+                        fieldLabel: l10n.validationFieldCurrentPassword,
                       ),
                     ),
                     const SizedBox(height: 25),
                     _PasswordField(
-                      label: 'NEW PASSWORD',
-                      hint: 'Enter new password',
+                      label: l10n.changePasswordNewLabel,
+                      hint: l10n.changePasswordNewHint,
                       controller: _newPasswordController,
                       obscureText: _obscureNew,
                       onChanged: (_) => setState(() {}),
                       onToggleVisibility: () =>
                           setState(() => _obscureNew = !_obscureNew),
-                      validator: Validators.password,
+                      validator: (v) => Validators.password(v, l10n),
                     ),
                     const SizedBox(height: 9),
-                    _PasswordStrengthIndicator(strength: _passwordStrength),
+                    _PasswordStrengthIndicator(
+                      l10n: l10n,
+                      strength: _passwordStrength,
+                    ),
                     const SizedBox(height: 25),
                     _PasswordField(
-                      label: 'CONFIRM NEW PASSWORD',
-                      hint: 'Repeat new password',
+                      label: l10n.changePasswordConfirmLabel,
+                      hint: l10n.changePasswordRepeatHint,
                       controller: _confirmPasswordController,
                       obscureText: _obscureConfirm,
                       onToggleVisibility: () =>
@@ -115,6 +125,7 @@ class _ChangePasswordPageState extends ConsumerState<ChangePasswordPage> {
                       validator: (value) => Validators.confirmPassword(
                         value,
                         _newPasswordController.text,
+                        l10n,
                       ),
                     ),
                     if (_formError != null) ...[
@@ -129,7 +140,7 @@ class _ChangePasswordPageState extends ConsumerState<ChangePasswordPage> {
                       ),
                     ],
                     const SizedBox(height: 32),
-                    const _SafetyTipCard(),
+                    _SafetyTipCard(l10n: l10n),
                   ],
                 ),
               ),
@@ -149,9 +160,9 @@ class _ChangePasswordPageState extends ConsumerState<ChangePasswordPage> {
                       borderRadius: BorderRadius.circular(7),
                     ),
                   ),
-                  child: const Text(
-                    'SAVE PASSWORD',
-                    style: TextStyle(
+                  child: Text(
+                    l10n.changePasswordSave,
+                    style: const TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w900,
                       letterSpacing: 1.3,
@@ -172,6 +183,7 @@ class _ChangePasswordAppBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Padding(
       padding: const EdgeInsets.fromLTRB(27, 8, 19, 0),
       child: Row(
@@ -192,11 +204,11 @@ class _ChangePasswordAppBar extends StatelessWidget {
               ),
             ),
           ),
-          const Expanded(
+          Expanded(
             child: Text(
-              'Change Password',
+              l10n.changePasswordTitle,
               textAlign: TextAlign.center,
-              style: TextStyle(
+              style: const TextStyle(
                 color: _ChangePasswordColors.title,
                 fontSize: 13,
                 fontWeight: FontWeight.w900,
@@ -298,25 +310,29 @@ class _PasswordField extends StatelessWidget {
 }
 
 class _PasswordStrengthIndicator extends StatelessWidget {
+  final AppLocalizations l10n;
   final int strength;
 
-  const _PasswordStrengthIndicator({required this.strength});
+  const _PasswordStrengthIndicator({
+    required this.l10n,
+    required this.strength,
+  });
 
   @override
   Widget build(BuildContext context) {
     final label = switch (strength) {
-      0 || 1 => 'WEAK',
-      2 || 3 => 'GOOD',
-      _ => 'STRONG',
+      0 || 1 => l10n.passwordStrengthMeterWeak,
+      2 || 3 => l10n.passwordStrengthMeterGood,
+      _ => l10n.passwordStrengthMeterStrong,
     };
 
     return Column(
       children: [
         Row(
           children: [
-            const Text(
-              'PASSWORD STRENGTH',
-              style: TextStyle(
+            Text(
+              l10n.passwordStrengthMeterTitle,
+              style: const TextStyle(
                 color: _ChangePasswordColors.muted,
                 fontSize: 7,
                 fontWeight: FontWeight.w900,
@@ -359,7 +375,9 @@ class _PasswordStrengthIndicator extends StatelessWidget {
 }
 
 class _SafetyTipCard extends StatelessWidget {
-  const _SafetyTipCard();
+  final AppLocalizations l10n;
+
+  const _SafetyTipCard({required this.l10n});
 
   @override
   Widget build(BuildContext context) {
@@ -370,10 +388,10 @@ class _SafetyTipCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: _ChangePasswordColors.border),
       ),
-      child: const Row(
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          CircleAvatar(
+          const CircleAvatar(
             radius: 14,
             backgroundColor: _ChangePasswordColors.blue,
             child: Icon(
@@ -382,23 +400,23 @@ class _SafetyTipCard extends StatelessWidget {
               size: 17,
             ),
           ),
-          SizedBox(width: 14),
+          const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Safety Tip',
-                  style: TextStyle(
+                  l10n.safetyTipTitle,
+                  style: const TextStyle(
                     color: _ChangePasswordColors.title,
                     fontSize: 12,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
-                SizedBox(height: 7),
+                const SizedBox(height: 7),
                 Text(
-                  'Use a combination of letters, numbers,\nand symbols to create a stronger\npassword.',
-                  style: TextStyle(
+                  l10n.safetyTipBody,
+                  style: const TextStyle(
                     color: _ChangePasswordColors.body,
                     fontSize: 9,
                     fontWeight: FontWeight.w600,

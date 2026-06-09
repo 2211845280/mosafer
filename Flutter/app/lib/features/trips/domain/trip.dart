@@ -1,3 +1,6 @@
+import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+
 enum TripStatus { confirmed, completed }
 
 class Trip {
@@ -51,7 +54,7 @@ class Trip {
       toCity: flight['destination_iata'] as String? ?? 'Destination',
       dateTime: _formatDateTime(departure),
       seat: 'Seat ${json['seat'] as String? ?? '--'}',
-      status: status == 'completed' || status == 'cancelled'
+      status: status == 'completed' || status == 'cancelled' || status == 'canceled'
           ? TripStatus.completed
           : TripStatus.confirmed,
       departureAt: departure,
@@ -92,7 +95,103 @@ class Trip {
     return Trip.fromTicketScanJson(payload);
   }
 
-  bool get isUpcoming => status == TripStatus.confirmed;
+  factory Trip.fromJson(Map<String, dynamic> json) {
+    final statusRaw = json['status'] as String? ?? 'confirmed';
+    return Trip(
+      reservationId: json['reservationId'] as int? ?? 0,
+      airline: json['airline'] as String? ?? '',
+      imageLabel: json['imageLabel'] as String? ?? '',
+      fromCode: json['fromCode'] as String? ?? '---',
+      fromCity: json['fromCity'] as String? ?? '',
+      toCode: json['toCode'] as String? ?? '---',
+      toCity: json['toCity'] as String? ?? '',
+      dateTime: json['dateTime'] as String? ?? '',
+      seat: json['seat'] as String? ?? '',
+      status: statusRaw == 'completed'
+          ? TripStatus.completed
+          : TripStatus.confirmed,
+      departureAt: DateTime.tryParse(json['departureAt'] as String? ?? ''),
+      arrivalAt: DateTime.tryParse(json['arrivalAt'] as String? ?? ''),
+      flightNumber: json['flightNumber'] as String? ?? '',
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'reservationId': reservationId,
+      'airline': airline,
+      'imageLabel': imageLabel,
+      'fromCode': fromCode,
+      'fromCity': fromCity,
+      'toCode': toCode,
+      'toCity': toCity,
+      'dateTime': dateTime,
+      'seat': seat,
+      'status': status.name,
+      'departureAt': departureAt?.toIso8601String(),
+      'arrivalAt': arrivalAt?.toIso8601String(),
+      'flightNumber': flightNumber,
+    };
+  }
+
+  Trip copyWith({
+    int? reservationId,
+    String? airline,
+    String? imageLabel,
+    String? fromCode,
+    String? fromCity,
+    String? toCode,
+    String? toCity,
+    String? dateTime,
+    String? seat,
+    TripStatus? status,
+    DateTime? departureAt,
+    DateTime? arrivalAt,
+    String? flightNumber,
+  }) {
+    return Trip(
+      reservationId: reservationId ?? this.reservationId,
+      airline: airline ?? this.airline,
+      imageLabel: imageLabel ?? this.imageLabel,
+      fromCode: fromCode ?? this.fromCode,
+      fromCity: fromCity ?? this.fromCity,
+      toCode: toCode ?? this.toCode,
+      toCity: toCity ?? this.toCity,
+      dateTime: dateTime ?? this.dateTime,
+      seat: seat ?? this.seat,
+      status: status ?? this.status,
+      departureAt: departureAt ?? this.departureAt,
+      arrivalAt: arrivalAt ?? this.arrivalAt,
+      flightNumber: flightNumber ?? this.flightNumber,
+    );
+  }
+
+  bool get isExpired {
+    final departure = departureAt;
+    if (departure == null) {
+      return false;
+    }
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final depDay = DateTime(departure.year, departure.month, departure.day);
+    return depDay.isBefore(today);
+  }
+
+  bool get isUpcoming => status == TripStatus.confirmed && !isExpired;
+
+  String formattedDeparture(Locale locale) {
+    final departure = departureAt;
+    if (departure == null) {
+      return dateTime;
+    }
+    if (locale.languageCode == 'ar') {
+      final day = DateFormat('d', 'en').format(departure);
+      final month = DateFormat('MMM', 'ar').format(departure);
+      final time = DateFormat('HH:mm', 'en').format(departure);
+      return '$day $month، $time';
+    }
+    return DateFormat('d MMM, HH:mm', locale.toLanguageTag()).format(departure);
+  }
 }
 
 String _formatDateTime(DateTime? value) {

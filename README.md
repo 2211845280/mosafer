@@ -28,6 +28,27 @@ docker compose --profile tools up -d
 
 The API will be available at `http://localhost:8001`.
 
+### Fresh start (empty Flutter trips, no demo flights)
+
+Wipes the database, re-runs migrations, starts Docker, opens the web booking app and Flutter — **without** running `scripts/seed_istanbul_review.py`.
+
+**Windows (PowerShell, from repo root):**
+
+```powershell
+.\scripts\fresh-start.ps1
+```
+
+**macOS / Linux:**
+
+```bash
+chmod +x scripts/fresh-start.sh
+./scripts/fresh-start.sh
+```
+
+Then on the web (`http://localhost:3000/en`): **register → search → buy a ticket**. Log into Flutter with the **same email** to see that trip. Optional flags: `-SkipWeb`, `-SkipFlutter`, `-ClearUploads`, `-FlutterDevice windows`.
+
+Do **not** run `python scripts/seed_istanbul_review.py` unless you want preloaded IST demo trips.
+
 ### Run locally
 
 ```bash

@@ -2,8 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/localization/error_message_localizer.dart';
+import '../../../../core/models/flight_weather.dart';
+import '../../../../core/utils/departure_plan_formatters.dart';
+import '../../../../l10n/app_localizations.dart';
+import '../../domain/trip.dart';
 import '../active_trip_controller.dart';
+import '../shared/flight_weather_section.dart';
 import '../trip_stage_controller.dart';
+
+bool _isTrainFromMitiga(String mode, String? fromCode) {
+  return mode == 'transit' && fromCode?.toUpperCase() == 'MJI';
+}
 
 class PlanDeparturePage extends ConsumerStatefulWidget {
   const PlanDeparturePage({super.key});
@@ -18,9 +28,15 @@ class _PlanDeparturePageState extends ConsumerState<PlanDeparturePage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final trip = ref.watch(activeTripProvider);
     final stageState = ref.watch(tripStageControllerProvider);
-    if (!_requestedPlan && trip != null && trip.reservationId != 0) {
+    final trainFromMitiga = _isTrainFromMitiga(_selectedMode, trip?.fromCode);
+
+    if (!_requestedPlan &&
+        trip != null &&
+        trip.reservationId != 0 &&
+        !trainFromMitiga) {
       _requestedPlan = true;
       Future.microtask(
         () => ref
@@ -39,10 +55,11 @@ class _PlanDeparturePageState extends ConsumerState<PlanDeparturePage> {
               padding: const EdgeInsets.fromLTRB(13, 0, 13, 112),
               sliver: SliverList.list(
                 children: [
-                  const _DepartureAppBar(),
-                  _LeaveTimeHero(stageState: stageState),
+                  _DepartureAppBar(l10n: l10n),
+                  _LeaveTimeHero(l10n: l10n, stageState: stageState),
                   const SizedBox(height: 25),
                   _TransportModeSelector(
+                    l10n: l10n,
                     selectedMode: _selectedMode,
                     onSelected: (mode) {
                       setState(() {
@@ -52,13 +69,13 @@ class _PlanDeparturePageState extends ConsumerState<PlanDeparturePage> {
                     },
                   ),
                   const SizedBox(height: 32),
-                  _RouteSummaryCard(
-                    tripLabel: trip == null
-                        ? 'Select a trip'
-                        : '${trip.fromCity} to ${trip.toCode}\nTerm 3',
-                  ),
-                  const SizedBox(height: 21),
-                  _TimingCard(stageState: stageState),
+                  if (trainFromMitiga)
+                    _NoTrainsCard(l10n: l10n)
+                  else ...[
+                    _TimingCard(l10n: l10n, stageState: stageState, trip: trip),
+                    const SizedBox(height: 18),
+                    _FlightWeatherCard(l10n: l10n, stageState: stageState, trip: trip),
+                  ],
                 ],
               ),
             ),
@@ -69,10 +86,49 @@ class _PlanDeparturePageState extends ConsumerState<PlanDeparturePage> {
   }
 }
 
+class _NoTrainsCard extends StatelessWidget {
+  final AppLocalizations l10n;
+
+  const _NoTrainsCard({required this.l10n});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 40),
+      decoration: BoxDecoration(
+        color: _DepartureColors.card,
+        borderRadius: BorderRadius.circular(23),
+      ),
+      child: Column(
+        children: [
+          Icon(
+            Icons.train_outlined,
+            color: _DepartureColors.muted.withValues(alpha: 0.7),
+            size: 40,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            l10n.planDepartureNoTrainsInCountry,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: _DepartureColors.title,
+              fontSize: 16,
+              fontWeight: FontWeight.w800,
+              height: 1.4,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _LeaveTimeHero extends StatelessWidget {
+  final AppLocalizations l10n;
   final AsyncValue<TripStageState> stageState;
 
-  const _LeaveTimeHero({required this.stageState});
+  const _LeaveTimeHero({required this.l10n, required this.stageState});
 
   @override
   Widget build(BuildContext context) {
@@ -87,9 +143,9 @@ class _LeaveTimeHero extends StatelessWidget {
             color: _DepartureColors.chip,
             borderRadius: BorderRadius.circular(999),
           ),
-          child: const Text(
-            'SAFE TO LEAVE',
-            style: TextStyle(
+          child: Text(
+            l10n.planDepartureSafeToLeave,
+            style: const TextStyle(
               color: _DepartureColors.title,
               fontSize: 9,
               fontWeight: FontWeight.w900,
@@ -109,9 +165,9 @@ class _LeaveTimeHero extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 6),
-        const Text(
-          'Best time to leave for your flight',
-          style: TextStyle(
+        Text(
+          l10n.planDepartureHeroSubtitle,
+          style: const TextStyle(
             color: _DepartureColors.title,
             fontSize: 14,
             fontWeight: FontWeight.w700,
@@ -134,27 +190,29 @@ class _LeaveTimeHero extends StatelessWidget {
 }
 
 class _TransportModeSelector extends StatelessWidget {
+  final AppLocalizations l10n;
   final String selectedMode;
   final ValueChanged<String> onSelected;
 
   const _TransportModeSelector({
+    required this.l10n,
     required this.selectedMode,
     required this.onSelected,
   });
 
   @override
   Widget build(BuildContext context) {
-    const modes = [
-      ('driving', Icons.directions_car, 'Car'),
-      ('transit', Icons.train, 'Train'),
-      ('taxi', Icons.local_taxi, 'Taxi'),
+    final modes = [
+      ('driving', Icons.directions_car, l10n.planDepartureModeCar),
+      ('transit', Icons.train, l10n.planDepartureModeTrain),
+      ('taxi', Icons.local_taxi, l10n.planDepartureModeTaxi),
     ];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'TRANSPORT MODE',
-          style: TextStyle(
+        Text(
+          l10n.planDepartureTransportMode,
+          style: const TextStyle(
             color: _DepartureColors.label,
             fontSize: 9,
             fontWeight: FontWeight.w900,
@@ -220,7 +278,9 @@ class _TransportModeSelector extends StatelessWidget {
 }
 
 class _DepartureAppBar extends StatelessWidget {
-  const _DepartureAppBar();
+  final AppLocalizations l10n;
+
+  const _DepartureAppBar({required this.l10n});
 
   @override
   Widget build(BuildContext context) {
@@ -239,10 +299,10 @@ class _DepartureAppBar extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 2),
-          const Expanded(
+          Expanded(
             child: Text(
-              'Plan Departure',
-              style: TextStyle(
+              l10n.planDepartureTitle,
+              style: const TextStyle(
                 color: _DepartureColors.title,
                 fontSize: 17,
                 fontWeight: FontWeight.w900,
@@ -250,105 +310,59 @@ class _DepartureAppBar extends StatelessWidget {
               ),
             ),
           ),
-          IconButton(
-            onPressed: () {},
-            icon: const Icon(
-              Icons.more_vert,
-              color: _DepartureColors.title,
-              size: 22,
-            ),
-          ),
         ],
       ),
     );
   }
 }
 
-class _RouteSummaryCard extends StatelessWidget {
-  final String tripLabel;
+class _FlightWeatherCard extends StatelessWidget {
+  final AppLocalizations l10n;
+  final AsyncValue<TripStageState> stageState;
+  final Trip? trip;
 
-  const _RouteSummaryCard({required this.tripLabel});
+  const _FlightWeatherCard({
+    required this.l10n,
+    required this.stageState,
+    required this.trip,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 147,
-      padding: const EdgeInsets.fromLTRB(20, 59, 20, 19),
-      decoration: BoxDecoration(
-        borderRadius: const BorderRadius.only(
-          bottomLeft: Radius.circular(22),
-          bottomRight: Radius.circular(22),
-        ),
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFF142844), Color(0xFF0A1B31), Color(0xFF07172A)],
-        ),
-      ),
-      child: Stack(
-        children: [
-          Positioned.fill(child: CustomPaint(painter: _MapLinesPainter())),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    const Text(
-                      'ROUTE SUMMARY',
-                      style: TextStyle(
-                        color: _DepartureColors.label,
-                        fontSize: 9,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 1.2,
-                      ),
-                    ),
-                    SizedBox(height: 9),
-                    Text(
-                      tripLabel,
-                      style: const TextStyle(
-                        color: _DepartureColors.title,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w900,
-                        height: 1.35,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Container(
-                width: 73,
-                height: 51,
-                decoration: BoxDecoration(
-                  color: _DepartureColors.liveCard,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Center(
-                  child: Text(
-                    'Live\nTraffic',
-                    style: TextStyle(
-                      color: _DepartureColors.title,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w800,
-                      height: 1.35,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
+    return stageState.maybeWhen(
+      data: (state) {
+        final plan = state.departurePlan;
+        if (plan == null) {
+          return const SizedBox.shrink();
+        }
+        return FlightWeatherSection(
+          l10n: l10n,
+          originWeather: parseFlightWeather(plan['weather']),
+          destinationWeather: parseFlightWeather(plan['destination_weather']),
+          originLabel: trip?.fromCity ?? trip?.fromCode ?? '--',
+          destinationLabel: trip?.toCity ?? trip?.toCode ?? '--',
+          weatherBufferMinutes: (plan['weather_buffer_minutes'] as num?)?.round(),
+          cardColor: _DepartureColors.card,
+          titleColor: _DepartureColors.title,
+          mutedColor: _DepartureColors.muted,
+          iconBackground: _DepartureColors.iconBackground,
+        );
+      },
+      orElse: () => const SizedBox.shrink(),
     );
   }
 }
 
 class _TimingCard extends StatelessWidget {
+  final AppLocalizations l10n;
   final AsyncValue<TripStageState> stageState;
+  final Trip? trip;
 
-  const _TimingCard({required this.stageState});
+  const _TimingCard({
+    required this.l10n,
+    required this.stageState,
+    this.trip,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -361,33 +375,45 @@ class _TimingCard extends StatelessWidget {
       child: stageState.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) => Text(
-          error.toString(),
+          localizeUserFacingError(error, l10n),
           style: const TextStyle(color: _DepartureColors.salmon),
         ),
         data: (state) {
           final plan = state.departurePlan;
-          final travelMinutes = plan?['travel_minutes']?.toString() ?? '--';
-          final buffer = plan?['check_in_buffer_minutes']?.toString() ?? '--';
-          final leaveAt =
-              (plan?['leave_at'] as String?)?.substring(11, 16) ?? '--:--';
+          final travelMinutes = plan?['travel_minutes'];
+          final travelMinutesLabel =
+              travelMinutes?.toString() ?? '--';
+          final distanceKm = (plan?['distance_km'] as num?)?.toDouble();
+          final trafficLevel = plan?['traffic_level'] as String?;
+          final expectedArrival = formatExpectedArrival(
+            plan?['leave_at'] as String?,
+            travelMinutes as num?,
+          );
           return Column(
             children: [
               _TimingRow(
                 icon: Icons.access_time,
-                label: 'TRAVEL TIME',
-                value: '$travelMinutes mins',
-                showArrow: true,
+                label: l10n.planDepartureTravelTime,
+                value: '$travelMinutesLabel ${l10n.planDepartureUnitMinutes}',
               ),
               const SizedBox(height: 26),
               _TimingRow(
-                icon: Icons.timer_outlined,
-                label: 'SECURITY BUFFER',
-                value: '$buffer mins',
+                icon: Icons.straighten,
+                label: l10n.planDepartureDistance,
+                value: formatDistanceKm(l10n, distanceKm),
+              ),
+              const SizedBox(height: 26),
+              _TimingRow(
+                icon: Icons.traffic,
+                label: l10n.onWayTraffic,
+                value: trafficLevel == null
+                    ? '--'
+                    : trafficLevelLabel(l10n, trafficLevel),
               ),
               const SizedBox(height: 30),
               const Divider(color: _DepartureColors.divider, height: 1),
               const SizedBox(height: 21),
-              _ArrivalRow(leaveAt: leaveAt),
+              _ArrivalRow(l10n: l10n, expectedArrival: expectedArrival),
             ],
           );
         },
@@ -400,13 +426,11 @@ class _TimingRow extends StatelessWidget {
   final IconData icon;
   final String label;
   final String value;
-  final bool showArrow;
 
   const _TimingRow({
     required this.icon,
     required this.label,
     required this.value,
-    this.showArrow = false,
   });
 
   @override
@@ -440,12 +464,6 @@ class _TimingRow extends StatelessWidget {
             ],
           ),
         ),
-        if (showArrow)
-          const Icon(
-            Icons.arrow_forward,
-            color: _DepartureColors.muted,
-            size: 17,
-          ),
       ],
     );
   }
@@ -471,9 +489,10 @@ class _SoftIcon extends StatelessWidget {
 }
 
 class _ArrivalRow extends StatelessWidget {
-  final String leaveAt;
+  final AppLocalizations l10n;
+  final String expectedArrival;
 
-  const _ArrivalRow({required this.leaveAt});
+  const _ArrivalRow({required this.l10n, required this.expectedArrival});
 
   @override
   Widget build(BuildContext context) {
@@ -483,18 +502,18 @@ class _ArrivalRow extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'EST. ARRIVAL',
-                style: TextStyle(
+              Text(
+                l10n.planDepartureEstArrival,
+                style: const TextStyle(
                   color: _DepartureColors.label,
                   fontSize: 8,
                   fontWeight: FontWeight.w900,
                   letterSpacing: 1.2,
                 ),
               ),
-              SizedBox(height: 4),
+              const SizedBox(height: 4),
               Text(
-                leaveAt,
+                expectedArrival,
                 style: const TextStyle(
                   color: _DepartureColors.title,
                   fontSize: 25,
@@ -523,40 +542,12 @@ class _ArrivalRow extends StatelessWidget {
   }
 }
 
-class _MapLinesPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.08)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1;
-
-    for (var i = 0; i < 8; i++) {
-      final path = Path()
-        ..moveTo(-20, size.height * (0.1 + i * 0.1))
-        ..cubicTo(
-          size.width * 0.25,
-          size.height * (0.05 + i * 0.08),
-          size.width * 0.58,
-          size.height * (0.17 + i * 0.07),
-          size.width + 20,
-          size.height * (0.04 + i * 0.1),
-        );
-      canvas.drawPath(path, paint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
-
 class _DepartureColors {
   _DepartureColors._();
 
   static const Color background = Color(0xFF061326);
   static const Color card = Color(0xFF101F36);
   static const Color chip = Color(0xFF22385C);
-  static const Color liveCard = Color(0xFF243650);
   static const Color blue = Color(0xFF4A91F8);
   static const Color title = Color(0xFFD5E4FF);
   static const Color label = Color(0xFFAABCE0);
@@ -565,6 +556,4 @@ class _DepartureColors {
   static const Color iconBackground = Color(0xFF1D2D46);
   static const Color warningBackground = Color(0xFF41213A);
   static const Color salmon = Color(0xFFFFACA6);
-  // ignore: unused_field
-  static const Color buttonText = Color(0xFF4E1017);
 }

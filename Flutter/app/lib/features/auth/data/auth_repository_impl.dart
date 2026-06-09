@@ -26,6 +26,7 @@ class AuthRepositoryImpl implements AuthRepository {
     required String password,
   }) async {
     try {
+      await secureStorage.deleteAll();
       final response = await apiClient.post<Map<String, dynamic>>(
         '/auth/login',
         data: {'email': email, 'password': password},
@@ -51,6 +52,38 @@ class AuthRepositoryImpl implements AuthRepository {
         options: Options(extra: {'skipAuth': true}),
       );
       return login(email: email, password: password);
+    } catch (e) {
+      return Failure<void>(_errorMessage(e));
+    }
+  }
+
+  @override
+  Future<Result<String?>> requestPasswordReset({required String email}) async {
+    try {
+      final response = await apiClient.post<Map<String, dynamic>>(
+        '/auth/forgot-password',
+        data: {'email': email},
+        options: Options(extra: {'skipAuth': true}),
+      );
+      final resetLink = response.data?['reset_link'] as String?;
+      return Success<String?>(resetLink);
+    } catch (e) {
+      return Failure<String?>(_errorMessage(e));
+    }
+  }
+
+  @override
+  Future<Result<void>> resetPassword({
+    required String token,
+    required String newPassword,
+  }) async {
+    try {
+      await apiClient.post<Map<String, dynamic>>(
+        '/auth/reset-password',
+        data: {'token': token, 'new_password': newPassword},
+        options: Options(extra: {'skipAuth': true}),
+      );
+      return const Success<void>(null);
     } catch (e) {
       return Failure<void>(_errorMessage(e));
     }

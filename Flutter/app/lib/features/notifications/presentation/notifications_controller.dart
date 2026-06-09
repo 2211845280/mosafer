@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/notifications_repository.dart';
 
 final notificationsControllerProvider =
-    StateNotifierProvider<
+    StateNotifierProvider.autoDispose<
       NotificationsController,
       AsyncValue<List<AppNotification>>
     >(
@@ -12,6 +12,14 @@ final notificationsControllerProvider =
           NotificationsController(ref.watch(notificationsRepositoryProvider))
             ..load(),
     );
+
+final hasUnreadNotificationsProvider = Provider<bool>((ref) {
+  final state = ref.watch(notificationsControllerProvider);
+  return state.maybeWhen(
+    data: (items) => items.any((notification) => !notification.read),
+    orElse: () => false,
+  );
+});
 
 class NotificationsController
     extends StateNotifier<AsyncValue<List<AppNotification>>> {
@@ -93,14 +101,6 @@ class AppNotification {
     if (lower.contains('boarding')) return Icons.flight_takeoff;
     if (lower.contains('check')) return Icons.fact_check_outlined;
     return Icons.notifications_none_outlined;
-  }
-
-  String get timeAgo {
-    final diff = DateTime.now().difference(createdAt);
-    if (diff.inMinutes < 1) return 'now';
-    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
-    if (diff.inHours < 24) return '${diff.inHours}h ago';
-    return '${diff.inDays}d ago';
   }
 
   bool get isToday {

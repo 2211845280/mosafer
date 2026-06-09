@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -66,6 +68,55 @@ class ProfileRepository {
         }),
       );
       return Success(ProfileState.fromJson(response.data ?? const {}));
+    } catch (e) {
+      return Failure(_message(e));
+    }
+  }
+
+  Future<Result<ProfileState>> uploadAvatarBytes(Uint8List bytes) async {
+    try {
+      final response = await _apiClient.multipart<Map<String, dynamic>>(
+        '/users/me/avatar',
+        data: FormData.fromMap({
+          'file': MultipartFile.fromBytes(
+            bytes,
+            filename: 'avatar.jpg',
+            contentType: DioMediaType('image', 'jpeg'),
+          ),
+        }),
+      );
+      return Success(ProfileState.fromJson(response.data ?? const {}));
+    } catch (e) {
+      return Failure(_message(e));
+    }
+  }
+
+  Future<Result<Map<String, dynamic>>> getPreferences() async {
+    try {
+      final response = await _apiClient.get<Map<String, dynamic>>(
+        '/users/me/preferences',
+      );
+      return Success(response.data ?? const {});
+    } catch (e) {
+      return Failure(_message(e));
+    }
+  }
+
+  Future<Result<Map<String, dynamic>>> updatePreferences({
+    String? homeAddress,
+    double? homeLat,
+    double? homeLng,
+  }) async {
+    try {
+      final response = await _apiClient.patch<Map<String, dynamic>>(
+        '/users/me/preferences',
+        data: {
+          if (homeAddress != null) 'home_address': homeAddress,
+          if (homeLat != null) 'home_lat': homeLat,
+          if (homeLng != null) 'home_lng': homeLng,
+        },
+      );
+      return Success(response.data ?? const {});
     } catch (e) {
       return Failure(_message(e));
     }

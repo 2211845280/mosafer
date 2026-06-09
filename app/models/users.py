@@ -31,6 +31,13 @@ class User(Base):
     email_verification_token: Mapped[str | None] = mapped_column(
         String(64), unique=True, nullable=True
     )
+    password_reset_token_hash: Mapped[str | None] = mapped_column(
+        String(64), unique=True, nullable=True
+    )
+    password_reset_expires_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(UTC),

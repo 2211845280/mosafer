@@ -1,6 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/services/home_address_controller.dart';
+import '../../../core/services/home_address_store.dart';
 import '../../../core/services/location_service.dart';
+import '../../../core/utils/trip_origin_resolver.dart';
 import '../data/trips_repository.dart';
 
 enum TripStage { home, onTheWay, airport }
@@ -41,46 +44,42 @@ final tripStageControllerProvider =
     StateNotifierProvider<TripStageController, AsyncValue<TripStageState>>((
       ref,
     ) {
-      return TripStageController(ref.watch(tripsRepositoryProvider));
+      return TripStageController(
+        ref.watch(tripsRepositoryProvider),
+        ref.watch(homeAddressStoreProvider),
+      );
     });
 
 class TripStageController extends StateNotifier<AsyncValue<TripStageState>> {
   final TripsRepository _repository;
+  final HomeAddressStore _homeAddressStore;
   final LocationService _locationService = LocationService();
 
-  TripStageController(this._repository)
+  TripStageController(this._repository, this._homeAddressStore)
     : super(const AsyncValue.data(TripStageState()));
 
   Future<void> refresh(int reservationId, {String mode = 'driving'}) async {
     state = const AsyncValue.loading();
+    final home = await _homeAddressStore.load();
     final position = await _locationService.currentPosition();
-    if (position == null) {
-      final plan = await _repository.getDeparturePlan(
-        reservationId: reservationId,
-        mode: mode,
-      );
-      state = plan.when(
-        success: (data) => AsyncValue.data(
-          TripStageState(departurePlan: data, stage: TripStage.home),
-        ),
-        failure: (error) => AsyncValue.data(
-          TripStageState(error: error, stage: TripStage.home),
-        ),
-      );
-      return;
-    }
+    final resolved = TripOriginResolver.resolve(
+      homeAddress: home,
+      gpsPosition: position,
+    );
+    final lat = resolved.lat;
+    final lng = resolved.lng;
 
     final planned = await _repository.getDeparturePlan(
       reservationId: reservationId,
-      lat: position.latitude,
-      lng: position.longitude,
+      lat: lat,
+      lng: lng,
       mode: mode,
     );
     final plannedData = planned.dataOrNull;
     final check = await _repository.locationCheck(
       reservationId: reservationId,
-      lat: position.latitude,
-      lng: position.longitude,
+      lat: lat,
+      lng: lng,
     );
     await check.when(
       success: (data) async {
@@ -88,8 +87,8 @@ class TripStageController extends StateNotifier<AsyncValue<TripStageState>> {
         if (atAirport) {
           final dashboard = await _repository.airportDashboard(
             reservationId: reservationId,
-            lat: position.latitude,
-            lng: position.longitude,
+            lat: lat,
+            lng: lng,
           );
           state = dashboard.when(
             success: (airportData) => AsyncValue.data(

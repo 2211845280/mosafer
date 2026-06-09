@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../l10n/app_localizations.dart';
+import '../../trips/domain/airport_display_name.dart';
 import '../../trips/domain/trip.dart';
 import '../../trips/presentation/active_trip_controller.dart';
 
@@ -13,6 +15,7 @@ class ExplorePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: _DashboardColors.background,
       body: SafeArea(
@@ -29,28 +32,28 @@ class ExplorePage extends StatelessWidget {
                       color: _DashboardColors.card,
                       borderRadius: BorderRadius.circular(26),
                     ),
-                    child: const Column(
+                    child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Icon(
+                        const Icon(
                           Icons.airplane_ticket_outlined,
                           color: _DashboardColors.blue,
                           size: 34,
                         ),
-                        SizedBox(height: 18),
+                        const SizedBox(height: 18),
                         Text(
-                          'Flights',
-                          style: TextStyle(
+                          l10n.flightsTitle,
+                          style: const TextStyle(
                             color: _DashboardColors.title,
                             fontSize: 28,
                             fontWeight: FontWeight.w900,
                             letterSpacing: -0.8,
                           ),
                         ),
-                        SizedBox(height: 10),
+                        const SizedBox(height: 10),
                         Text(
-                          'Mosafer connects your booking, ticket QR, departure planning, airport guidance, packing, todos and notifications in one travel assistant.',
-                          style: TextStyle(
+                          l10n.flightsIntro,
+                          style: const TextStyle(
                             color: _DashboardColors.muted,
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
@@ -64,6 +67,7 @@ class ExplorePage extends StatelessWidget {
                   const _BookingStepsCard(),
                   const SizedBox(height: 18),
                   _BookFlightButton(
+                    label: l10n.openBookingWebsite,
                     onPressed: () => launchUrl(
                       _bookingUrl,
                       mode: LaunchMode.externalApplication,
@@ -84,11 +88,8 @@ class _BookingStepsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const steps = [
-      'Open the booking website and choose your flight.',
-      'Complete the reservation and keep your ticket or QR image.',
-      'Return to Mosafer, scan or upload the ticket, then manage your trip.',
-    ];
+    final l10n = AppLocalizations.of(context)!;
+    final steps = [l10n.bookingStep1, l10n.bookingStep2, l10n.bookingStep3];
 
     return Container(
       padding: const EdgeInsets.all(18),
@@ -99,9 +100,9 @@ class _BookingStepsCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'HOW BOOKING WORKS',
-            style: TextStyle(
+          Text(
+            l10n.bookingHowTitle,
+            style: const TextStyle(
               color: _DashboardColors.muted,
               fontSize: 10,
               fontWeight: FontWeight.w900,
@@ -150,9 +151,10 @@ class _BookingStepsCard extends StatelessWidget {
 }
 
 class _BookFlightButton extends StatelessWidget {
+  final String label;
   final VoidCallback onPressed;
 
-  const _BookFlightButton({required this.onPressed});
+  const _BookFlightButton({required this.label, required this.onPressed});
 
   @override
   Widget build(BuildContext context) {
@@ -161,9 +163,12 @@ class _BookFlightButton extends StatelessWidget {
       child: ElevatedButton.icon(
         onPressed: onPressed,
         icon: const Icon(Icons.open_in_new),
-        label: const Text(
-          'OPEN BOOKING WEBSITE',
-          style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 0.4),
+        label: Text(
+          label,
+          style: const TextStyle(
+            fontWeight: FontWeight.w900,
+            letterSpacing: 0.4,
+          ),
         ),
       ),
     );
@@ -175,69 +180,71 @@ class DashboardPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    return const DashboardStageContent();
+  }
+}
+
+class DashboardStageContent extends ConsumerWidget {
+  const DashboardStageContent({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final trip = ref.watch(activeTripProvider);
     if (trip == null) {
-      return Scaffold(
-        backgroundColor: _DashboardColors.background,
-        body: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(
-                  Icons.confirmation_number_outlined,
-                  color: _DashboardColors.blue,
-                  size: 42,
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.confirmation_number_outlined,
+                color: _DashboardColors.blue,
+                size: 42,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                l10n.noActiveTripTitle,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: _DashboardColors.title,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w900,
                 ),
-                const SizedBox(height: 16),
-                const Text(
-                  'No active trip selected.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: _DashboardColors.title,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Open a trip or scan a ticket to start your guided journey.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: _DashboardColors.muted),
-                ),
-                const SizedBox(height: 18),
-                ElevatedButton(
-                  onPressed: () => context.goNamed('scan'),
-                  child: const Text('Scan Ticket'),
-                ),
-              ],
-            ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                l10n.noActiveTripSubtitle,
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: _DashboardColors.muted),
+              ),
+              const SizedBox(height: 18),
+              ElevatedButton(
+                onPressed: () => context.goNamed('scan'),
+                child: Text(l10n.scanTicket),
+              ),
+            ],
           ),
         ),
       );
     }
 
-    return Scaffold(
-      backgroundColor: _DashboardColors.background,
-      body: CustomScrollView(
-        slivers: [
-          SliverPadding(
-            padding: const EdgeInsets.fromLTRB(16, 18, 16, 110),
-            sliver: SliverList.list(
-              children: [
-                const _StageCards(),
-                const SizedBox(height: 28),
-                _ActiveTripHero(trip: trip),
-                const SizedBox(height: 30),
-                const _SectionTitle(text: 'HOME'),
-                const SizedBox(height: 17),
-                const _PreparationGrid(),
-              ],
-            ),
+    return CustomScrollView(
+      slivers: [
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 110),
+          sliver: SliverList.list(
+            children: [
+              _ActiveTripHero(trip: trip),
+              const SizedBox(height: 30),
+              _SectionTitle(text: l10n.sectionHome),
+              const SizedBox(height: 17),
+              const _PreparationGrid(),
+            ],
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
@@ -249,163 +256,88 @@ class _ActiveTripHero extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(18, 20, 18, 18),
-      decoration: BoxDecoration(
-        color: _DashboardColors.card,
-        borderRadius: BorderRadius.circular(24),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    final l10n = AppLocalizations.of(context)!;
+    final locale = Localizations.localeOf(context);
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(24),
+      child: Stack(
         children: [
-          Text(
-            trip.airline,
-            style: const TextStyle(
-              color: _DashboardColors.muted,
-              fontSize: 12,
-              fontWeight: FontWeight.w900,
-              letterSpacing: 1,
+          Positioned.fill(
+            child: Image.asset(
+              'assets/images/trips/plane.jpg',
+              fit: BoxFit.cover,
             ),
           ),
-          const SizedBox(height: 24),
-          Row(
-            children: [
-              _AirportCode(
-                code: trip.fromCode,
-                city: trip.fromCity,
-                alignment: CrossAxisAlignment.start,
-              ),
-              const Expanded(
-                child: Center(
-                  child: Icon(
-                    Icons.flight_takeoff,
-                    color: _DashboardColors.title,
-                    size: 26,
-                  ),
+          Positioned.fill(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.black.withValues(alpha: 0.55),
+                    Colors.black.withValues(alpha: 0.82),
+                  ],
                 ),
               ),
-              _AirportCode(
-                code: trip.toCode,
-                city: trip.toCity,
-                alignment: CrossAxisAlignment.end,
-              ),
-            ],
+            ),
           ),
-          const SizedBox(height: 24),
-          Center(
-            child: SizedBox(
-              width: 190,
-              child: _FlightMetaCard(label: 'DATE', value: trip.dateTime),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(18, 20, 18, 18),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  trip.airline,
+                  style: const TextStyle(
+                    color: _DashboardColors.muted,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 1,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  children: [
+                    _AirportCode(
+                      code: trip.fromCode,
+                      city: trip.fromCity,
+                      alignment: CrossAxisAlignment.start,
+                      locale: locale,
+                    ),
+                    const Expanded(
+                      child: Center(
+                        child: Icon(
+                          Icons.flight_takeoff,
+                          color: _DashboardColors.title,
+                          size: 26,
+                        ),
+                      ),
+                    ),
+                    _AirportCode(
+                      code: trip.toCode,
+                      city: trip.toCity,
+                      alignment: CrossAxisAlignment.end,
+                      locale: locale,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                Center(
+                  child: SizedBox(
+                    width: 190,
+                    child: _FlightMetaCard(
+                      label: l10n.flightMetaDate,
+                      value: trip.formattedDeparture(locale),
+                      transparent: true,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ],
       ),
-    );
-  }
-}
-
-class _StageCards extends StatelessWidget {
-  const _StageCards();
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        const Expanded(
-          child: _StageCard(
-            title: 'Home',
-            subtitle: 'Plan route',
-            icon: Icons.home_outlined,
-            isActive: true,
-          ),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: _StageCard(
-            title: 'On way',
-            subtitle: 'Live ETA',
-            icon: Icons.navigation_outlined,
-            onTapRouteName: 'onWay',
-          ),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: _StageCard(
-            title: 'Airport',
-            subtitle: 'Gate ready',
-            icon: Icons.local_airport,
-            onTapRouteName: 'airportExperience',
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _StageCard extends StatelessWidget {
-  final String title;
-  final String subtitle;
-  final IconData icon;
-  final bool isActive;
-  final String? onTapRouteName;
-
-  const _StageCard({
-    required this.title,
-    required this.subtitle,
-    required this.icon,
-    this.isActive = false,
-    this.onTapRouteName,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final card = Container(
-      height: 96,
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: isActive ? _DashboardColors.blue : _DashboardColors.card,
-        borderRadius: BorderRadius.circular(18),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(
-            icon,
-            color: isActive
-                ? _DashboardColors.background
-                : _DashboardColors.title,
-            size: 19,
-          ),
-          const Spacer(),
-          Text(
-            title,
-            style: TextStyle(
-              color: isActive
-                  ? _DashboardColors.background
-                  : _DashboardColors.title,
-              fontSize: 12,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            subtitle,
-            style: TextStyle(
-              color: isActive
-                  ? _DashboardColors.background
-                  : _DashboardColors.muted,
-              fontSize: 9,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ],
-      ),
-    );
-    if (onTapRouteName == null) return card;
-    return InkWell(
-      borderRadius: BorderRadius.circular(18),
-      onTap: () => context.goNamed(onTapRouteName!),
-      child: card,
     );
   }
 }
@@ -418,19 +350,20 @@ class _PrimaryTripActions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Column(
       children: [
         _ActionTile(
           icon: Icons.route_outlined,
-          title: 'Plan departure from home',
-          subtitle: 'Get leave time, traffic buffer and map route.',
+          title: l10n.prepDepartureTitle,
+          subtitle: l10n.prepDepartureSubtitle,
           onTap: () => context.goNamed('planDeparture'),
         ),
         const SizedBox(height: 12),
         _ActionTile(
           icon: Icons.checklist_rtl,
-          title: 'Trip todos and timeline',
-          subtitle: 'Prepare documents, packing and airport tasks.',
+          title: l10n.prepTodosTitle,
+          subtitle: l10n.prepTodosSubtitle,
           onTap: () => context.goNamed('tripTodos'),
         ),
       ],
@@ -563,6 +496,7 @@ class _RouteSummary extends StatelessWidget {
           code: 'LHR',
           city: 'LONDON',
           alignment: CrossAxisAlignment.start,
+          locale: Locale('en'),
         ),
         Expanded(
           child: Center(
@@ -577,6 +511,7 @@ class _RouteSummary extends StatelessWidget {
           code: 'DXB',
           city: 'DUBAI',
           alignment: CrossAxisAlignment.end,
+          locale: Locale('en'),
         ),
       ],
     );
@@ -587,15 +522,24 @@ class _AirportCode extends StatelessWidget {
   final String code;
   final String city;
   final CrossAxisAlignment alignment;
+  final Locale locale;
 
   const _AirportCode({
     required this.code,
     required this.city,
     required this.alignment,
+    required this.locale,
   });
 
   @override
   Widget build(BuildContext context) {
+    final isArabic = locale.languageCode == 'ar';
+    final displayCity = airportDisplayName(
+      iata: code,
+      englishName: city,
+      locale: locale,
+    );
+
     return Column(
       crossAxisAlignment: alignment,
       children: [
@@ -610,13 +554,22 @@ class _AirportCode extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 7),
-        Text(
-          city,
-          style: const TextStyle(
-            color: _DashboardColors.title,
-            fontSize: 9,
-            fontWeight: FontWeight.w700,
-            letterSpacing: 0.8,
+        SizedBox(
+          width: 92,
+          child: Text(
+            displayCity,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            textAlign: alignment == CrossAxisAlignment.end
+                ? TextAlign.end
+                : TextAlign.start,
+            style: TextStyle(
+              color: _DashboardColors.title,
+              fontSize: 9,
+              fontWeight: isArabic ? FontWeight.w300 : FontWeight.w700,
+              height: 1.2,
+              letterSpacing: isArabic ? 0 : 0.8,
+            ),
           ),
         ),
       ],
@@ -651,15 +604,20 @@ class _FlightMetaCards extends StatelessWidget {
 class _FlightMetaCard extends StatelessWidget {
   final String label;
   final String value;
+  final bool transparent;
 
-  const _FlightMetaCard({required this.label, required this.value});
+  const _FlightMetaCard({
+    required this.label,
+    required this.value,
+    this.transparent = false,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Container(
       height: 72,
       decoration: BoxDecoration(
-        color: _DashboardColors.card,
+        color: transparent ? Colors.transparent : _DashboardColors.card,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -713,25 +671,26 @@ class _PreparationGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const items = [
+    final l10n = AppLocalizations.of(context)!;
+    final items = [
       _PreparationItem(
         icon: Icons.map_outlined,
-        label: 'Departure Plan',
+        label: l10n.departurePlan,
         routeName: 'planDeparture',
       ),
       _PreparationItem(
         icon: Icons.inventory_2_outlined,
-        label: 'Packing List',
+        label: l10n.packingList,
         routeName: 'packing',
       ),
       _PreparationItem(
         icon: Icons.article_outlined,
-        label: 'Timeline',
+        label: l10n.timeline,
         routeName: 'timeline',
       ),
       _PreparationItem(
         icon: Icons.checklist_outlined,
-        label: 'Todos',
+        label: l10n.todosLabel,
         routeName: 'tripTodos',
       ),
     ];

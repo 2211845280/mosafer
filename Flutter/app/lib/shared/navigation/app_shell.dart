@@ -1,15 +1,43 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/theme/app_colors.dart';
+import '../../features/notifications/presentation/notification_push_listener.dart';
+import '../../features/notifications/presentation/notifications_controller.dart';
+import '../../l10n/app_localizations.dart';
 
-class AppShell extends StatelessWidget {
+class AppShell extends ConsumerStatefulWidget {
   final Widget child;
 
   const AppShell({super.key, required this.child});
 
   @override
+  ConsumerState<AppShell> createState() => _AppShellState();
+}
+
+class _AppShellState extends ConsumerState<AppShell> {
+  NotificationPushListener? _pushListener;
+
+  @override
+  void initState() {
+    super.initState();
+    _pushListener = NotificationPushListener(
+      onReload: ref.read(notificationsControllerProvider.notifier).load,
+    )..start();
+  }
+
+  @override
+  void dispose() {
+    _pushListener?.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    ref.watch(notificationsControllerProvider);
+    final hasUnread = ref.watch(hasUnreadNotificationsProvider);
+
     final location = GoRouterState.of(context).uri.path;
     final selectedIndex = _selectedIndexFor(location);
     final usesCustomAppBar =
@@ -40,12 +68,14 @@ class AppShell extends StatelessWidget {
                 SafeArea(
                   bottom: false,
                   child: _ShellAppBar(
+                    l10n: AppLocalizations.of(context)!,
                     showBackButton: showsDashboardBackButton,
                     backRouteName: backRouteName,
                     showSettingsAction: usesSettingsAction,
+                    hasUnreadNotifications: hasUnread,
                   ),
                 ),
-              Expanded(child: child),
+              Expanded(child: widget.child),
             ],
           ),
           Positioned(
@@ -55,6 +85,7 @@ class AppShell extends StatelessWidget {
             child: SafeArea(
               top: false,
               child: _BottomNavigation(
+                l10n: AppLocalizations.of(context)!,
                 selectedIndex: selectedIndex,
                 onDestinationSelected: (index) =>
                     _goToDestination(context, index, selectedIndex),
@@ -106,14 +137,18 @@ class AppShell extends StatelessWidget {
 }
 
 class _ShellAppBar extends StatelessWidget {
+  final AppLocalizations l10n;
   final bool showBackButton;
   final String backRouteName;
   final bool showSettingsAction;
+  final bool hasUnreadNotifications;
 
   const _ShellAppBar({
+    required this.l10n,
     required this.showBackButton,
     required this.backRouteName,
     this.showSettingsAction = false,
+    this.hasUnreadNotifications = false,
   });
 
   @override
@@ -130,7 +165,7 @@ class _ShellAppBar extends StatelessWidget {
                 width: 38,
                 height: 38,
                 child: Align(
-                  alignment: Alignment.centerLeft,
+                  alignment: AlignmentDirectional.centerStart,
                   child: Icon(
                     Icons.arrow_back,
                     color: _ShellColors.title,
@@ -141,10 +176,10 @@ class _ShellAppBar extends StatelessWidget {
             ),
             const SizedBox(width: 4),
           ],
-          const Expanded(
+          Expanded(
             child: Text(
-              'MOSAFER',
-              style: TextStyle(
+              l10n.brandMosafer,
+              style: const TextStyle(
                 color: _ShellColors.title,
                 fontSize: 21,
                 fontWeight: FontWeight.w900,
@@ -172,10 +207,10 @@ class _ShellAppBar extends StatelessWidget {
                       size: 22,
                     ),
                   ),
-                  if (!showSettingsAction)
-                    Positioned(
+                  if (!showSettingsAction && hasUnreadNotifications)
+                    PositionedDirectional(
                       top: 8,
-                      right: 8,
+                      end: 8,
                       child: Container(
                         width: 7,
                         height: 7,
@@ -200,10 +235,12 @@ class _ShellAppBar extends StatelessWidget {
 }
 
 class _BottomNavigation extends StatelessWidget {
+  final AppLocalizations l10n;
   final int selectedIndex;
   final ValueChanged<int> onDestinationSelected;
 
   const _BottomNavigation({
+    required this.l10n,
     required this.selectedIndex,
     required this.onDestinationSelected,
   });
@@ -225,7 +262,7 @@ class _BottomNavigation extends StatelessWidget {
           Expanded(
             child: _NavigationItem(
               icon: Icons.airplane_ticket_outlined,
-              label: 'FLIGHTS',
+              label: l10n.navFlights,
               isSelected: selectedIndex == 0,
               onTap: () => onDestinationSelected(0),
             ),
@@ -234,7 +271,7 @@ class _BottomNavigation extends StatelessWidget {
           Expanded(
             child: _NavigationItem(
               icon: Icons.work_outline,
-              label: 'MY TRIPS',
+              label: l10n.navMyTrips,
               isSelected: selectedIndex == 1,
               onTap: () => onDestinationSelected(1),
             ),
@@ -243,7 +280,7 @@ class _BottomNavigation extends StatelessWidget {
           Expanded(
             child: _NavigationItem(
               icon: Icons.person_outline,
-              label: 'PROFILE',
+              label: l10n.navProfile,
               isSelected: selectedIndex == 2,
               onTap: () => onDestinationSelected(2),
             ),

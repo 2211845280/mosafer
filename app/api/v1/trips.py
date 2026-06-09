@@ -6,12 +6,13 @@ import math
 from datetime import UTC, datetime, timedelta
 
 import structlog
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.core.cache import RedisCache, get_cache
+from app.core.locale import resolve_request_locale
 from app.core.rbac import require_permission
 from app.db.database import get_db
 from app.models.airports import Airport
@@ -24,6 +25,7 @@ from app.models.users import User
 from app.schemas.ai import (
     DestinationTipsResult,
     PackingListResult,
+    PackingWeatherContext,
     TimelineItem,
     TimelineResult,
     TripFeedbackCreate,
@@ -42,10 +44,14 @@ from app.schemas.departure_plan import (
     LocationCheckResponse,
     TransportMode,
 )
+from app.schemas.indoor_map import IndoorMapBounds, IndoorMapResponse
 from app.schemas.trip_todos import TripTodoCreate, TripTodoRead, TripTodoUpdate
 from app.services.ai.packing_agent import generate_packing_list
 from app.services.departure_planner import DeparturePlanner
 from app.services.external.mock_flight_status_service import MockFlightStatusService
+from app.services.external.openweather_service import get_destination_weather
+from app.services.external.overpass_indoor_service import fetch_istanbul_indoor_map
+from app.services.istanbul_indoor_highlights import apply_amenity_highlights
 
 logger = structlog.get_logger(__name__)
 
@@ -274,6 +280,13 @@ async def get_departure_plan(
         origin_country=airport.country,
         departure_at=flight.departure_at,
         transport_mode=mode,
+        destination_airport_lat=(
+            float(dest_airport.latitude) if dest_airport and dest_airport.latitude else None
+        ),
+        destination_airport_lng=(
+            float(dest_airport.longitude) if dest_airport and dest_airport.longitude else None
+        ),
+        arrival_at=flight.arrival_at,
     )
 
     await cache.set(cache_key, plan.model_dump(mode="json"), ttl_seconds=300)
@@ -317,6 +330,7 @@ async def location_check(
                 carrier_code=flight.carrier_code,
                 flight_number=flight.flight_number,
                 departure_at=flight.departure_at,
+                origin_iata=flight.origin_iata,
             )
             flight_status = FlightStatusSummary(
                 flight_number=fresh.flight_number,
@@ -374,6 +388,13 @@ async def location_check(
         origin_country=airport.country,
         departure_at=flight.departure_at,
         transport_mode=transport,
+        destination_airport_lat=(
+            float(dest_airport.latitude) if dest_airport and dest_airport.latitude else None
+        ),
+        destination_airport_lng=(
+            float(dest_airport.longitude) if dest_airport and dest_airport.longitude else None
+        ),
+        arrival_at=flight.arrival_at,
     )
 
     return LocationCheckResponse(
@@ -415,6 +436,7 @@ async def get_airport_dashboard(
             carrier_code=flight.carrier_code,
             flight_number=flight.flight_number,
             departure_at=flight.departure_at,
+            origin_iata=flight.origin_iata,
         )
         flight_status = FlightStatusSummary(
             flight_number=fresh.flight_number,
@@ -494,6 +516,69 @@ async def get_airport_dashboard(
     )
 
 
+@router.get(
+    "/trips/{reservation_id}/airport-indoor-map",
+    response_model=IndoorMapResponse,
+)
+async def get_airport_indoor_map(
+    reservation_id: int,
+    gate: str | None = Query(None, description="Gate to highlight, e.g. G12"),
+    highlight: str | None = Query(
+        None,
+        description="Amenity category to highlight near gate: coffee | food",
+    ),
+    user: User = Depends(require_permission("flights.read")),
+    db: AsyncSession = Depends(get_db),
+    cache: RedisCache = Depends(get_cache),
+) -> IndoorMapResponse:
+    """Native indoor map for supported airports (IST only for now)."""
+    _, flight, origin_airport = await _load_reservation_with_flight_and_airport(
+        reservation_id, user, db,
+    )
+
+    iata = origin_airport.iata_code.upper()
+    if iata != "IST":
+        return IndoorMapResponse(
+            airport_iata=iata,
+            airport_name=origin_airport.name,
+            default_level="0",
+            levels=[],
+            bounds=IndoorMapBounds(),
+            features=[],
+            pois=[],
+            source="unsupported",
+            is_fallback=True,
+            supported=False,
+            message=f"Indoor map is only available for Istanbul Airport (IST). Origin is {iata}.",
+            highlight_gate=gate,
+        )
+
+    cache_key = f"indoor_map:IST:{gate or 'none'}:{highlight or 'none'}"
+    cached = await cache.get(cache_key)
+    if cached is not None:
+        logger.debug("indoor_map.cache_hit", key=cache_key)
+        return IndoorMapResponse(**cached)
+
+    highlight_gate = gate or None
+    if highlight_gate is None:
+        status_cache_key = f"flight:status:{flight.id}"
+        cached_status = await cache.get(status_cache_key)
+        if cached_status and cached_status.get("departure_gate"):
+            highlight_gate = str(cached_status["departure_gate"])
+
+    result = await fetch_istanbul_indoor_map(highlight_gate=highlight_gate)
+    result = apply_amenity_highlights(
+        result,
+        gate=highlight_gate,
+        category=highlight,
+    )
+    from app.services.istanbul_indoor_geo import enrich_indoor_map
+
+    result = enrich_indoor_map(result, gate=highlight_gate)
+    await cache.set(cache_key, result.model_dump(mode="json"), ttl_seconds=86400)
+    return result
+
+
 async def _load_reservation_with_flight(
     reservation_id: int,
     user: User,
@@ -518,20 +603,48 @@ async def _load_reservation_with_flight(
 # ---------------------------------------------------------------------------
 
 
+async def _build_packing_weather(
+    dest_airport: Airport | None,
+    dest_city: str,
+    duration_days: int,
+    departure_at: datetime,
+) -> PackingWeatherContext | None:
+    if (
+        dest_airport is None
+        or dest_airport.latitude is None
+        or dest_airport.longitude is None
+    ):
+        return None
+
+    weather = await get_destination_weather(
+        float(dest_airport.latitude),
+        float(dest_airport.longitude),
+        departure_at,
+    )
+    return PackingWeatherContext(
+        destination_city=dest_city,
+        trip_duration_days=duration_days,
+        condition=weather.condition,
+        temperature_c=weather.temperature_c,
+    )
+
+
 @router.post(
     "/trips/{reservation_id}/packing-list",
     response_model=PackingListResult,
 )
 async def get_packing_list(
     reservation_id: int,
+    request: Request,
     user: User = Depends(require_permission("flights.read")),
     db: AsyncSession = Depends(get_db),
     cache: RedisCache = Depends(get_cache),
 ) -> PackingListResult:
     """Generate an AI packing list for a trip (cached 24 h)."""
+    locale = resolve_request_locale(request.headers.get("accept-language"))
     reservation, flight = await _load_reservation_with_flight(reservation_id, user, db)
 
-    cache_key = f"packing_list:{reservation_id}"
+    cache_key = f"packing_list:{reservation_id}:{locale}"
     cached = await cache.get(cache_key)
     if cached is not None:
         logger.debug("packing_list.cache_hit", key=cache_key)
@@ -563,6 +676,13 @@ async def get_packing_list(
         travel_dates=travel_dates,
         destination_latitude=dest_lat,
         departure_month=flight.departure_at.month,
+        locale=locale,
+    )
+    result.weather = await _build_packing_weather(
+        dest_airport,
+        dest_city,
+        duration_days,
+        flight.departure_at,
     )
 
     await cache.set(cache_key, result.model_dump(mode="json"), ttl_seconds=86400)
@@ -701,14 +821,16 @@ async def delete_trip_todo(
 )
 async def populate_todos_from_packing_list(
     reservation_id: int,
+    request: Request,
     user: User = Depends(require_permission("flights.read")),
     db: AsyncSession = Depends(get_db),
     cache: RedisCache = Depends(get_cache),
 ) -> list[TripTodoRead]:
     """Auto-populate trip todos from the AI packing list."""
+    locale = resolve_request_locale(request.headers.get("accept-language"))
     reservation, flight = await _load_reservation_with_flight(reservation_id, user, db)
 
-    cache_key = f"packing_list:{reservation_id}"
+    cache_key = f"packing_list:{reservation_id}:{locale}"
     cached = await cache.get(cache_key)
 
     if cached is not None:
@@ -738,6 +860,13 @@ async def populate_todos_from_packing_list(
             travel_dates=travel_dates,
             destination_latitude=dest_lat,
             departure_month=flight.departure_at.month,
+            locale=locale,
+        )
+        packing.weather = await _build_packing_weather(
+            dest_airport,
+            dest_city,
+            duration_days,
+            flight.departure_at,
         )
         await cache.set(cache_key, packing.model_dump(mode="json"), ttl_seconds=86400)
 
@@ -777,14 +906,16 @@ async def populate_todos_from_packing_list(
 )
 async def generate_timeline(
     reservation_id: int,
+    request: Request,
     user: User = Depends(require_permission("flights.read")),
     db: AsyncSession = Depends(get_db),
     cache: RedisCache = Depends(get_cache),
 ) -> TimelineResult:
     """Generate an AI pre-trip preparation timeline and create todo records."""
+    locale = resolve_request_locale(request.headers.get("accept-language"))
     reservation, flight = await _load_reservation_with_flight(reservation_id, user, db)
 
-    cache_key = f"trip_timeline:{reservation_id}"
+    cache_key = f"trip_timeline:{reservation_id}:{locale}"
     cached = await cache.get(cache_key)
     if cached is not None:
         logger.debug("timeline.cache_hit", key=cache_key)
@@ -812,6 +943,7 @@ async def generate_timeline(
         origin_country=origin_country,
         departure_date=flight.departure_at.strftime("%Y-%m-%d"),
         trip_duration_days=duration_days,
+        locale=locale,
     )
 
     try:
@@ -823,13 +955,22 @@ async def generate_timeline(
         items = [TimelineItem(**i) for i in raw_items]
     except Exception:
         logger.exception("timeline.llm_failed, using defaults")
-        items = [
-            TimelineItem(days_before=14, title="Check passport validity", description="Ensure 6+ months validity", category="document"),
-            TimelineItem(days_before=7, title="Start packing essentials", description="Use AI packing list", category="packing"),
-            TimelineItem(days_before=3, title="Confirm reservation", description="Check flight status", category="task"),
-            TimelineItem(days_before=1, title="Charge devices", description="Phone, laptop, power bank", category="task"),
-            TimelineItem(days_before=0, title="Head to airport", description="Check departure plan for timing", category="task"),
-        ]
+        if locale == "ar":
+            items = [
+                TimelineItem(days_before=14, title="التحقق من صلاحية جواز السفر", description="تأكد من صلاحية 6 أشهر على الأقل", category="document"),
+                TimelineItem(days_before=7, title="بدء تجهيز الأساسيات", description="استخدم قائمة التعبئة الذكية", category="packing"),
+                TimelineItem(days_before=3, title="تأكيد الحجز", description="تحقق من حالة الرحلة", category="task"),
+                TimelineItem(days_before=1, title="شحن الأجهزة", description="الهاتف، الحاسوب، بنك الطاقة", category="task"),
+                TimelineItem(days_before=0, title="التوجه إلى المطار", description="راجع خطة المغادرة للتوقيت", category="task"),
+            ]
+        else:
+            items = [
+                TimelineItem(days_before=14, title="Check passport validity", description="Ensure 6+ months validity", category="document"),
+                TimelineItem(days_before=7, title="Start packing essentials", description="Use AI packing list", category="packing"),
+                TimelineItem(days_before=3, title="Confirm reservation", description="Check flight status", category="task"),
+                TimelineItem(days_before=1, title="Charge devices", description="Phone, laptop, power bank", category="task"),
+                TimelineItem(days_before=0, title="Head to airport", description="Check departure plan for timing", category="task"),
+            ]
 
     timeline = TimelineResult(items=items)
 

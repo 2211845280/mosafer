@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/utils/validators.dart';
+import '../../../../l10n/app_localizations.dart';
+import '../../../../core/localization/error_message_localizer.dart';
+import '../auth_session_reset.dart';
 import 'login_controller.dart';
 
 class LoginPage extends ConsumerStatefulWidget {
@@ -15,7 +18,26 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  bool _staySignedIn = true;
+  bool _switchSessionPrepared = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _prepareSwitchAccount());
+  }
+
+  Future<void> _prepareSwitchAccount() async {
+    if (_switchSessionPrepared || !mounted) {
+      return;
+    }
+    final switchAccount =
+        GoRouterState.of(context).uri.queryParameters['switch'] == '1';
+    if (!switchAccount) {
+      return;
+    }
+    _switchSessionPrepared = true;
+    await resetUserSession(ref);
+  }
 
   @override
   void dispose() {
@@ -44,6 +66,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   @override
   Widget build(BuildContext context) {
     final loginState = ref.watch(loginControllerProvider);
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       backgroundColor: _LoginColors.midnight,
@@ -66,40 +89,35 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           SizedBox(height: constraints.maxHeight * 0.13),
-                          const _LoginBrand(),
+                          _LoginBrand(l10n: l10n),
                           SizedBox(height: constraints.maxHeight * 0.06),
                           _DesignedTextField(
                             controller: _emailController,
-                            label: 'EMAIL ADDRESS',
-                            hint: 'voyager@ethereal.com',
+                            label: l10n.loginEmailLabel,
+                            hint: l10n.loginEmailHint,
                             icon: Icons.mail_outline,
                             keyboardType: TextInputType.emailAddress,
                             textInputAction: TextInputAction.next,
-                            validator: Validators.email,
+                            validator: (v) => Validators.email(v, l10n),
                           ),
                           const SizedBox(height: 18),
                           _DesignedTextField(
                             controller: _passwordController,
-                            label: 'SECURITY KEY',
+                            label: l10n.loginPasswordLabel,
                             hint: '••••••••••',
                             icon: Icons.lock_outline,
                             obscureText: true,
                             textInputAction: TextInputAction.done,
-                            validator: Validators.password,
-                            trailingLabel: 'FORGOT?',
+                            validator: (v) => Validators.password(v, l10n),
+                            trailingLabel: l10n.loginForgot,
+                            onTrailingTap: () =>
+                                context.pushNamed('forgotPassword'),
                             onSubmitted: (_) => _onLoginPressed(),
-                          ),
-                          const SizedBox(height: 14),
-                          _StaySignedInRow(
-                            value: _staySignedIn,
-                            onChanged: (value) {
-                              setState(() => _staySignedIn = value);
-                            },
                           ),
                           const SizedBox(height: 18),
                           if (loginState.hasError) ...[
                             Text(
-                              loginState.error.toString(),
+                              localizeUserFacingError(loginState.error!, l10n),
                               style: const TextStyle(
                                 color: _LoginColors.coral,
                                 fontSize: 12,
@@ -110,11 +128,12 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                             const SizedBox(height: 12),
                           ],
                           _LoginButton(
+                            l10n: l10n,
                             isLoading: loginState.isLoading,
                             onPressed: _onLoginPressed,
                           ),
                           SizedBox(height: constraints.maxHeight * 0.06),
-                          const _RegisterPrompt(),
+                          _RegisterPrompt(l10n: l10n),
                           const SizedBox(height: 22),
                         ],
                       ),
@@ -131,7 +150,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 }
 
 class _LoginBrand extends StatelessWidget {
-  const _LoginBrand();
+  final AppLocalizations l10n;
+
+  const _LoginBrand({required this.l10n});
 
   @override
   Widget build(BuildContext context) {
@@ -152,10 +173,10 @@ class _LoginBrand extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 14),
-        const Text(
-          'MOSAFER',
+        Text(
+          l10n.brandMosafer,
           textAlign: TextAlign.center,
-          style: TextStyle(
+          style: const TextStyle(
             color: Colors.white,
             fontSize: 29,
             fontWeight: FontWeight.w900,
@@ -164,10 +185,10 @@ class _LoginBrand extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 10),
-        const Text(
-          'YOUR DIGITAL CURATOR FOR THE UNKNOWN',
+        Text(
+          l10n.loginTagline,
           textAlign: TextAlign.center,
-          style: TextStyle(
+          style: const TextStyle(
             color: _LoginColors.ice,
             fontSize: 12,
             fontWeight: FontWeight.w500,
@@ -185,6 +206,7 @@ class _DesignedTextField extends StatefulWidget {
   final String hint;
   final IconData icon;
   final String? trailingLabel;
+  final VoidCallback? onTrailingTap;
   final bool obscureText;
   final TextInputType? keyboardType;
   final TextInputAction? textInputAction;
@@ -197,6 +219,7 @@ class _DesignedTextField extends StatefulWidget {
     required this.hint,
     required this.icon,
     this.trailingLabel,
+    this.onTrailingTap,
     this.obscureText = false,
     this.keyboardType,
     this.textInputAction,
@@ -238,13 +261,16 @@ class _DesignedTextFieldState extends State<_DesignedTextField> {
                 ),
               ),
               if (widget.trailingLabel != null)
-                Text(
-                  widget.trailingLabel!,
-                  style: const TextStyle(
-                    color: _LoginColors.coral,
-                    fontSize: 9,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 0.6,
+                GestureDetector(
+                  onTap: widget.onTrailingTap,
+                  child: Text(
+                    widget.trailingLabel!,
+                    style: const TextStyle(
+                      color: _LoginColors.coral,
+                      fontSize: 9,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 0.6,
+                    ),
                   ),
                 ),
             ],
@@ -318,47 +344,16 @@ class _DesignedTextFieldState extends State<_DesignedTextField> {
   }
 }
 
-class _StaySignedInRow extends StatelessWidget {
-  final bool value;
-  final ValueChanged<bool> onChanged;
-
-  const _StaySignedInRow({required this.value, required this.onChanged});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        const Expanded(
-          child: Text(
-            'Always remember me',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ),
-        Transform.scale(
-          scale: 0.78,
-          child: Switch(
-            value: value,
-            onChanged: onChanged,
-            activeThumbColor: Colors.white,
-            activeTrackColor: _LoginColors.field,
-            inactiveThumbColor: Colors.white,
-            inactiveTrackColor: _LoginColors.field,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
 class _LoginButton extends StatelessWidget {
+  final AppLocalizations l10n;
   final bool isLoading;
   final VoidCallback onPressed;
 
-  const _LoginButton({required this.isLoading, required this.onPressed});
+  const _LoginButton({
+    required this.l10n,
+    required this.isLoading,
+    required this.onPressed,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -400,9 +395,12 @@ class _LoginButton extends StatelessWidget {
                     color: _LoginColors.midnight,
                   ),
                 )
-              : const Text(
-                  'Login to Mosafer',
-                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800),
+              : Text(
+                  l10n.loginButton,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
         ),
       ),
@@ -411,16 +409,18 @@ class _LoginButton extends StatelessWidget {
 }
 
 class _RegisterPrompt extends StatelessWidget {
-  const _RegisterPrompt();
+  final AppLocalizations l10n;
+
+  const _RegisterPrompt({required this.l10n});
 
   @override
   Widget build(BuildContext context) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        const Text(
-          'New to the voyage? ',
-          style: TextStyle(
+        Text(
+          l10n.loginNewToVoyage,
+          style: const TextStyle(
             color: Colors.white,
             fontSize: 12,
             fontWeight: FontWeight.w500,
@@ -436,9 +436,9 @@ class _RegisterPrompt extends StatelessWidget {
             padding: EdgeInsets.zero,
             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
           ),
-          child: const Text(
-            'Register Now',
-            style: TextStyle(
+          child: Text(
+            l10n.loginRegisterNow,
+            style: const TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w900,
               decoration: TextDecoration.underline,

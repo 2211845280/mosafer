@@ -1,0 +1,596 @@
+{
+  "@@locale": "en",
+  "appTitle": "Mosafer",
+  "brandMosafer": "MOSAFER",
+  "navFlights": "FLIGHTS",
+  "navMyTrips": "MY TRIPS",
+  "navProfile": "PROFILE",
+  "retry": "Retry",
+  "cancel": "Cancel",
+  "save": "Save",
+  "add": "Add",
+  "edit": "Edit",
+  "delete": "Delete",
+  "ok": "OK",
+  "seeAll": "SEE ALL",
+  "settingsTitle": "Settings",
+  "settingsNotificationsSection": "NOTIFICATION SETTINGS",
+  "settingsAccountSection": "ACCOUNT",
+  "settingsNotificationTileTitle": "Notification Setting",
+  "settingsNotificationTileSubtitle": "Stay updated on your flights",
+  "settingsChangePassword": "Change Password",
+  "settingsSwitchAccount": "Switch account",
+  "settingsSwitchAccountSubtitle": "Sign in with a different email",
+  "settingsLogout": "Logout",
+  "settingsLanguage": "Language",
+  "settingsLanguageSubtitle": "App language and layout direction",
+  "settingsChooseLanguageTitle": "Choose language",
+  "languageEnglish": "English",
+  "languageArabic": "Arabic",
+  "travelerDefault": "Traveler",
+  "mosaferAccountDefault": "Mosafer account",
+  "settingsEditProfileTwoLines": "Edit personal profile",
+  "loginTagline": "YOUR DIGITAL CURATOR FOR THE UNKNOWN",
+  "loginEmailLabel": "EMAIL ADDRESS",
+  "loginEmailHint": "voyager@ethereal.com",
+  "loginPasswordLabel": "SECURITY KEY",
+  "loginForgot": "Forgot password?",
+  "loginButton": "Login to Mosafer",
+  "loginNewToVoyage": "New to the voyage? ",
+  "loginRegisterNow": "Register Now",
+  "forgotPasswordTitle": "Reset password",
+  "forgotPasswordSubtitle": "Enter your email and we will send you a link to reset your password.",
+  "forgotPasswordSubmit": "Send reset link",
+  "forgotPasswordSuccess": "If an account exists for this email, a reset link has been sent.",
+  "forgotPasswordBackToLogin": "Back to login",
+  "resetPasswordTitle": "Choose new password",
+  "resetPasswordSubtitle": "Enter a new password for your account.",
+  "resetPasswordSubmit": "Update password",
+  "resetPasswordSuccess": "Your password has been updated. You can sign in now.",
+  "resetPasswordInvalidLink": "This reset link is invalid or has expired.",
+  "registerStartJourneyTitle": "Start your journey.",
+  "registerJoinCommunity": "Join our community of global curators.",
+  "registerFullNameLabel": "FULL NAME",
+  "registerFullNameHint": "Julianne Smith",
+  "registerEmailHint": "curator@musafir.travel",
+  "registerPasswordLabel": "PASSWORD",
+  "registerConfirmPasswordLabel": "CONFIRM PASSWORD",
+  "registerTermsNotAccepted": "Please accept the Terms of Service and Privacy Policy.",
+  "registerAccountCreated": "Account created successfully!",
+  "registerCreateAccount": "Create Account",
+  "registerAlreadyHaveAccount": "Already have an account? ",
+  "registerLogIn": "Log in",
+  "registerLoginArrow": "Login →",
+  "passwordStrengthWeak": "Weak",
+  "passwordStrengthModerate": "Moderate",
+  "passwordStrengthStrong": "Strong",
+  "passwordStrengthLabel": "Password strength: {strength}",
+  "@passwordStrengthLabel": {
+    "placeholders": {
+      "strength": {"type": "String"}
+    }
+  },
+  "termsAgreePrefix": "I agree to the ",
+  "termsOfService": "Terms of Service",
+  "termsAnd": " and ",
+  "termsPrivacyPolicy": "Privacy\nPolicy.",
+  "fieldRequired": "{fieldName} is required",
+  "@fieldRequired": {
+    "placeholders": {
+      "fieldName": {"type": "String"}
+    }
+  },
+  "emailRequired": "Email is required",
+  "emailInvalid": "Please enter a valid email address",
+  "passwordRequired": "Password is required",
+  "passwordMinLength": "Password must be at least {count} characters",
+  "@passwordMinLength": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "confirmPasswordRequired": "Please confirm your password",
+  "passwordsDoNotMatch": "Passwords do not match",
+  "phoneRequired": "Phone number is required",
+  "phoneInvalid": "Please enter a valid phone number",
+  "validationFieldFullName": "Full name",
+  "validationFieldCurrentPassword": "Current password",
+  "errorGeneric": "Something went wrong. Please try again.",
+  "errorConnectionTimeout": "Connection timed out. Please try again.",
+  "errorNoInternet": "No internet connection. Check your network and try again.",
+  "errorUnauthorized": "Session expired. Please sign in again.",
+  "errorUnableUpdatePassword": "Unable to update password",
+  "flightsTitle": "Flights",
+  "flightsIntro": "Mosafer connects your booking, ticket QR, departure planning, airport guidance, packing, todos and notifications in one travel assistant.",
+  "bookingHowTitle": "HOW BOOKING WORKS",
+  "bookingStep1": "Open the booking website and choose your flight.",
+  "bookingStep2": "Complete the reservation and keep your ticket or QR image.",
+  "bookingStep3": "Return to Mosafer, scan or upload the ticket, then manage your trip.",
+  "openBookingWebsite": "OPEN BOOKING WEBSITE",
+  "noActiveTripTitle": "No active trip selected.",
+  "noActiveTripSubtitle": "Open a trip or scan a ticket to start your guided journey.",
+  "scanTicket": "Scan Ticket",
+  "sectionHome": "Trip planners",
+  "stageHomeTitle": "At home",
+  "stageHomeSubtitle": "Plan route",
+  "stageOnWayTitle": "On way",
+  "stageOnWaySubtitle": "Live ETA",
+  "stageAirportTitle": "At airport",
+  "stageAirportSubtitle": "Gate ready",
+  "prepDepartureTitle": "Plan departure from home",
+  "prepDepartureSubtitle": "Get leave time, traffic buffer and map route.",
+  "prepTodosTitle": "Trip todos and timeline",
+  "prepTodosSubtitle": "Prepare documents, packing and airport tasks.",
+  "boardingInMinutes": "Boarding in {minutes} min",
+  "@boardingInMinutes": {
+    "placeholders": {
+      "minutes": {"type": "String"}
+    }
+  },
+  "flightMetaDate": "DATE",
+  "flightMetaGate": "GATE",
+  "flightMetaTerminal": "TERMINAL",
+  "flightMetaSeat": "SEAT",
+  "departurePlan": "Departure Plan",
+  "packingList": "Packing List",
+  "timeline": "Timeline",
+  "todosLabel": "Todos",
+  "attachmentsSection": "ATTACHMENTS",
+  "twoFiles": "2 FILES",
+  "uploadAttachment": "UPLOAD ATTACHMENT",
+  "openAirportExperience": "OPEN AIRPORT EXPERIENCE",
+  "tripsSearchHint": "Search by airport name or flight #",
+  "tripsUpcoming": "Upcoming",
+  "tripsAll": "All",
+  "tripsConfirmed": "CONFIRMED",
+  "tripsCompleted": "COMPLETED",
+  "tripsViewHistory": "View History",
+  "tripsOpenTrip": "View trip details",
+  "tripsExpired": "Expired",
+  "tripsDeleteConfirmTitle": "Delete ticket?",
+  "tripsDeleteConfirmBody": "The ticket will move to the recycle bin. You can restore it from Settings.",
+  "tripsDeleteConfirm": "Delete",
+  "tripsDeleteCancel": "Cancel",
+  "settingsDeletedTrips": "Recycle bin",
+  "settingsDeletedTripsSubtitle": "Restore deleted tickets",
+  "deletedTripsTitle": "Recycle bin",
+  "deletedTripsEmpty": "No deleted tickets.",
+  "deletedTripsRestore": "Restore",
+  "deletedTripsDeletePermanent": "Delete permanently",
+  "deletedTripsDeleteConfirmTitle": "Delete permanently?",
+  "deletedTripsDeleteConfirmBody": "This ticket cannot be restored.",
+  "deletedTripsAutoPurgeNotice": "Tickets are permanently removed 7 days after you delete them.",
+  "scanPastePayload": "Paste ticket QR payload",
+  "scanPayloadHint": "QR raw payload or ticket code",
+  "validateTicket": "Validate Ticket",
+  "scanValidateTicketError": "Unable to validate ticket.",
+  "scanTabScanQr": "Scan QR",
+  "scanTabUploadImage": "Upload Image",
+  "scanUploadTitle": "Upload a ticket image",
+  "scanUploadBody": "Choose a ticket or boarding pass from your gallery. Mosafer will read it and add the trip when it is valid.",
+  "scanChooseImage": "Choose Image",
+  "scanChooseImageLoading": "Reading ticket...",
+  "scanCenterQr": "Center your ticket QR code within the\nframe.",
+  "scanScanNow": "Scan Now",
+  "notificationsReadAll": "Read All",
+  "notificationsNoYet": "No notifications yet.",
+  "notificationsToday": "TODAY",
+  "notificationsEarlier": "EARLIER",
+  "timeAgoNow": "now",
+  "timeAgoMinutes": "{minutes}m ago",
+  "@timeAgoMinutes": {
+    "placeholders": {
+      "minutes": {"type": "int"}
+    }
+  },
+  "timeAgoHours": "{hours}h ago",
+  "@timeAgoHours": {
+    "placeholders": {
+      "hours": {"type": "int"}
+    }
+  },
+  "timeAgoDays": "{days}d ago",
+  "@timeAgoDays": {
+    "placeholders": {
+      "days": {"type": "int"}
+    }
+  },
+  "planDepartureSelectTrip": "Select a trip",
+  "planDepartureSafeToLeave": "SAFE TO LEAVE",
+  "planDepartureHeroSubtitle": "Best time to leave for your flight",
+  "planDepartureTransportMode": "TRANSPORT MODE",
+  "planDepartureModeCar": "Car",
+  "planDepartureModeTrain": "Train",
+  "planDepartureModeTaxi": "Taxi",
+  "planDepartureTitle": "Plan Departure",
+  "planDepartureRouteSummary": "ROUTE SUMMARY",
+  "planDepartureDemoRoute": "Taksim Square → {airportCode} airport",
+  "@planDepartureDemoRoute": {
+    "placeholders": {
+      "airportCode": {"type": "String"}
+    }
+  },
+  "planDepartureLiveTraffic": "Live\nTraffic",
+  "planDepartureDistance": "DISTANCE",
+  "planDepartureDistanceValue": "{km} km",
+  "@planDepartureDistanceValue": {
+    "placeholders": {
+      "km": {"type": "String"}
+    }
+  },
+  "trafficLow": "Light traffic",
+  "trafficModerate": "Moderate traffic",
+  "trafficHeavy": "Heavy traffic",
+  "onWayTraffic": "Traffic",
+  "onWayOpenInMaps": "Open in Google Maps",
+  "planDepartureTravelTime": "Road duration",
+  "planDepartureBuffer": "SECURITY BUFFER",
+  "planDepartureNoTrainsInCountry": "No trains available in this country",
+  "planDepartureEstArrival": "EST. ARRIVAL",
+  "planDepartureUnitMinutes": "min",
+  "onWaySubtitle": "From your current location to {airportCode} airport",
+  "@onWaySubtitle": {
+    "placeholders": {
+      "airportCode": {"type": "String"}
+    }
+  },
+  "onWayDemoSubtitle": "Demo route from Taksim Square to {airportCode} airport",
+  "@onWayDemoSubtitle": {
+    "placeholders": {
+      "airportCode": {"type": "String"}
+    }
+  },
+  "packingLinenShirtDescription": "Perfect for Dubai's\nevening breeze and\nhumidity.",
+  "openTripFirstSnackbar": "Open a trip first.",
+  "openTripFirstAirportFull": "Open a trip first to use Airport Experience.",
+  "unableOpenMaps": "Unable to open maps on this device.",
+  "profileImageUpdated": "Profile image updated.",
+  "unableUploadProfileImage": "Unable to upload image.",
+  "editProfileTitle": "Edit Profile",
+  "editProfileVoyagerTag": "MUSAFIR VOYAGER",
+  "travelPreferences": "TRAVEL PREFERENCES",
+  "fullNameLabel": "NAME",
+  "emailAddressLabel": "EMAIL ADDRESS",
+  "phoneNumberLabel": "PHONE NUMBER",
+  "homeLocationLabel": "HOME LOCATION",
+  "saveChanges": "SAVE CHANGES",
+  "changePasswordTitle": "Change Password",
+  "changePasswordCurrentLabel": "CURRENT PASSWORD",
+  "changePasswordCurrentHint": "Enter current password",
+  "changePasswordNewLabel": "NEW PASSWORD",
+  "changePasswordNewHint": "Enter new password",
+  "changePasswordConfirmLabel": "CONFIRM NEW PASSWORD",
+  "changePasswordConfirmHint": "Re-enter new password",
+  "changePasswordSave": "SAVE PASSWORD",
+  "changePasswordRepeatHint": "Repeat new password",
+  "passwordStrengthMeterTitle": "PASSWORD STRENGTH",
+  "passwordStrengthMeterWeak": "WEAK",
+  "passwordStrengthMeterGood": "GOOD",
+  "passwordStrengthMeterStrong": "STRONG",
+  "safetyTipTitle": "Safety Tip",
+  "safetyTipBody": "Use a combination of letters, numbers,\nand symbols to create a stronger\npassword.",
+  "profilePersonalInfo": "Personal Information",
+  "profileTravelPreferences": "Travel Preferences",
+  "profileAddPhone": "Add phone number",
+  "profileFullNameLabel": "NAME",
+  "profileEmailLabel": "EMAIL ADDRESS",
+  "profilePhoneLabel": "PHONE NUMBER",
+  "profileHomeLocationLabel": "HOME LOCATION",
+  "airportConcierge": "The Concierge",
+  "airportLiveExperience": "LIVE EXPERIENCE",
+  "airportWelcomeLine": "Welcome to\n{airportName} • {terminal}",
+  "@airportWelcomeLine": {
+    "placeholders": {
+      "airportName": {"type": "String"},
+      "terminal": {"type": "String"}
+    }
+  },
+  "airportAtAirportPill": "AT\nAIRPORT",
+  "airportTerminalLabel": "TERMINAL",
+  "airportAssignedGate": "ASSIGNED GATE",
+  "airportBoardingInMin": "Boarding in {minutes} min",
+  "@airportBoardingInMin": {
+    "placeholders": {
+      "minutes": {"type": "int"}
+    }
+  },
+  "airportWalkEstimate": "Estimated {minutes} min walk",
+  "@airportWalkEstimate": {
+    "placeholders": {
+      "minutes": {"type": "int"}
+    }
+  },
+  "airportWalkFollowSigns": "Follow airport signs to {gate}",
+  "@airportWalkFollowSigns": {
+    "placeholders": {
+      "gate": {"type": "String"}
+    }
+  },
+  "airportCurrentLocation": "CURRENT LOCATION",
+  "airportYouPin": "YOU",
+  "airportExpandMap": "EXPAND MAP",
+  "airportShopsNear": "Shops near {gate}",
+  "@airportShopsNear": {
+    "placeholders": {
+      "gate": {"type": "String"}
+    }
+  },
+  "airportNearGate": "Near your gate",
+  "airportOpenNow": "Open now",
+  "airportProceedToGate": "Proceed to {gate}",
+  "indoorMapTitle": "Indoor Airport Map",
+  "indoorMapUnsupported": "Indoor map is only available for Istanbul Airport (IST) at this time.",
+  "indoorMapGateHighlight": "Highlighted gate: {gate}",
+  "@indoorMapGateHighlight": {
+    "placeholders": {
+      "gate": {"type": "String"}
+    }
+  },
+  "indoorMapGoToGate": "Go to {gate}",
+  "@indoorMapGoToGate": {
+    "placeholders": {
+      "gate": {"type": "String"}
+    }
+  },
+  "indoorMapHideRoute": "Hide route",
+  "indoorMapRouteTitle": "Simulated route to {gate}",
+  "@indoorMapRouteTitle": {
+    "placeholders": {
+      "gate": {"type": "String"}
+    }
+  },
+  "indoorMapRouteEta": "{minutes} min",
+  "@indoorMapRouteEta": {
+    "placeholders": {
+      "minutes": {"type": "int"}
+    }
+  },
+  "indoorMapOpenLevelUpSource": "Live OpenLevelUp indoor map from OpenStreetMap.",
+  "indoorMapOpenFullMap": "Open full OSM map",
+  "indoorMapRetry": "Retry",
+  "indoorMapBack": "Go back",
+  "indoorMapLoading": "Loading indoor map…",
+  "indoorMapGateLevel": "Gate {gate} · Level {level}",
+  "@indoorMapGateLevel": {
+    "placeholders": {
+      "gate": {"type": "String"},
+      "level": {"type": "String"}
+    }
+  },
+  "indoorMapRouteWrongLevel": "Route is shown on the gate level only.",
+  "indoorMapLevelBadge": "OpenLevelUp · IST · Level {level}",
+  "@indoorMapLevelBadge": {
+    "placeholders": {
+      "level": {"type": "String"}
+    }
+  },
+  "indoorMapHighlightBadge": "Level {level} · {category} highlights",
+  "@indoorMapHighlightBadge": {
+    "placeholders": {
+      "level": {"type": "String"},
+      "category": {"type": "String"}
+    }
+  },
+  "indoorMapCoffeeNearGate": "Coffee near {gate}",
+  "@indoorMapCoffeeNearGate": {
+    "placeholders": {
+      "gate": {"type": "String"}
+    }
+  },
+  "indoorMapFoodNearGate": "Quick bites near {gate}",
+  "@indoorMapFoodNearGate": {
+    "placeholders": {
+      "gate": {"type": "String"}
+    }
+  },
+  "indoorMapRouteStepEntrance": "Entrance 7",
+  "indoorMapRouteStepSecurity": "Security check",
+  "indoorMapRouteStepDutyFree": "Duty Free hall",
+  "indoorMapRouteStepConcourse": "Follow G concourse",
+  "indoorMapRouteStepArrive": "Arrive at gate {gate}",
+  "@indoorMapRouteStepArrive": {
+    "placeholders": {
+      "gate": {"type": "String"}
+    }
+  },
+  "@airportProceedToGate": {
+    "placeholders": {
+      "gate": {"type": "String"}
+    }
+  },
+  "airportQrNoTicket": "No boarding ticket found for the current booking.",
+  "airportQrInvalidTicket": "This booking has a ticket, but QR payload is invalid.",
+  "airportLoungeFallback": "Airport Lounge",
+  "airportCoffeeFallback": "Coffee Shop",
+  "airportGateDash": "Gate --",
+  "airportArrivedAtAirport": "I arrived at the airport",
+  "airportArrivalStatusTitle": "Airport arrival",
+  "airportCheckInTitle": "Check-in",
+  "airportCheckInDisclaimer": "Demo only — not a real airline check-in.",
+  "airportCheckInGateLabel": "Your gate: {gate}",
+  "@airportCheckInGateLabel": {
+    "placeholders": {
+      "gate": {"type": "String"}
+    }
+  },
+  "airportCheckInStepArrived": "Arrived at airport",
+  "airportCheckInStepStarted": "Check-in started",
+  "airportCheckInStepBoardingPass": "Boarding pass ready",
+  "airportCheckInStepSecurity": "Proceed to security",
+  "airportCheckInStepGoToGate": "Go to gate {gate}",
+  "@airportCheckInStepGoToGate": {
+    "placeholders": {
+      "gate": {"type": "String"}
+    }
+  },
+  "airportCheckInNextStep": "Next step",
+  "airportCheckInReset": "Reset",
+  "airportOpenGateMap": "Open gate map",
+  "@airportOpenGateMap": {
+    "placeholders": {
+      "gate": {"type": "String"}
+    }
+  },
+  "onWayTitle": "On way",
+  "onWayStartNavigation": "START NAVIGATION",
+  "onWayTrackingStarted": "TRACKING STARTED",
+  "onWayLocationUnavailable": "Location permission or service is not available.",
+  "onWayTrackingActive": "Live tracking is active.",
+  "onWayYou": "YOU",
+  "onWayLiveConnected": "Live location connected",
+  "onWayPressStart": "Press Start Navigation to connect live location",
+  "onWayDemoOriginName": "Taksim Square",
+  "onWayDemoOriginActive": "Using Taksim Square as the demo start point",
+  "onWayDistance": "Distance",
+  "onWayEta": "ETA",
+  "onWayTracking": "Tracking",
+  "onWayTrackingActiveState": "Active",
+  "onWayTrackingNotStarted": "Not started",
+  "onWayDepartureAddressTitle": "Departure address",
+  "onWayDepartureAddressSubtitle": "Choose GPS or enter your home address for route planning.",
+  "onWayUseCurrentLocation": "Current location (GPS)",
+  "onWayUseCurrentLocationHint": "Use live GPS when available",
+  "onWayUseSavedAddress": "My saved address",
+  "onWaySavedAddressReady": "Saved address ready",
+  "onWaySavedAddressMissing": "Add an address below first",
+  "onWayManualOriginActive": "Using your saved address as the start point",
+  "onWayManualSubtitle": "From your saved address to {airportCode} airport",
+  "@onWayManualSubtitle": {
+    "placeholders": {
+      "airportCode": {"type": "String"}
+    }
+  },
+  "onWayDepartureFrom": "Starting from",
+  "onWayChangeAddress": "Change",
+  "homeAddressHint": "Street, city, country",
+  "homeAddressSave": "Save address",
+  "homeAddressTooShort": "Enter at least 3 characters",
+  "homeAddressGeocodeFailed": "Could not find that address. Try adding city and country.",
+  "homeAddressSaved": "Home address saved",
+  "flightWeatherTitle": "FLIGHT DAY WEATHER",
+  "flightWeatherDepartureDay": "Departure · {city}",
+  "@flightWeatherDepartureDay": {
+    "placeholders": {
+      "city": {"type": "String"}
+    }
+  },
+  "flightWeatherArrivalDay": "Arrival · {city}",
+  "@flightWeatherArrivalDay": {
+    "placeholders": {
+      "city": {"type": "String"}
+    }
+  },
+  "flightWeatherBufferAdded": "+{minutes} min added for weather conditions",
+  "@flightWeatherBufferAdded": {
+    "placeholders": {
+      "minutes": {"type": "int"}
+    }
+  },
+  "timelineJourneyTag": "MUSAFIR JOURNEY",
+  "timelineYourJourney": "Your Journey",
+  "addingEllipsis": "Adding...",
+  "addSelectedToTodos": "Add {count} selected to Todos",
+  "@addSelectedToTodos": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "addSelectedToTripTodos": "Add {count} selected to Trip Todos",
+  "@addSelectedToTripTodos": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "packingOpenTripFirst": "Open a trip first.",
+  "timelineOpenTripFirst": "Open a trip first.",
+  "packingLoading": "Generating your packing list...",
+  "timelineLoading": "Generating your journey timeline...",
+  "packingLoadFailed": "Could not load packing list.",
+  "timelineLoadFailed": "Could not load timeline.",
+  "timelineNoUpcomingTasks": "No upcoming timeline tasks for this trip.",
+  "packingRetry": "Retry",
+  "timelineRetry": "Retry",
+  "timelineDayBefore": "D-{days}",
+  "@timelineDayBefore": {
+    "placeholders": {
+      "days": {"type": "int"}
+    }
+  },
+  "todosOpenTripFirst": "Open a trip first.",
+  "todosOpenTripFirstView": "Open a trip first to view its todos.",
+  "todoAddTitle": "Add Todo",
+  "todoEditTitle": "Edit Todo",
+  "todoTitleHint": "Todo title",
+  "todoAdded": "Todo added.",
+  "todosEmptyDefault": "No todos in this category yet.",
+  "todosAddTodo": "Add Todo",
+  "todosCategoryAll": "All",
+  "todosCategoryPacking": "Packing",
+  "todosCategoryDocuments": "Documents",
+  "todosTabDocuments": "DOCUMENTS",
+  "todosTabPacking": "PACKING",
+  "todosTabLogistics": "LOGISTICS",
+  "tripTaskDefault": "Trip task",
+  "packingMustHave": "Must-have",
+  "packingAllItemsInTodos": "All packing items are already in your trip todos.",
+  "packingWeatherSummary": "{days} days in {city} • {condition} • {temp}°C",
+  "@packingWeatherSummary": {
+    "placeholders": {
+      "days": {"type": "int"},
+      "city": {"type": "String"},
+      "condition": {"type": "String"},
+      "temp": {"type": "int"}
+    }
+  },
+  "weatherClear": "Sunny",
+  "weatherCloudy": "Cloudy",
+  "weatherRain": "Rain",
+  "weatherSnow": "Snow",
+  "weatherStorm": "Storm",
+  "packingRecommended": "Recommended",
+  "packingOptional": "Optional",
+  "packingTagCrucial": "CRUCIAL",
+  "packingOptionalTag": "OPTIONAL",
+  "packingResortDay": "RESORT DAY",
+  "packingTransitLeisure": "TRANSIT LEISURE",
+  "packingItemPassport": "Passport",
+  "packingItemFlightTickets": "Flight Tickets",
+  "packingItemPowerAdapter": "Power Adapter",
+  "packingItemSunglasses": "Sunglasses",
+  "packingItemSunscreen": "Sunscreen",
+  "packingItemSwimwear": "Swimwear",
+  "packingItemReadingBook": "Reading Book",
+  "packingItemLinenShirt": "Light Linen Shirt",
+  "timelineTaskPassport": "Check Passport Validity",
+  "timelineTaskVisa": "Apply for Entry Visa",
+  "timelineTaskSecurity": "Schedule Home Security",
+  "timelineTaskPet": "Arrange Pet Boarding",
+  "timelineTaskPacking": "Complete All Packing List",
+  "timelineTaskTaxi": "Book Airport Taxi",
+  "timelineDay14": "D-14",
+  "timelineDay7": "D-7",
+  "timelineDay1": "D-1",
+  "timelineBadgeDocument": "DOCUMENT",
+  "timelineBadgeTask": "TASK",
+  "timelineBadgePacking": "PACKING",
+  "timelineTitleDocuments": "Travel Documents",
+  "timelineTitlePreparation": "Preparation",
+  "timelineTitlePacking": "Packing & Logistics",
+  "ticketBoardingPass": "BOARDING PASS",
+  "ticketScanForBoarding": "Scan for Boarding",
+  "ticketSafeWorkSecure": "Safe work\nsecure",
+  "ticketDirect": "DIRECT",
+  "ticketDeparture": "DEPARTURE",
+  "timelineItemsAddedToTodos": "{count} timeline items added to todos.",
+  "@timelineItemsAddedToTodos": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "packingItemsAddedToTodos": "{count} packing items added to todos.",
+  "@packingItemsAddedToTodos": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  }
+}

@@ -2,6 +2,7 @@
 
 import asyncio
 import json
+from datetime import datetime
 
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
@@ -19,11 +20,13 @@ from app.schemas.flights import (
     FlightOfferRead,
     FlightRead,
     FlightSearchResponse,
+    FlightSeatAvailabilityRead,
     FlightUpdate,
 )
 from app.schemas.pagination import PaginatedResponse
 from app.services.external.mock_flight_service import MockFlightService
 from app.services.external.mock_flight_status_service import MockFlightStatusService
+from app.services.seat_availability import get_seat_availability
 
 logger = structlog.get_logger(__name__)
 
@@ -151,6 +154,31 @@ async def search_flights(
 
 
 @router.get(
+    "/flights/available-seats",
+    response_model=FlightSeatAvailabilityRead,
+    dependencies=[Depends(require_permission("bookings.create"))],
+)
+async def get_available_seats(
+    provider_flight_id: str = Query(..., min_length=1, max_length=128),
+    departure_at: datetime = Query(..., description="ISO departure datetime"),
+    db: AsyncSession = Depends(get_db),
+) -> FlightSeatAvailabilityRead:
+    """Return available and taken seats for a flight offer."""
+    availability = await get_seat_availability(
+        db,
+        provider_flight_id=provider_flight_id,
+        departure_at=departure_at,
+    )
+    return FlightSeatAvailabilityRead(
+        provider_flight_id=availability.provider_flight_id,
+        rows=availability.rows,
+        columns=availability.columns,
+        available_seats=availability.available_seats,
+        taken_seats=availability.taken_seats,
+    )
+
+
+@router.get(
     "/flights/{flight_id}",
     response_model=FlightRead,
     dependencies=[Depends(require_permission("flights.read"))],
@@ -191,6 +219,7 @@ async def get_flight_status(
         carrier_code=flight.carrier_code,
         flight_number=flight.flight_number,
         departure_at=flight.departure_at,
+        origin_iata=flight.origin_iata,
     )
     await cache.set(cache_key, status_data.model_dump(mode="json"), ttl_seconds=120)
     return status_data

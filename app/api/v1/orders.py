@@ -1,11 +1,10 @@
 """Order (purchase) API — creates reservation + ticket from a mock flight offer."""
 
 import uuid
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -13,7 +12,6 @@ from app.core.jwt import get_current_user
 from app.core.rbac import require_permission
 from app.core.ticket_qr import qr_content_for_ticket, write_qr_png
 from app.db.database import get_db
-from app.models.flights import Flight
 from app.models.reservations import Reservation, ReservationStatus
 from app.models.tickets import Ticket, TicketStatus
 from app.models.users import User
@@ -21,6 +19,7 @@ from app.schemas.orders import OrderCreateRequest, OrderResponse
 from app.schemas.tickets import FlightSummaryForTicket
 from app.services.booking_utils import is_valid_seat, normalize_seat
 from app.services.external.mock_flight_service import MockFlightService
+from app.services.flight_identity import dated_provider_flight_id, resolve_flight_for_booking
 
 router = APIRouter()
 _mock_service = MockFlightService()
@@ -53,30 +52,43 @@ async def create_order(
         )
 
     dep_h, dep_m = (int(p) for p in offer["departure_time"].split(":"))
-    now = datetime.utcnow()
-    departure_at = datetime(now.year, now.month, now.day, dep_h, dep_m)
-    if departure_at < now:
-        departure_at += timedelta(days=1)
-    arrival_at = departure_at + timedelta(hours=offer["duration_hours"])
+    if data.departure_date:
+        try:
+            target_date = datetime.strptime(data.departure_date, "%Y-%m-%d").date()
+        except ValueError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid departure_date format. Expected YYYY-MM-DD",
+            ) from exc
+    else:
+        target_date = datetime.now(UTC).date()
 
-    result = await db.execute(
-        select(Flight).where(Flight.provider_flight_id == offer["provider_flight_id"])
+    departure_at = datetime(
+        target_date.year,
+        target_date.month,
+        target_date.day,
+        dep_h,
+        dep_m,
+        tzinfo=UTC,
     )
-    flight = result.scalar_one_or_none()
-    if flight is None:
-        flight = Flight(
-            provider_flight_id=offer["provider_flight_id"],
-            origin_iata=offer["origin_iata"],
-            destination_iata=offer["destination_iata"],
-            carrier_code=offer["carrier_code"],
-            flight_number=offer["flight_number"],
-            departure_at=departure_at,
-            arrival_at=arrival_at,
-            base_price=Decimal(offer["total_price"]),
-            currency=offer["currency"],
-        )
-        db.add(flight)
-        await db.flush()
+    arrival_at = departure_at + timedelta(hours=offer["duration_hours"])
+    provider_flight_id = dated_provider_flight_id(
+        offer["provider_flight_id"],
+        departure_at,
+    )
+
+    flight = await resolve_flight_for_booking(
+        db,
+        provider_flight_id=provider_flight_id,
+        departure_at=departure_at,
+        arrival_at=arrival_at,
+        origin_iata=offer["origin_iata"],
+        destination_iata=offer["destination_iata"],
+        carrier_code=offer["carrier_code"],
+        flight_number=offer["flight_number"],
+        base_price=Decimal(offer["total_price"]),
+        currency=offer["currency"],
+    )
 
     reservation = Reservation(
         user_id=user.id,

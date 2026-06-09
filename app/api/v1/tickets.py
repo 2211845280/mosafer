@@ -16,6 +16,7 @@ from app.core.file_validation import has_valid_magic_bytes
 from app.core.jwt import get_current_user
 from app.core.rbac import assert_user_has_permission, require_permission
 from app.core.ticket_pdf import build_ticket_pdf_bytes
+from app.data.airlines import carrier_name
 from app.db.database import get_db
 from app.models.reservations import Reservation
 from app.models.tickets import Ticket, TicketImage, TicketStatus
@@ -74,7 +75,10 @@ async def _load_ticket_for_user(
 ) -> Ticket:
     result = await db.execute(
         select(Ticket)
-        .options(selectinload(Ticket.booking).selectinload(Reservation.flight))
+        .options(
+            selectinload(Ticket.booking).selectinload(Reservation.flight),
+            selectinload(Ticket.booking).selectinload(Reservation.passengers),
+        )
         .where(Ticket.id == ticket_id),
     )
     ticket = result.scalar_one_or_none()
@@ -235,19 +239,32 @@ async def download_ticket_pdf(
 ) -> Response:
     """Download ticket as PDF (QR + booking details)."""
     ticket = await _load_ticket_for_user(db, ticket_id, user)
+    if ticket.status == TicketStatus.PENDING_PASSENGER.value:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Complete passenger and passport details before downloading your e-ticket",
+        )
     b = ticket.booking
     f = b.flight
+    passenger_name = None
+    if b.passengers:
+        primary = sorted(b.passengers, key=lambda p: p.sequence)[0]
+        passenger_name = f"{primary.family_name}/{primary.given_name}"
     pdf_bytes = build_ticket_pdf_bytes(
         ticket_number=ticket.ticket_number,
         booking_id=ticket.booking_id,
         seat=b.seat,
         carrier_code=f.carrier_code,
+        carrier_name=carrier_name(f.carrier_code),
         flight_number=f.flight_number,
         origin_iata=f.origin_iata,
         destination_iata=f.destination_iata,
         departure_at=f.departure_at.isoformat(),
         arrival_at=f.arrival_at.isoformat(),
         qr_image_relative=ticket.qr_image_path,
+        pnr=b.pnr,
+        passenger_name=passenger_name,
+        cabin_class=b.cabin_class,
     )
     filename = f"ticket_{ticket.ticket_number}.pdf"
     return Response(

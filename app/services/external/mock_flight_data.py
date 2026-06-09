@@ -1,12 +1,20 @@
 """Static mock flight offer catalogue.
 
-Each entry uses a fixed date anchor (2026-06-15) that the service layer shifts
-to match the caller's requested departure date while preserving times of day.
+Catalogue entries define routes, carriers, and prices. Departure times are
+assigned at search time for any day between 2026-07-15 and 2026-09-30.
+
+Legacy hub routes are listed manually; Mitiga (MJI) demo routes are generated
+programmatically (10 offers per destination).
 """
 
 from __future__ import annotations
 
-MOCK_FLIGHTS: list[dict] = [
+from app.services.external.mock_flight_generator import (
+    build_ist_outbound_flights,
+    build_mji_outbound_flights,
+)
+
+_LEGACY_MOCK_FLIGHTS: list[dict] = [
     # --- AMM ↔ DXB (Royal Jordanian / Emirates) ---
     {
         "offer_id": "MOCK-AMM-DXB-001",
@@ -329,3 +337,6 @@ MOCK_FLIGHTS: list[dict] = [
         "currency": "USD",
     },
 ]
+
+
+MOCK_FLIGHTS: list[dict] = _LEGACY_MOCK_FLIGHTS + build_mji_outbound_flights() + build_ist_outbound_flights()

@@ -1,16 +1,22 @@
+import '../../l10n/app_localizations.dart';
+
 class Validators {
   Validators._();
 
-  static String? required(String? value, {String fieldName = 'This field'}) {
+  static String? required(
+    String? value,
+    AppLocalizations l10n, {
+    required String fieldLabel,
+  }) {
     if (value == null || value.trim().isEmpty) {
-      return '$fieldName is required';
+      return l10n.fieldRequired(fieldLabel);
     }
     return null;
   }
 
-  static String? email(String? value) {
+  static String? email(String? value, AppLocalizations l10n) {
     if (value == null || value.trim().isEmpty) {
-      return 'Email is required';
+      return l10n.emailRequired;
     }
 
     final emailRegex = RegExp(
@@ -18,45 +24,53 @@ class Validators {
     );
 
     if (!emailRegex.hasMatch(value)) {
-      return 'Please enter a valid email address';
+      return l10n.emailInvalid;
     }
 
     return null;
   }
 
-  static String? password(String? value, {int minLength = 8}) {
+  static String? password(
+    String? value,
+    AppLocalizations l10n, {
+    int minLength = 8,
+  }) {
     if (value == null || value.isEmpty) {
-      return 'Password is required';
+      return l10n.passwordRequired;
     }
 
     if (value.length < minLength) {
-      return 'Password must be at least $minLength characters';
+      return l10n.passwordMinLength(minLength);
     }
 
     return null;
   }
 
-  static String? confirmPassword(String? value, String originalPassword) {
+  static String? confirmPassword(
+    String? value,
+    String originalPassword,
+    AppLocalizations l10n,
+  ) {
     if (value == null || value.isEmpty) {
-      return 'Please confirm your password';
+      return l10n.confirmPasswordRequired;
     }
 
     if (value != originalPassword) {
-      return 'Passwords do not match';
+      return l10n.passwordsDoNotMatch;
     }
 
     return null;
   }
 
-  static String? phone(String? value) {
+  static String? phone(String? value, AppLocalizations l10n) {
     if (value == null || value.trim().isEmpty) {
-      return 'Phone number is required';
+      return l10n.phoneRequired;
     }
 
     final phoneRegex = RegExp(r'^\+?[0-9\s-]{10,}$');
 
     if (!phoneRegex.hasMatch(value)) {
-      return 'Please enter a valid phone number';
+      return l10n.phoneInvalid;
     }
 
     return null;

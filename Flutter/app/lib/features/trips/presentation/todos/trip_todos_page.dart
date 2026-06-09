@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/localization/error_message_localizer.dart';
+import '../../../../l10n/app_localizations.dart';
 import '../../data/trips_repository.dart';
 import '../active_trip_controller.dart';
+import '../packing/packing_todo_sync.dart';
 
 class TripTodosPage extends ConsumerStatefulWidget {
   const TripTodosPage({super.key});
@@ -33,11 +36,13 @@ class _TripTodosPageState extends ConsumerState<TripTodosPage> {
   }
 
   Future<void> _loadTodos() async {
+    if (!mounted) return;
+    final l10n = AppLocalizations.of(context)!;
     final trip = ref.read(activeTripProvider);
     if (trip == null || trip.reservationId == 0) {
       setState(() {
         _isLoading = false;
-        _error = 'Open a trip first to view its todos.';
+        _error = l10n.todosOpenTripFirstView;
       });
       return;
     }
@@ -58,7 +63,7 @@ class _TripTodosPageState extends ConsumerState<TripTodosPage> {
       failure: (error) {
         setState(() {
           _isLoading = false;
-          _error = error;
+          _error = localizeUserFacingError(error, l10n);
         });
       },
     );
@@ -74,27 +79,12 @@ class _TripTodosPageState extends ConsumerState<TripTodosPage> {
     }).toList();
   }
 
-  Future<void> _addTodo() async {
-    final title = await _showTodoTitleSheet(title: 'Add Todo');
-    if (title == null || title.trim().isEmpty) return;
-    final trip = ref.read(activeTripProvider);
-    if (trip == null) return;
-    final result = await ref
-        .read(tripsRepositoryProvider)
-        .createTodo(reservationId: trip.reservationId, title: title.trim());
-    if (!mounted) return;
-    result.when(
-      success: (item) => setState(() => _todos.add(_TripTodo.fromJson(item))),
-      failure: _showError,
-    );
-  }
-
   Future<void> _addTypedTodo() async {
     final title = _quickAddController.text.trim();
     if (title.isEmpty || _isAddingQuickTodo) return;
     final trip = ref.read(activeTripProvider);
     if (trip == null) {
-      _showError('Open a trip first.');
+      _showUserMessage(AppLocalizations.of(context)!.todosOpenTripFirst);
       return;
     }
     setState(() => _isAddingQuickTodo = true);
@@ -107,9 +97,9 @@ class _TripTodosPageState extends ConsumerState<TripTodosPage> {
       success: (item) {
         _quickAddController.clear();
         setState(() => _todos.add(_TripTodo.fromJson(item)));
-        _showError('Todo added.');
+        _showUserMessage(AppLocalizations.of(context)!.todoAdded);
       },
-      failure: _showError,
+      failure: _showErrorFromObject,
     );
   }
 
@@ -139,14 +129,15 @@ class _TripTodosPageState extends ConsumerState<TripTodosPage> {
           setState(() => _todos[index] = _TripTodo.fromJson(item)),
       failure: (error) {
         setState(() => _todos[index] = current);
-        _showError(error);
+        _showErrorFromObject(error);
       },
     );
   }
 
   Future<void> _editTodo(_TripTodo todo) async {
+    final l10n = AppLocalizations.of(context)!;
     final title = await _showTodoTitleSheet(
-      title: 'Edit Todo',
+      title: l10n.todoEditTitle,
       initialValue: todo.title,
     );
     if (title == null || title.trim().isEmpty || title.trim() == todo.title) {
@@ -169,7 +160,7 @@ class _TripTodosPageState extends ConsumerState<TripTodosPage> {
           setState(() => _todos[index] = _TripTodo.fromJson(item));
         }
       },
-      failure: _showError,
+      failure: _showErrorFromObject,
     );
   }
 
@@ -183,14 +174,21 @@ class _TripTodosPageState extends ConsumerState<TripTodosPage> {
         .deleteTodo(reservationId: trip.reservationId, todoId: todo.id);
     if (!mounted) return;
     result.when(
-      success: (_) {},
+      success: (_) {
+        if (todo.category == _TodoCategory.packing) {
+          ref.read(packingTodoSyncProvider.notifier).markRemoved(
+                trip.reservationId,
+                todo.title,
+              );
+        }
+      },
       failure: (error) {
         setState(() {
           _todos
             ..clear()
             ..addAll(previous);
         });
-        _showError(error);
+        _showErrorFromObject(error);
       },
     );
   }
@@ -200,45 +198,74 @@ class _TripTodosPageState extends ConsumerState<TripTodosPage> {
     String initialValue = '',
   }) async {
     final controller = TextEditingController(text: initialValue);
-    final result = await showModalBottomSheet<String>(
+    final result = await showDialog<String>(
       context: context,
-      backgroundColor: _TripTodosColors.card,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (context) {
-        return Padding(
-          padding: EdgeInsets.fromLTRB(
-            18,
-            18,
-            18,
-            18 + MediaQuery.of(context).viewInsets.bottom,
+      barrierColor: Colors.black54,
+      builder: (dialogContext) {
+        final dialogL10n = AppLocalizations.of(dialogContext)!;
+        return Dialog(
+          backgroundColor: _TripTodosColors.card,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 28),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                title,
-                style: const TextStyle(
-                  color: _TripTodosColors.title,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w900,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 22, 20, 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    color: _TripTodosColors.title,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 14),
-              TextField(
-                controller: controller,
-                autofocus: true,
-                style: const TextStyle(color: _TripTodosColors.title),
-                decoration: const InputDecoration(hintText: 'Todo title'),
-              ),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: () => Navigator.of(context).pop(controller.text),
-                child: const Text('Save'),
-              ),
-            ],
+                const SizedBox(height: 16),
+                TextField(
+                  controller: controller,
+                  autofocus: true,
+                  style: const TextStyle(color: _TripTodosColors.title),
+                  decoration: InputDecoration(
+                    hintText: dialogL10n.todoTitleHint,
+                    filled: true,
+                    fillColor: _TripTodosColors.background,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(
+                        color: _TripTodosColors.documents,
+                        width: 1.5,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextButton(
+                        onPressed: () => Navigator.of(dialogContext).pop(),
+                        child: Text(dialogL10n.cancel),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () =>
+                            Navigator.of(dialogContext).pop(controller.text),
+                        child: Text(dialogL10n.save),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         );
       },
@@ -247,64 +274,69 @@ class _TripTodosPageState extends ConsumerState<TripTodosPage> {
     return result;
   }
 
-  void _showError(String error) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error)));
+  void _showErrorFromObject(Object error) {
+    if (!mounted) return;
+    final l10n = AppLocalizations.of(context)!;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(localizeUserFacingError(error, l10n))),
+    );
+  }
+
+  void _showUserMessage(String message) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final visibleTodos = _visibleTodos;
+    final bottomInset = MediaQuery.paddingOf(context).bottom + 88 + 24;
 
     return Scaffold(
       backgroundColor: _TripTodosColors.background,
-      body: Stack(
-        children: [
-          CustomScrollView(
-            slivers: [
-              SliverPadding(
-                padding: const EdgeInsets.fromLTRB(18, 18, 18, 180),
-                sliver: SliverList.list(
-                  children: [
-                    _FilterChips(
-                      selectedFilter: _selectedFilter,
-                      onSelected: (filter) =>
-                          setState(() => _selectedFilter = filter),
-                    ),
-                    const SizedBox(height: 18),
-                    _QuickAddTodo(
-                      controller: _quickAddController,
-                      isLoading: _isAddingQuickTodo,
-                      onAdd: _addTypedTodo,
-                    ),
-                    const SizedBox(height: 24),
-                    if (_isLoading)
-                      const Center(child: CircularProgressIndicator())
-                    else if (_error != null)
-                      _EmptyTodosMessage(message: _error!)
-                    else if (visibleTodos.isEmpty)
-                      const _EmptyTodosMessage()
-                    else
-                      ...visibleTodos.map(
-                        (todo) => Padding(
-                          padding: const EdgeInsets.only(bottom: 13),
-                          child: _TodoCard(
-                            todo: todo,
-                            onTap: () => _toggleTodo(todo.id),
-                            onEdit: () => _editTodo(todo),
-                            onDelete: () => _deleteTodo(todo),
-                          ),
-                        ),
-                      ),
-                  ],
+      body: CustomScrollView(
+        slivers: [
+          SliverPadding(
+            padding: EdgeInsets.fromLTRB(18, 18, 18, bottomInset),
+            sliver: SliverList.list(
+              children: [
+                _FilterChips(
+                  l10n: l10n,
+                  selectedFilter: _selectedFilter,
+                  onSelected: (filter) =>
+                      setState(() => _selectedFilter = filter),
                 ),
-              ),
-            ],
-          ),
-          Positioned(
-            left: 18,
-            right: 18,
-            bottom: 96,
-            child: _AddTodoButton(onPressed: _addTodo),
+                const SizedBox(height: 18),
+                _QuickAddTodo(
+                  l10n: l10n,
+                  controller: _quickAddController,
+                  isLoading: _isAddingQuickTodo,
+                  onAdd: _addTypedTodo,
+                ),
+                const SizedBox(height: 24),
+                if (_isLoading)
+                  const Center(child: CircularProgressIndicator())
+                else if (_error != null)
+                  _EmptyTodosMessage(message: _error!)
+                else if (visibleTodos.isEmpty)
+                  const _EmptyTodosMessage()
+                else
+                  ...visibleTodos.map(
+                    (todo) => Padding(
+                      padding: const EdgeInsets.only(bottom: 13),
+                      child: _TodoCard(
+                        l10n: l10n,
+                        todo: todo,
+                        onTap: () => _toggleTodo(todo.id),
+                        onEdit: () => _editTodo(todo),
+                        onDelete: () => _deleteTodo(todo),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
           ),
         ],
       ),
@@ -313,10 +345,15 @@ class _TripTodosPageState extends ConsumerState<TripTodosPage> {
 }
 
 class _FilterChips extends StatelessWidget {
+  final AppLocalizations l10n;
   final _TodoFilter selectedFilter;
   final ValueChanged<_TodoFilter> onSelected;
 
-  const _FilterChips({required this.selectedFilter, required this.onSelected});
+  const _FilterChips({
+    required this.l10n,
+    required this.selectedFilter,
+    required this.onSelected,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -328,7 +365,7 @@ class _FilterChips extends StatelessWidget {
               (filter) => Padding(
                 padding: const EdgeInsets.only(right: 10),
                 child: _FilterChipButton(
-                  label: filter.label,
+                  label: filter.label(l10n),
                   isSelected: selectedFilter == filter,
                   onTap: () => onSelected(filter),
                 ),
@@ -384,11 +421,13 @@ class _FilterChipButton extends StatelessWidget {
 }
 
 class _QuickAddTodo extends StatefulWidget {
+  final AppLocalizations l10n;
   final TextEditingController controller;
   final bool isLoading;
   final VoidCallback onAdd;
 
   const _QuickAddTodo({
+    required this.l10n,
     required this.controller,
     required this.isLoading,
     required this.onAdd,
@@ -435,8 +474,8 @@ class _QuickAddTodoState extends State<_QuickAddTodo> {
             child: TextField(
               controller: widget.controller,
               style: const TextStyle(color: _TripTodosColors.title),
-              decoration: const InputDecoration(
-                hintText: 'Write a new todo...',
+              decoration: InputDecoration(
+                hintText: widget.l10n.todoTitleHint,
                 border: InputBorder.none,
               ),
               onSubmitted: (_) => widget.onAdd(),
@@ -459,7 +498,7 @@ class _QuickAddTodoState extends State<_QuickAddTodo> {
                       height: 16,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Text('Add'),
+                  : Text(widget.l10n.add),
             ),
           ),
         ],
@@ -469,12 +508,14 @@ class _QuickAddTodoState extends State<_QuickAddTodo> {
 }
 
 class _TodoCard extends StatelessWidget {
+  final AppLocalizations l10n;
   final _TripTodo todo;
   final VoidCallback onTap;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
 
   const _TodoCard({
+    required this.l10n,
     required this.todo,
     required this.onTap,
     required this.onEdit,
@@ -503,17 +544,22 @@ class _TodoCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    todo.title,
-                    style: const TextStyle(
-                      color: _TripTodosColors.title,
+                    todo.displayTitle(l10n),
+                    style: TextStyle(
+                      color: todo.isDone
+                          ? _TripTodosColors.muted
+                          : _TripTodosColors.title,
                       fontSize: 15,
                       fontWeight: FontWeight.w900,
                       letterSpacing: -0.25,
+                      decoration:
+                          todo.isDone ? TextDecoration.lineThrough : null,
+                      decorationColor: _TripTodosColors.muted,
                     ),
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    todo.category.label,
+                    todo.category.tabLabel(l10n),
                     style: TextStyle(
                       color: todo.category.accent,
                       fontSize: 7,
@@ -535,9 +581,9 @@ class _TodoCard extends StatelessWidget {
                 if (value == 'edit') onEdit();
                 if (value == 'delete') onDelete();
               },
-              itemBuilder: (context) => const [
-                PopupMenuItem(value: 'edit', child: Text('Edit')),
-                PopupMenuItem(value: 'delete', child: Text('Delete')),
+              itemBuilder: (context) => [
+                PopupMenuItem(value: 'edit', child: Text(l10n.edit)),
+                PopupMenuItem(value: 'delete', child: Text(l10n.delete)),
               ],
             ),
           ],
@@ -555,17 +601,21 @@ class _TodoCheckBox extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 22,
-      height: 22,
+      width: 19,
+      height: 19,
       decoration: BoxDecoration(
-        color: isDone ? _TripTodosColors.activeChip : Colors.white,
-        borderRadius: BorderRadius.circular(6),
+        color: isDone ? _TripTodosColors.done : Colors.transparent,
+        shape: BoxShape.circle,
+        border: Border.all(
+          color: isDone ? _TripTodosColors.done : _TripTodosColors.muted,
+          width: 2,
+        ),
       ),
       child: isDone
           ? const Icon(
               Icons.check,
-              color: _TripTodosColors.background,
-              size: 16,
+              color: Colors.white,
+              size: 13,
             )
           : null,
     );
@@ -573,12 +623,14 @@ class _TodoCheckBox extends StatelessWidget {
 }
 
 class _EmptyTodosMessage extends StatelessWidget {
-  final String message;
+  final String? message;
 
-  const _EmptyTodosMessage({this.message = 'No todos in this category yet.'});
+  const _EmptyTodosMessage({this.message});
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final text = message ?? l10n.todosEmptyDefault;
     return Container(
       padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
@@ -586,42 +638,12 @@ class _EmptyTodosMessage extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
       ),
       child: Text(
-        message,
+        text,
         textAlign: TextAlign.center,
         style: const TextStyle(
           color: _TripTodosColors.title,
           fontSize: 14,
           fontWeight: FontWeight.w800,
-        ),
-      ),
-    );
-  }
-}
-
-class _AddTodoButton extends StatelessWidget {
-  final VoidCallback onPressed;
-
-  const _AddTodoButton({required this.onPressed});
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 48,
-      width: double.infinity,
-      child: ElevatedButton.icon(
-        onPressed: onPressed,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: _TripTodosColors.salmon,
-          foregroundColor: _TripTodosColors.buttonText,
-          elevation: 0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-          ),
-        ),
-        icon: const Icon(Icons.add, size: 21),
-        label: const Text(
-          'Add Todo',
-          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900),
         ),
       ),
     );
@@ -647,7 +669,7 @@ class _TripTodo {
     final category = _TodoCategory.fromName(json['category'] as String?);
     return _TripTodo(
       id: json['id'] as int?,
-      title: json['title'] as String? ?? 'Trip task',
+      title: json['title'] as String? ?? '',
       category: category,
       isDone: json['is_completed'] == true,
     );
@@ -660,6 +682,9 @@ class _TripTodo {
     required this.isDone,
   });
 
+  String displayTitle(AppLocalizations l10n) =>
+      title.isEmpty ? l10n.tripTaskDefault : title;
+
   _TripTodo copyWith({bool? isDone}) {
     return _TripTodo._(
       id: id,
@@ -670,25 +695,40 @@ class _TripTodo {
   }
 }
 
-enum _TodoFilter {
-  all('All'),
-  packing('Packing'),
-  documents('Documents');
+enum _TodoFilter { all, packing, documents }
 
-  final String label;
-
-  const _TodoFilter(this.label);
+extension _TodoFilterX on _TodoFilter {
+  String label(AppLocalizations l10n) {
+    switch (this) {
+      case _TodoFilter.all:
+        return l10n.todosCategoryAll;
+      case _TodoFilter.packing:
+        return l10n.todosCategoryPacking;
+      case _TodoFilter.documents:
+        return l10n.todosCategoryDocuments;
+    }
+  }
 }
 
 enum _TodoCategory {
-  documents('DOCUMENTS', _TripTodosColors.documents),
-  packing('PACKING', _TripTodosColors.salmon),
-  logistics('LOGISTICS', _TripTodosColors.logistics);
+  documents(_TripTodosColors.documents),
+  packing(_TripTodosColors.salmon),
+  logistics(_TripTodosColors.logistics);
 
-  final String label;
   final Color accent;
 
-  const _TodoCategory(this.label, this.accent);
+  const _TodoCategory(this.accent);
+
+  String tabLabel(AppLocalizations l10n) {
+    switch (this) {
+      case _TodoCategory.documents:
+        return l10n.todosTabDocuments;
+      case _TodoCategory.packing:
+        return l10n.todosTabPacking;
+      case _TodoCategory.logistics:
+        return l10n.todosTabLogistics;
+    }
+  }
 
   static _TodoCategory fromName(String? value) {
     final normalized = (value ?? '').toLowerCase();
@@ -707,8 +747,9 @@ class _TripTodosColors {
   static const Color activeChip = Color(0xFFDCE6FF);
   static const Color activeChipText = Color(0xFF061326);
   static const Color title = Color(0xFFD5E4FF);
+  static const Color muted = Color(0xFF5E6E87);
+  static const Color done = Color(0xFF81C784);
   static const Color documents = Color(0xFF8FA9DB);
   static const Color salmon = Color(0xFFFFACA6);
   static const Color logistics = Color(0xFFFFA982);
-  static const Color buttonText = Color(0xFF4E1017);
 }

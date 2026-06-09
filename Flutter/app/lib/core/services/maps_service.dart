@@ -15,6 +15,29 @@ class MapsService {
     return launchUrl(uri, mode: LaunchMode.platformDefault);
   }
 
+  Future<bool> openDirectionsToCoordinates({
+    required double destinationLat,
+    required double destinationLng,
+    double? originLat,
+    double? originLng,
+    String travelMode = 'driving',
+  }) async {
+    final destination = '$destinationLat,$destinationLng';
+    final query = <String, String>{
+      'api': '1',
+      'destination': destination,
+      'travelmode': travelMode,
+    };
+    if (originLat != null && originLng != null) {
+      query['origin'] = '$originLat,$originLng';
+    }
+    final uri = Uri.https('www.google.com', '/maps/dir/', query);
+    if (await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      return true;
+    }
+    return launchUrl(uri, mode: LaunchMode.platformDefault);
+  }
+
   Future<bool> openAirportMap(String url) async {
     final uri = Uri.tryParse(url);
     if (uri == null) {

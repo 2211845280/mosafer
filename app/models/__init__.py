@@ -3,13 +3,16 @@
 from app.models.admin import Admin
 from app.models.airports import Airport
 from app.models.device_tokens import DeviceToken
+from app.models.booking_passengers import BookingPassenger
 from app.models.flights import Flight
 from app.models.notifications import Notification
 from app.models.passenger import Passenger
+from app.models.checkout_sessions import CheckoutSession, CheckoutSessionStatus
 from app.models.payments import Payment
 from app.models.permissions import Permission
 from app.models.refresh_tokens import RefreshToken
 from app.models.reservations import Reservation, ReservationStatus
+from app.models.reservation_seats import ReservationSeat
 from app.models.revoked_tokens import RevokedToken
 from app.models.role_permissions import RolePermission
 from app.models.roles import Role
@@ -23,6 +26,7 @@ __all__ = [
     "Admin",
     "User",
     "Passenger",
+    "BookingPassenger",
     "UserPreference",
     "Role",
     "Permission",
@@ -33,12 +37,15 @@ __all__ = [
     "Airport",
     "Flight",
     "Reservation",
+    "ReservationSeat",
     "ReservationStatus",
     "Ticket",
     "TicketImage",
     "TicketStatus",
     "TripTodo",
     "TripFeedback",
+    "CheckoutSession",
+    "CheckoutSessionStatus",
     "Payment",
     "DeviceToken",
 ]

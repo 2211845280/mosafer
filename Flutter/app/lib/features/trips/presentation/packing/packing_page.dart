@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/localization/error_message_localizer.dart';
+import '../../../../core/localization/locale_providers.dart';
+import '../../../../l10n/app_localizations.dart';
 import '../../data/trips_repository.dart';
+import '../../domain/ai_travel.dart';
 import '../active_trip_controller.dart';
+import 'packing_todo_sync.dart';
 
 class PackingPage extends ConsumerStatefulWidget {
   const PackingPage({super.key});
@@ -12,69 +17,214 @@ class PackingPage extends ConsumerStatefulWidget {
 }
 
 class _PackingPageState extends ConsumerState<PackingPage> {
-  final Set<String> _selectedItems = {'Passport', 'Flight Tickets'};
+  final Set<String> _selectedKeys = {};
   bool _isAdding = false;
+  bool _isLoading = false;
+  String? _loadError;
+  PackingListResult? _packingList;
+  int? _loadedReservationId;
 
-  static const _mustHave = [
-    _PackingItemData('Passport', Icons.badge_outlined),
-    _PackingItemData('Flight Tickets', Icons.confirmation_number_outlined),
-    _PackingItemData('Power Adapter', Icons.power_outlined),
-  ];
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _loadPackingList());
+  }
 
-  static const _recommended = [
-    _PackingItemData('Sunglasses', Icons.dark_mode_outlined),
-    _PackingItemData('Sunscreen', Icons.wb_sunny_outlined),
-  ];
+  Future<void> _loadPackingList({bool force = false}) async {
+    final trip = ref.read(activeTripProvider);
+    final l10n = AppLocalizations.of(context)!;
+    if (trip == null || trip.reservationId == 0) {
+      setState(() {
+        _packingList = null;
+        _loadError = null;
+        _isLoading = false;
+        _loadedReservationId = null;
+        _selectedKeys.clear();
+      });
+      return;
+    }
+    if (!force &&
+        _loadedReservationId == trip.reservationId &&
+        _packingList != null) {
+      return;
+    }
 
-  static const _optional = [
-    _PackingItemData('Swimwear', Icons.pool_outlined, subtitle: 'RESORT DAY'),
-    _PackingItemData(
-      'Reading Book',
-      Icons.menu_book_outlined,
-      subtitle: 'TRANSIT LEISURE',
-    ),
-  ];
+    setState(() {
+      _isLoading = true;
+      _loadError = null;
+    });
+
+    await ref
+        .read(packingTodoSyncProvider.notifier)
+        .refreshFromServer(trip.reservationId);
+
+    final result = await ref
+        .read(tripsRepositoryProvider)
+        .fetchPackingList(trip.reservationId);
+
+    if (!mounted) return;
+
+    result.when(
+      success: (packing) {
+        setState(() {
+          _packingList = packing;
+          _loadedReservationId = trip.reservationId;
+          _isLoading = false;
+          _loadError = null;
+          _selectedKeys.clear();
+        });
+        _selectDefaultMustHave();
+      },
+      failure: (error) {
+        setState(() {
+          _packingList = null;
+          _loadedReservationId = trip.reservationId;
+          _isLoading = false;
+          _loadError = localizeUserFacingError(error, l10n);
+          _selectedKeys.clear();
+        });
+      },
+    );
+  }
+
+  String _itemKey(String section, int index) => '$section:$index';
+
+  bool _isInTodos(PackingItem item, Set<String> inTodoTitles) {
+    return inTodoTitles.contains(normalizePackingTodoTitle(item.title));
+  }
+
+  void _selectDefaultMustHave() {
+    final trip = ref.read(activeTripProvider);
+    final packing = _packingList;
+    if (trip == null || packing == null) return;
+
+    final inTodoTitles =
+        ref.read(packingTodoTitlesForProvider(trip.reservationId));
+    final mustHaveKeys = <String>{};
+    for (var i = 0; i < packing.mustHave.length; i++) {
+      if (!_isInTodos(packing.mustHave[i], inTodoTitles)) {
+        mustHaveKeys.add(_itemKey('must', i));
+      }
+    }
+
+    setState(() => _selectedKeys.addAll(mustHaveKeys));
+  }
+
+  void _selectReturnedMustHave(Set<String> previousInTodos, Set<String> nextInTodos) {
+    final returnedTitles = previousInTodos.difference(nextInTodos);
+    if (returnedTitles.isEmpty) return;
+
+    final packing = _packingList;
+    if (packing == null) return;
+
+    final keysToSelect = <String>{};
+    for (var i = 0; i < packing.mustHave.length; i++) {
+      final normalized = normalizePackingTodoTitle(packing.mustHave[i].title);
+      if (returnedTitles.contains(normalized)) {
+        keysToSelect.add(_itemKey('must', i));
+      }
+    }
+
+    if (keysToSelect.isEmpty) return;
+    setState(() => _selectedKeys.addAll(keysToSelect));
+  }
+
+  void _pruneSelectedKeys() {
+    final trip = ref.read(activeTripProvider);
+    final packing = _packingList;
+    if (trip == null || packing == null) return;
+
+    final inTodoTitles = ref.read(packingTodoTitlesForProvider(trip.reservationId));
+    final visibleKeys = <String>{};
+    for (var i = 0; i < packing.mustHave.length; i++) {
+      if (!_isInTodos(packing.mustHave[i], inTodoTitles)) {
+        visibleKeys.add(_itemKey('must', i));
+      }
+    }
+    for (var i = 0; i < packing.recommended.length; i++) {
+      if (!_isInTodos(packing.recommended[i], inTodoTitles)) {
+        visibleKeys.add(_itemKey('rec', i));
+      }
+    }
+    for (var i = 0; i < packing.optional.length; i++) {
+      if (!_isInTodos(packing.optional[i], inTodoTitles)) {
+        visibleKeys.add(_itemKey('opt', i));
+      }
+    }
+
+    final pruned = _selectedKeys.where(visibleKeys.contains).toSet();
+    if (pruned.length != _selectedKeys.length) {
+      setState(() => _selectedKeys
+        ..clear()
+        ..addAll(pruned));
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final trip = ref.watch(activeTripProvider);
+
+    ref.listen(activeTripProvider, (previous, next) {
+      if (previous?.reservationId != next?.reservationId) {
+        _loadPackingList(force: true);
+      }
+    });
+
+    ref.listen(appLocaleProvider, (previous, next) {
+      if (previous?.languageCode != next.languageCode) {
+        _loadPackingList(force: true);
+      }
+    });
+
+    if (trip != null && trip.reservationId != 0) {
+      ref.listen(packingTodoTitlesForProvider(trip.reservationId), (previous, next) {
+        if (previous != next) {
+          _pruneSelectedKeys();
+          if (previous != null) {
+            _selectReturnedMustHave(previous, next);
+          }
+          setState(() {});
+        }
+      });
+    }
+
     return Scaffold(
       backgroundColor: _PackingColors.background,
       body: Stack(
         children: [
-          CustomScrollView(
-            slivers: [
-              SliverPadding(
-                padding: const EdgeInsets.fromLTRB(16, 26, 16, 180),
-                sliver: SliverList.list(
-                  children: [
-                    const _WeatherChip(),
-                    const SizedBox(height: 33),
-                    const _SectionHeader(title: 'Must-have', tag: 'CRUCIAL'),
-                    const SizedBox(height: 17),
-                    ..._mustHave.map(_packingTile),
-                    const SizedBox(height: 21),
-                    const _SectionHeader(title: 'Recommended', isAccent: true),
-                    const SizedBox(height: 18),
-                    const _RecommendationCard(),
-                    const SizedBox(height: 15),
-                    ..._recommended.map(_packingTile),
-                    const SizedBox(height: 21),
-                    const _SectionHeader(title: 'Optional', isAccent: true),
-                    const SizedBox(height: 18),
-                    ..._optional.map(_optionalTile),
-                  ],
+          RefreshIndicator(
+            color: _PackingColors.blue,
+            onRefresh: () => _loadPackingList(force: true),
+            child: CustomScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              slivers: [
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(16, 26, 16, 180),
+                  sliver: SliverList.list(
+                    children: [
+                      if (_packingList?.weather != null)
+                        _WeatherChip(
+                          weather: _packingList!.weather!,
+                          l10n: l10n,
+                        ),
+                      const SizedBox(height: 33),
+                      ..._buildBody(l10n, trip),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
           Positioned(
             left: 16,
             right: 16,
             bottom: 96,
             child: _AddTripTodosButton(
-              count: _selectedItems.length,
+              l10n: l10n,
+              count: _selectedKeys.length,
               isLoading: _isAdding,
-              onPressed: _selectedItems.isEmpty || _isAdding
+              onPressed: _selectedKeys.isEmpty || _isAdding || _isLoading
                   ? null
                   : _addSelectedToTodos,
             ),
@@ -84,85 +234,341 @@ class _PackingPageState extends ConsumerState<PackingPage> {
     );
   }
 
-  Widget _packingTile(_PackingItemData item) {
-    final selected = _selectedItems.contains(item.title);
+  List<Widget> _buildBody(AppLocalizations l10n, dynamic trip) {
+    if (trip == null || trip.reservationId == 0) {
+      return [
+        _MessagePanel(message: l10n.packingOpenTripFirst),
+      ];
+    }
+    if (_isLoading && _packingList == null) {
+      return [
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 48),
+          child: Column(
+            children: [
+              const CircularProgressIndicator(color: _PackingColors.blue),
+              const SizedBox(height: 16),
+              Text(
+                l10n.packingLoading,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: _PackingColors.body,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ];
+    }
+    if (_loadError != null) {
+      return [
+        _MessagePanel(
+          message: _loadError!,
+          actionLabel: l10n.packingRetry,
+          onAction: () => _loadPackingList(force: true),
+        ),
+      ];
+    }
+
+    final packing = _packingList;
+    if (packing == null || packing.isEmpty) {
+      return [
+        _MessagePanel(
+          message: l10n.packingLoadFailed,
+          actionLabel: l10n.packingRetry,
+          onAction: () => _loadPackingList(force: true),
+        ),
+      ];
+    }
+
+    final inTodoTitles = ref.watch(packingTodoTitlesForProvider(trip.reservationId));
+
+    final mustHaveTiles = _sectionTiles(
+      items: packing.mustHave,
+      section: 'must',
+      icon: Icons.luggage_outlined,
+      inTodoTitles: inTodoTitles,
+    );
+    final recommendedTiles = _sectionTiles(
+      items: packing.recommended,
+      section: 'rec',
+      icon: Icons.checkroom_outlined,
+      inTodoTitles: inTodoTitles,
+    );
+    final optionalTiles = _optionalSectionTiles(
+      items: packing.optional,
+      inTodoTitles: inTodoTitles,
+    );
+
+    if (mustHaveTiles.isEmpty &&
+        recommendedTiles.isEmpty &&
+        optionalTiles.isEmpty) {
+      return [
+        _MessagePanel(message: l10n.packingAllItemsInTodos),
+      ];
+    }
+
+    final widgets = <Widget>[];
+    if (mustHaveTiles.isNotEmpty) {
+      widgets.addAll([
+        _SectionHeader(
+          title: l10n.packingMustHave,
+          tag: l10n.packingTagCrucial,
+        ),
+        const SizedBox(height: 17),
+        ...mustHaveTiles,
+      ]);
+    }
+    if (recommendedTiles.isNotEmpty) {
+      if (widgets.isNotEmpty) widgets.add(const SizedBox(height: 21));
+      widgets.addAll([
+        _SectionHeader(title: l10n.packingRecommended, isAccent: true),
+        const SizedBox(height: 18),
+        ...recommendedTiles,
+      ]);
+    }
+    if (optionalTiles.isNotEmpty) {
+      if (widgets.isNotEmpty) widgets.add(const SizedBox(height: 21));
+      widgets.addAll([
+        _SectionHeader(title: l10n.packingOptional, isAccent: true),
+        const SizedBox(height: 18),
+        ...optionalTiles,
+      ]);
+    }
+    return widgets;
+  }
+
+  List<Widget> _sectionTiles({
+    required List<PackingItem> items,
+    required String section,
+    required IconData icon,
+    required Set<String> inTodoTitles,
+  }) {
+    final widgets = <Widget>[];
+    for (var i = 0; i < items.length; i++) {
+      if (_isInTodos(items[i], inTodoTitles)) continue;
+      widgets.add(
+        _packingTile(
+          key: _itemKey(section, i),
+          item: items[i],
+          icon: icon,
+        ),
+      );
+    }
+    return widgets;
+  }
+
+  List<Widget> _optionalSectionTiles({
+    required List<PackingItem> items,
+    required Set<String> inTodoTitles,
+  }) {
+    final widgets = <Widget>[];
+    for (var i = 0; i < items.length; i++) {
+      if (_isInTodos(items[i], inTodoTitles)) continue;
+      widgets.add(
+        _optionalTile(
+          key: _itemKey('opt', i),
+          item: items[i],
+        ),
+      );
+    }
+    return widgets;
+  }
+
+  Widget _packingTile({
+    required String key,
+    required PackingItem item,
+    required IconData icon,
+  }) {
+    final selected = _selectedKeys.contains(key);
     return Padding(
       padding: const EdgeInsets.only(bottom: 14),
       child: _PackingCheckTile(
         title: item.title,
-        icon: item.icon,
+        subtitle: item.note.trim().isEmpty ? null : item.note,
+        icon: icon,
         isChecked: selected,
-        isMuted: selected,
-        onTap: () => _toggleItem(item.title),
+        onTap: () => _toggleItem(key),
       ),
     );
   }
 
-  Widget _optionalTile(_PackingItemData item) {
-    final selected = _selectedItems.contains(item.title);
+  Widget _optionalTile({required String key, required PackingItem item}) {
+    final selected = _selectedKeys.contains(key);
     return Padding(
       padding: const EdgeInsets.only(bottom: 15),
       child: _OptionalPackingItem(
         title: item.title,
-        subtitle: item.subtitle ?? 'OPTIONAL',
-        icon: item.icon,
+        subtitle: item.note.trim().isEmpty ? null : item.note,
+        icon: Icons.star_outline,
         isChecked: selected,
-        onTap: () => _toggleItem(item.title),
+        onTap: () => _toggleItem(key),
       ),
     );
   }
 
-  void _toggleItem(String title) {
+  void _toggleItem(String key) {
     setState(() {
-      if (!_selectedItems.remove(title)) {
-        _selectedItems.add(title);
+      if (!_selectedKeys.remove(key)) {
+        _selectedKeys.add(key);
       }
     });
   }
 
   Future<void> _addSelectedToTodos() async {
     final trip = ref.read(activeTripProvider);
-    if (trip == null || trip.reservationId == 0) {
-      _showMessage('Open a trip first.');
+    final l10n = AppLocalizations.of(context)!;
+    final packing = _packingList;
+    if (trip == null || trip.reservationId == 0 || packing == null) {
+      _showMessage(l10n.packingOpenTripFirst);
       return;
     }
+
+    final inTodoTitles = ref.read(packingTodoTitlesForProvider(trip.reservationId));
+    final titles = _selectedKeys
+        .map(_titleForKey)
+        .where((title) => title.trim().isNotEmpty)
+        .where((title) => !inTodoTitles.contains(normalizePackingTodoTitle(title)))
+        .toList(growable: false);
+    if (titles.isEmpty) return;
+
     setState(() => _isAdding = true);
     final result = await ref
         .read(tripsRepositoryProvider)
         .createTodos(
           reservationId: trip.reservationId,
-          titles: _selectedItems.toList(),
+          titles: titles,
           category: 'packing',
           priority: 'recommended',
         );
     if (!mounted) return;
     setState(() => _isAdding = false);
     result.when(
-      success: (count) => _showMessage('$count packing items added to todos.'),
-      failure: _showMessage,
+      success: (count) {
+        ref.read(packingTodoSyncProvider.notifier).markAdded(
+              trip.reservationId,
+              titles,
+            );
+        setState(() {
+          for (final key in List<String>.from(_selectedKeys)) {
+            final title = _titleForKey(key);
+            if (titles.contains(title)) {
+              _selectedKeys.remove(key);
+            }
+          }
+        });
+        _showMessage(l10n.packingItemsAddedToTodos(count));
+      },
+      failure: (error) => _showMessage(localizeUserFacingError(error, l10n)),
     );
   }
 
+  String _titleForKey(String key) {
+    final packing = _packingList;
+    if (packing == null) return '';
+
+    final parts = key.split(':');
+    if (parts.length != 2) return '';
+    final section = parts[0];
+    final index = int.tryParse(parts[1]);
+    if (index == null) return '';
+
+    final List<PackingItem> items;
+    switch (section) {
+      case 'must':
+        items = packing.mustHave;
+      case 'rec':
+        items = packing.recommended;
+      case 'opt':
+        items = packing.optional;
+      default:
+        return '';
+    }
+    if (index < 0 || index >= items.length) return '';
+    return items[index].title;
+  }
+
   void _showMessage(String message) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
   }
 }
 
-class _PackingItemData {
-  final String title;
-  final IconData icon;
-  final String? subtitle;
+class _MessagePanel extends StatelessWidget {
+  final String message;
+  final String? actionLabel;
+  final VoidCallback? onAction;
 
-  const _PackingItemData(this.title, this.icon, {this.subtitle});
-}
-
-class _WeatherChip extends StatelessWidget {
-  const _WeatherChip();
+  const _MessagePanel({
+    required this.message,
+    this.actionLabel,
+    this.onAction,
+  });
 
   @override
   Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 32),
+      child: Column(
+        children: [
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: _PackingColors.body,
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          if (actionLabel != null && onAction != null) ...[
+            const SizedBox(height: 16),
+            TextButton(onPressed: onAction, child: Text(actionLabel!)),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _WeatherChip extends StatelessWidget {
+  final PackingWeatherContext weather;
+  final AppLocalizations l10n;
+
+  const _WeatherChip({required this.weather, required this.l10n});
+
+  String _conditionLabel() {
+    return switch (weather.condition) {
+      PackingWeatherCondition.clear => l10n.weatherClear,
+      PackingWeatherCondition.cloudy => l10n.weatherCloudy,
+      PackingWeatherCondition.rain => l10n.weatherRain,
+      PackingWeatherCondition.snow => l10n.weatherSnow,
+      PackingWeatherCondition.storm => l10n.weatherStorm,
+    };
+  }
+
+  IconData _conditionIcon() {
+    return switch (weather.condition) {
+      PackingWeatherCondition.clear => Icons.wb_sunny_outlined,
+      PackingWeatherCondition.cloudy => Icons.cloud_outlined,
+      PackingWeatherCondition.rain => Icons.water_drop_outlined,
+      PackingWeatherCondition.snow => Icons.ac_unit,
+      PackingWeatherCondition.storm => Icons.thunderstorm_outlined,
+    };
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final temp = weather.temperatureC.round();
+    final summary = l10n.packingWeatherSummary(
+      weather.tripDurationDays,
+      weather.destinationCity.toUpperCase(),
+      _conditionLabel().toUpperCase(),
+      temp,
+    );
+
     return Center(
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 9),
@@ -170,18 +576,18 @@ class _WeatherChip extends StatelessWidget {
           color: _PackingColors.chip,
           borderRadius: BorderRadius.circular(999),
         ),
-        child: const Row(
+        child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
-              Icons.wb_sunny_outlined,
+              _conditionIcon(),
               color: _PackingColors.title,
               size: 13,
             ),
-            SizedBox(width: 10),
+            const SizedBox(width: 10),
             Text(
-              '7 DAYS IN DUBAI • SUNNY • 32°C',
-              style: TextStyle(
+              summary,
+              style: const TextStyle(
                 color: _PackingColors.title,
                 fontSize: 10,
                 fontWeight: FontWeight.w900,
@@ -241,16 +647,16 @@ class _SectionHeader extends StatelessWidget {
 
 class _PackingCheckTile extends StatelessWidget {
   final String title;
+  final String? subtitle;
   final IconData icon;
   final bool isChecked;
-  final bool isMuted;
   final VoidCallback? onTap;
 
   const _PackingCheckTile({
     required this.title,
     required this.icon,
+    this.subtitle,
     this.isChecked = false,
-    this.isMuted = false,
     this.onTap,
   });
 
@@ -260,8 +666,8 @@ class _PackingCheckTile extends StatelessWidget {
       borderRadius: BorderRadius.circular(9),
       onTap: onTap,
       child: Container(
-        height: 52,
-        padding: const EdgeInsets.symmetric(horizontal: 17),
+        constraints: const BoxConstraints(minHeight: 52),
+        padding: const EdgeInsets.symmetric(horizontal: 17, vertical: 12),
         decoration: BoxDecoration(
           color: isChecked ? _PackingColors.card : _PackingColors.selectedCard,
           borderRadius: BorderRadius.circular(9),
@@ -272,20 +678,35 @@ class _PackingCheckTile extends StatelessWidget {
             _CheckDot(isChecked: isChecked),
             const SizedBox(width: 13),
             Expanded(
-              child: Text(
-                title,
-                style: TextStyle(
-                  color: isMuted ? _PackingColors.muted : _PackingColors.title,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w800,
-                  decoration: isMuted ? TextDecoration.lineThrough : null,
-                  decorationColor: _PackingColors.muted,
-                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      color: _PackingColors.title,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  if (subtitle != null) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      subtitle!,
+                      style: const TextStyle(
+                        color: _PackingColors.body,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                        height: 1.3,
+                      ),
+                    ),
+                  ],
+                ],
               ),
             ),
             Icon(
               icon,
-              color: isMuted ? _PackingColors.muted : _PackingColors.title,
+              color: _PackingColors.title,
               size: 18,
             ),
           ],
@@ -320,86 +741,17 @@ class _CheckDot extends StatelessWidget {
   }
 }
 
-class _RecommendationCard extends StatelessWidget {
-  const _RecommendationCard();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      constraints: const BoxConstraints(minHeight: 130),
-      padding: const EdgeInsets.fromLTRB(17, 14, 17, 14),
-      decoration: BoxDecoration(
-        color: _PackingColors.card,
-        borderRadius: BorderRadius.circular(11),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Padding(
-            padding: EdgeInsets.only(top: 12),
-            child: _CheckDot(isChecked: false),
-          ),
-          const SizedBox(width: 13),
-          const Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Light Linen Shirt',
-                  style: TextStyle(
-                    color: _PackingColors.title,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                SizedBox(height: 15),
-                Text(
-                  "Perfect for Dubai's\nevening breeze and\nhumidity.",
-                  style: TextStyle(
-                    color: _PackingColors.body,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    height: 1.45,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 10),
-          Container(
-            width: 80,
-            height: 76,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(9),
-              gradient: const LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [Color(0xFF6F8FA0), Color(0xFF1A2434)],
-              ),
-            ),
-            child: const Icon(
-              Icons.checkroom_outlined,
-              color: _PackingColors.title,
-              size: 38,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _OptionalPackingItem extends StatelessWidget {
   final String title;
-  final String subtitle;
+  final String? subtitle;
   final IconData icon;
   final bool isChecked;
   final VoidCallback? onTap;
 
   const _OptionalPackingItem({
     required this.title,
-    required this.subtitle,
     required this.icon,
+    this.subtitle,
     this.isChecked = false,
     this.onTap,
   });
@@ -419,8 +771,8 @@ class _OptionalPackingItem extends StatelessWidget {
           const SizedBox(width: 18),
           Expanded(
             child: Container(
-              height: 68,
-              padding: const EdgeInsets.symmetric(horizontal: 17),
+              constraints: const BoxConstraints(minHeight: 68),
+              padding: const EdgeInsets.symmetric(horizontal: 17, vertical: 12),
               decoration: BoxDecoration(
                 color: _PackingColors.optionalCard,
                 borderRadius: BorderRadius.circular(11),
@@ -441,16 +793,18 @@ class _OptionalPackingItem extends StatelessWidget {
                             fontWeight: FontWeight.w900,
                           ),
                         ),
-                        const SizedBox(height: 7),
-                        Text(
-                          subtitle,
-                          style: const TextStyle(
-                            color: _PackingColors.salmon,
-                            fontSize: 7,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: 0.4,
+                        if (subtitle != null) ...[
+                          const SizedBox(height: 7),
+                          Text(
+                            subtitle!,
+                            style: const TextStyle(
+                              color: _PackingColors.salmon,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                              height: 1.25,
+                            ),
                           ),
-                        ),
+                        ],
                       ],
                     ),
                   ),
@@ -466,11 +820,13 @@ class _OptionalPackingItem extends StatelessWidget {
 }
 
 class _AddTripTodosButton extends StatelessWidget {
+  final AppLocalizations l10n;
   final int count;
   final bool isLoading;
   final VoidCallback? onPressed;
 
   const _AddTripTodosButton({
+    required this.l10n,
     required this.count,
     required this.isLoading,
     required this.onPressed,
@@ -499,7 +855,7 @@ class _AddTripTodosButton extends StatelessWidget {
               )
             : const Icon(Icons.add_task, size: 20),
         label: Text(
-          isLoading ? 'Adding...' : 'Add $count selected to Trip Todos',
+          isLoading ? l10n.addingEllipsis : l10n.addSelectedToTripTodos(count),
           style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900),
         ),
       ),

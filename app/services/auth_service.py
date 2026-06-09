@@ -29,6 +29,11 @@ async def authenticate_user(db: AsyncSession, email: str, password: str) -> dict
         return {"message": "Invalid email or password", "authenticated": False}
     if not user.is_active:
         return {"message": "Account is disabled", "authenticated": False}
+    if not user.is_email_verified:
+        return {
+            "message": "Please verify your email before logging in",
+            "authenticated": False,
+        }
     return {
         "message": "Login successful",
         "authenticated": True,

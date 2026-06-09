@@ -9,6 +9,13 @@ abstract class AuthRepository {
     required String fullName,
   });
 
+  Future<Result<String?>> requestPasswordReset({required String email});
+
+  Future<Result<void>> resetPassword({
+    required String token,
+    required String newPassword,
+  });
+
   Future<Result<void>> logout();
 
   Future<Result<bool>> isAuthenticated();

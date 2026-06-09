@@ -4,21 +4,23 @@ import 'package:go_router/go_router.dart';
 import '../../features/explore/presentation/explore_page.dart';
 import '../../features/auth/presentation/login/login_page.dart';
 import '../../features/auth/presentation/register/register_page.dart';
+import '../../features/auth/presentation/forgot_password/forgot_password_page.dart';
+import '../../features/auth/presentation/reset_password/reset_password_page.dart';
 import '../../features/notifications/presentation/notifications_page.dart';
 import '../../features/profile/presentation/change_password/change_password_page.dart';
 import '../../features/profile/presentation/edit_profile/edit_profile_page.dart';
-import '../../features/profile/presentation/notification_settings/notification_settings_page.dart';
 import '../../features/profile/presentation/profile_page.dart';
 import '../../features/profile/presentation/settings/settings_page.dart';
-import '../../features/trips/presentation/airport_experience/airport_experience_page.dart';
+import '../../features/trips/presentation/airport_indoor_map/airport_indoor_map_page.dart';
+import '../../features/trips/presentation/deleted_trips/deleted_trips_page.dart';
 import '../../features/trips/presentation/my_trips/my_trips_page.dart';
-import '../../features/trips/presentation/on_way/on_way_page.dart';
 import '../../features/trips/presentation/packing/packing_page.dart';
 import '../../features/trips/presentation/plan_departure/plan_departure_page.dart';
 import '../../features/trips/presentation/scan/scan_page.dart';
 import '../../features/trips/presentation/ticket_details/ticket_details_page.dart';
 import '../../features/trips/presentation/timeline/timeline_page.dart';
 import '../../features/trips/presentation/todos/trip_todos_page.dart';
+import '../../features/trips/presentation/trip_stage_hub.dart';
 import '../../shared/navigation/app_shell.dart';
 import '../../features/auth/presentation/auth_session_controller.dart';
 
@@ -36,7 +38,10 @@ class AppRouter {
     debugLogDiagnostics: true,
     redirect: (context, state) {
       final location = state.uri.path;
-      final isAuthRoute = location == '/login' || location == '/register';
+      final isAuthRoute = location == '/login' ||
+          location == '/register' ||
+          location == '/forgot-password' ||
+          location == '/reset-password';
 
       if (session.isLoading) {
         return location == '/splash' ? null : '/splash';
@@ -46,7 +51,10 @@ class AppRouter {
         return isAuthRoute ? null : '/login';
       }
 
-      if (location == '/splash' || isAuthRoute) {
+      final switchingAccount =
+          location == '/login' && state.uri.queryParameters['switch'] == '1';
+
+      if (location == '/splash' || (isAuthRoute && !switchingAccount)) {
         return '/trips';
       }
 
@@ -69,6 +77,19 @@ class AppRouter {
         builder: (context, state) => const RegisterPage(),
       ),
       GoRoute(
+        path: '/forgot-password',
+        name: 'forgotPassword',
+        builder: (context, state) => const ForgotPasswordPage(),
+      ),
+      GoRoute(
+        path: '/reset-password',
+        name: 'resetPassword',
+        builder: (context, state) {
+          final token = state.uri.queryParameters['token'];
+          return ResetPasswordPage(token: token);
+        },
+      ),
+      GoRoute(
         path: '/notifications',
         name: 'notifications',
         builder: (context, state) => const NotificationsPage(),
@@ -82,11 +103,6 @@ class AppRouter {
         path: '/edit-profile',
         name: 'editProfile',
         builder: (context, state) => const EditProfilePage(),
-      ),
-      GoRoute(
-        path: '/notification-settings',
-        name: 'notificationSettings',
-        builder: (context, state) => const NotificationSettingsPage(),
       ),
       GoRoute(
         path: '/change-password',
@@ -104,12 +120,12 @@ class AppRouter {
           GoRoute(
             path: '/dashboard',
             name: 'dashboard',
-            builder: (context, state) => const DashboardPage(),
+            pageBuilder: (context, state) => buildTripStageHubPage(state, 0),
           ),
           GoRoute(
             path: '/on-way',
             name: 'onWay',
-            builder: (context, state) => const OnWayPage(),
+            pageBuilder: (context, state) => buildTripStageHubPage(state, 1),
           ),
           GoRoute(
             path: '/plan-departure',
@@ -139,7 +155,22 @@ class AppRouter {
           GoRoute(
             path: '/airport-experience',
             name: 'airportExperience',
-            builder: (context, state) => const AirportExperiencePage(),
+            pageBuilder: (context, state) => buildTripStageHubPage(state, 2),
+          ),
+          GoRoute(
+            path: '/airport-indoor-map',
+            name: 'airportIndoorMap',
+            builder: (context, state) {
+              final gate = state.uri.queryParameters['gate'];
+              final routeMode = state.uri.queryParameters['route'];
+              final highlight = state.uri.queryParameters['highlight'];
+              final initialRouteToGate = routeMode == 'gate';
+              return AirportIndoorMapPage(
+                gate: gate,
+                highlightCategory: highlight,
+                initialRouteToGate: initialRouteToGate,
+              );
+            },
           ),
           GoRoute(
             path: '/trips',
@@ -155,6 +186,11 @@ class AppRouter {
             path: '/settings',
             name: 'settings',
             builder: (context, state) => const SettingsPage(),
+          ),
+          GoRoute(
+            path: '/deleted-trips',
+            name: 'deletedTrips',
+            builder: (context, state) => const DeletedTripsPage(),
           ),
         ],
       ),

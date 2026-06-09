@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
+import '../../../../core/localization/error_message_localizer.dart';
+import '../../../../l10n/app_localizations.dart';
 import '../active_trip_controller.dart';
 import '../my_trips/my_trips_controller.dart';
 import 'scan_controller.dart';
@@ -22,6 +24,7 @@ class _ScanPageState extends ConsumerState<ScanPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final scanState = ref.watch(scanControllerProvider);
     return Scaffold(
       backgroundColor: _ScanColors.background,
@@ -29,11 +32,12 @@ class _ScanPageState extends ConsumerState<ScanPage> {
         bottom: false,
         child: Column(
           children: [
-            const _ScanAppBar(),
+            _ScanAppBar(l10n: l10n),
             const SizedBox(height: 26),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 17),
               child: _ScanTabs(
+                l10n: l10n,
                 showUpload: _showUpload,
                 onScanSelected: () => setState(() => _showUpload = false),
                 onUploadSelected: () => setState(() => _showUpload = true),
@@ -43,6 +47,7 @@ class _ScanPageState extends ConsumerState<ScanPage> {
             Expanded(
               child: _showUpload
                   ? _UploadTicketPanel(
+                      l10n: l10n,
                       isLoading: scanState.isLoading,
                       onUploadPressed: _pickAndScanImage,
                     )
@@ -53,7 +58,7 @@ class _ScanPageState extends ConsumerState<ScanPage> {
                             onPayloadDetected: _handlePayload,
                           ),
                         ),
-                        const Positioned.fill(child: _ScanOverlay()),
+                        Positioned.fill(child: _ScanOverlay(l10n: l10n)),
                         Positioned(
                           left: 13,
                           right: 13,
@@ -63,6 +68,7 @@ class _ScanPageState extends ConsumerState<ScanPage> {
                             child: Padding(
                               padding: const EdgeInsets.only(bottom: 6),
                               child: _ScanNowButton(
+                                l10n: l10n,
                                 isLoading: scanState.isLoading,
                                 onPressed: () =>
                                     _showQrPayloadSheet(context, ref),
@@ -118,17 +124,20 @@ class _ScanPageState extends ConsumerState<ScanPage> {
   }
 
   void _showScanError() {
+    final l10n = AppLocalizations.of(context)!;
     final error = ref
         .read(scanControllerProvider)
         .whenOrNull(error: (error, _) => error);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(error?.toString() ?? 'Unable to validate ticket.'),
-      ),
-    );
+    final message = error == null
+        ? l10n.scanValidateTicketError
+        : localizeUserFacingError(error, l10n);
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   Future<void> _showQrPayloadSheet(BuildContext context, WidgetRef ref) async {
+    final l10n = AppLocalizations.of(context)!;
     final controller = TextEditingController();
     final payload = await showModalBottomSheet<String>(
       context: context,
@@ -148,9 +157,9 @@ class _ScanPageState extends ConsumerState<ScanPage> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Text(
-                'Paste ticket QR payload',
-                style: TextStyle(
+              Text(
+                l10n.scanPastePayload,
+                style: const TextStyle(
                   color: _ScanColors.title,
                   fontSize: 16,
                   fontWeight: FontWeight.w900,
@@ -163,14 +172,12 @@ class _ScanPageState extends ConsumerState<ScanPage> {
                 minLines: 2,
                 maxLines: 4,
                 style: const TextStyle(color: _ScanColors.title),
-                decoration: const InputDecoration(
-                  hintText: 'QR raw payload or ticket code',
-                ),
+                decoration: InputDecoration(hintText: l10n.scanPayloadHint),
               ),
               const SizedBox(height: 14),
               ElevatedButton(
                 onPressed: () => Navigator.of(context).pop(controller.text),
-                child: const Text('Validate Ticket'),
+                child: Text(l10n.validateTicket),
               ),
             ],
           ),
@@ -208,7 +215,9 @@ class _CameraPreview extends StatelessWidget {
 }
 
 class _ScanAppBar extends StatelessWidget {
-  const _ScanAppBar();
+  final AppLocalizations l10n;
+
+  const _ScanAppBar({required this.l10n});
 
   @override
   Widget build(BuildContext context) {
@@ -223,7 +232,7 @@ class _ScanAppBar extends StatelessWidget {
               width: 40,
               height: 36,
               child: Align(
-                alignment: Alignment.centerLeft,
+                alignment: AlignmentDirectional.centerStart,
                 child: Icon(
                   Icons.arrow_back,
                   color: _ScanColors.title,
@@ -232,11 +241,11 @@ class _ScanAppBar extends StatelessWidget {
               ),
             ),
           ),
-          const Expanded(
+          Expanded(
             child: Text(
-              'MOSAFER',
+              l10n.brandMosafer,
               textAlign: TextAlign.center,
-              style: TextStyle(
+              style: const TextStyle(
                 color: _ScanColors.title,
                 fontSize: 16,
                 fontWeight: FontWeight.w900,
@@ -248,7 +257,7 @@ class _ScanAppBar extends StatelessWidget {
             width: 40,
             height: 36,
             child: Align(
-              alignment: Alignment.centerRight,
+              alignment: AlignmentDirectional.centerEnd,
               child: Icon(
                 Icons.help_outline,
                 color: _ScanColors.title,
@@ -263,11 +272,13 @@ class _ScanAppBar extends StatelessWidget {
 }
 
 class _ScanTabs extends StatelessWidget {
+  final AppLocalizations l10n;
   final bool showUpload;
   final VoidCallback onScanSelected;
   final VoidCallback onUploadSelected;
 
   const _ScanTabs({
+    required this.l10n,
     required this.showUpload,
     required this.onScanSelected,
     required this.onUploadSelected,
@@ -286,14 +297,14 @@ class _ScanTabs extends StatelessWidget {
         children: [
           Expanded(
             child: _ScanTab(
-              label: 'Scan QR',
+              label: l10n.scanTabScanQr,
               isSelected: !showUpload,
               onTap: onScanSelected,
             ),
           ),
           Expanded(
             child: _ScanTab(
-              label: 'Upload Image',
+              label: l10n.scanTabUploadImage,
               isSelected: showUpload,
               onTap: onUploadSelected,
             ),
@@ -342,10 +353,12 @@ class _ScanTab extends StatelessWidget {
 }
 
 class _UploadTicketPanel extends StatelessWidget {
+  final AppLocalizations l10n;
   final bool isLoading;
   final VoidCallback onUploadPressed;
 
   const _UploadTicketPanel({
+    required this.l10n,
     required this.isLoading,
     required this.onUploadPressed,
   });
@@ -370,20 +383,20 @@ class _UploadTicketPanel extends StatelessWidget {
               size: 62,
             ),
             const SizedBox(height: 18),
-            const Text(
-              'Upload a ticket image',
+            Text(
+              l10n.scanUploadTitle,
               textAlign: TextAlign.center,
-              style: TextStyle(
+              style: const TextStyle(
                 color: _ScanColors.title,
                 fontSize: 20,
                 fontWeight: FontWeight.w900,
               ),
             ),
             const SizedBox(height: 10),
-            const Text(
-              'Choose a ticket or boarding pass from your gallery. Mosafer will read it and add the trip when it is valid.',
+            Text(
+              l10n.scanUploadBody,
               textAlign: TextAlign.center,
-              style: TextStyle(
+              style: const TextStyle(
                 color: _ScanColors.muted,
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
@@ -400,7 +413,9 @@ class _UploadTicketPanel extends StatelessWidget {
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
                   : const Icon(Icons.upload_file),
-              label: Text(isLoading ? 'Reading ticket...' : 'Choose Image'),
+              label: Text(
+                isLoading ? l10n.scanChooseImageLoading : l10n.scanChooseImage,
+              ),
             ),
           ],
         ),
@@ -501,7 +516,9 @@ class _BlurredLightsPainter extends CustomPainter {
 }
 
 class _ScanOverlay extends StatelessWidget {
-  const _ScanOverlay();
+  final AppLocalizations l10n;
+
+  const _ScanOverlay({required this.l10n});
 
   @override
   Widget build(BuildContext context) {
@@ -510,12 +527,12 @@ class _ScanOverlay extends StatelessWidget {
         const Spacer(flex: 2),
         const _ScannerFrame(),
         const SizedBox(height: 41),
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 52),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 52),
           child: Text(
-            'Center your ticket QR code within the\nframe.',
+            l10n.scanCenterQr,
             textAlign: TextAlign.center,
-            style: TextStyle(
+            style: const TextStyle(
               color: Colors.white,
               fontSize: 12,
               fontWeight: FontWeight.w700,
@@ -616,10 +633,15 @@ class _CornerPainter extends CustomPainter {
 }
 
 class _ScanNowButton extends StatelessWidget {
+  final AppLocalizations l10n;
   final VoidCallback onPressed;
   final bool isLoading;
 
-  const _ScanNowButton({required this.onPressed, this.isLoading = false});
+  const _ScanNowButton({
+    required this.l10n,
+    required this.onPressed,
+    this.isLoading = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -648,9 +670,12 @@ class _ScanNowButton extends StatelessWidget {
                   height: 18,
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
-              : const Text(
-                  'Scan Now',
-                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w900),
+              : Text(
+                  l10n.scanScanNow,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
         ),
       ),

@@ -22,4 +22,8 @@ class AppConstants {
 
   static const String authTokenKey = 'auth_token';
   static const String refreshTokenKey = 'refresh_token';
+
+  /// Client-side Google Maps key for Directions API calls from Flutter.
+  /// Pass via: `--dart-define=MAPS_API_KEY=YOUR_KEY`
+  static const String googleMapsApiKey = String.fromEnvironment('MAPS_API_KEY');
 }

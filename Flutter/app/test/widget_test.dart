@@ -8,12 +8,13 @@ import 'package:app/features/auth/presentation/login/login_page.dart';
 import 'package:app/features/auth/presentation/register/register_page.dart';
 import 'package:app/features/trips/domain/trip.dart';
 import 'package:app/features/trips/presentation/active_trip_controller.dart';
+import 'package:app/l10n/app_localizations.dart';
 import 'package:app/shared/navigation/app_shell.dart';
 
 void main() {
   testWidgets('Login page renders Mosafer identity', (tester) async {
     await tester.pumpWidget(
-      const ProviderScope(child: MaterialApp(home: LoginPage())),
+      ProviderScope(child: _materialAppEn(home: const LoginPage())),
     );
 
     expect(find.text('MOSAFER'), findsOneWidget);
@@ -40,7 +41,7 @@ void main() {
       ],
     );
     await tester.pumpWidget(
-      ProviderScope(child: MaterialApp.router(routerConfig: router)),
+      ProviderScope(child: _materialAppRouterEn(routerConfig: router)),
     );
 
     final registerLink = find.text('Register Now');
@@ -81,6 +82,25 @@ void main() {
     expect(find.text('HOME'), findsOneWidget);
     expect(find.text('Departure Plan'), findsOneWidget);
   });
+}
+
+/// English locale + gen-l10n delegates so `AppLocalizations.of(context)!` works in tests.
+Widget _materialAppEn({required Widget home}) {
+  return MaterialApp(
+    locale: const Locale('en'),
+    localizationsDelegates: AppLocalizations.localizationsDelegates,
+    supportedLocales: AppLocalizations.supportedLocales,
+    home: home,
+  );
+}
+
+Widget _materialAppRouterEn({required GoRouter routerConfig}) {
+  return MaterialApp.router(
+    locale: const Locale('en'),
+    localizationsDelegates: AppLocalizations.localizationsDelegates,
+    supportedLocales: AppLocalizations.supportedLocales,
+    routerConfig: routerConfig,
+  );
 }
 
 Widget _testShell({
@@ -131,7 +151,7 @@ Widget _testShell({
 
   return ProviderScope(
     overrides: overrides,
-    child: MaterialApp.router(routerConfig: router),
+    child: _materialAppRouterEn(routerConfig: router),
   );
 }
 

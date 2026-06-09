@@ -1,6 +1,6 @@
 """Pydantic schemas for user operations."""
 
-from datetime import datetime
+from datetime import date, datetime
 
 from pydantic import BaseModel, ConfigDict, EmailStr
 
@@ -20,6 +20,19 @@ class UserRead(BaseModel):
     email: EmailStr
 
 
+class PassportDetailsRead(BaseModel):
+    """Extracted passport fields stored on the passenger profile."""
+
+    given_name: str | None = None
+    family_name: str | None = None
+    date_of_birth: date | None = None
+    gender: str | None = None
+    nationality: str | None = None
+    passport_number: str | None = None
+    passport_expiry: date | None = None
+    passport_issuing_country: str | None = None
+
+
 class PassengerRead(BaseModel):
     """Nested read for passenger profile."""
 
@@ -30,6 +43,7 @@ class PassengerRead(BaseModel):
     phone: str | None = None
     passport_image: str | None = None
     account_status: str = "active"
+    passport_details: PassportDetailsRead | None = None
 
 
 class AdminRead(BaseModel):
@@ -50,8 +64,11 @@ class ProfileRead(BaseModel):
     id: int
     email: EmailStr
     role_id: int | None = None
+    role_name: str | None = None
     is_active: bool
+    is_email_verified: bool = False
     avatar_path: str | None = None
+    created_at: datetime | None = None
     last_login: datetime | None = None
     passenger: PassengerRead | None = None
     admin: AdminRead | None = None
@@ -99,7 +116,9 @@ class AdminUserRead(BaseModel):
     email: EmailStr
     role_id: int | None = None
     is_active: bool
+    is_email_verified: bool = False
     avatar_path: str | None = None
+    created_at: datetime | None = None
     last_login: datetime | None = None
     passenger: PassengerRead | None = None
     admin: AdminRead | None = None

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import uuid
 from collections.abc import AsyncGenerator
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 
 import pytest
@@ -18,6 +18,7 @@ from app.db.database import AsyncSessionLocal, Base, engine, get_db
 from app.main import app
 from app.models.airports import Airport
 from app.models.flights import Flight
+from app.models.checkout_sessions import CheckoutSession, CheckoutSessionStatus
 from app.models.payments import Payment
 from app.models.permissions import Permission
 from app.models.reservations import Reservation, ReservationStatus
@@ -171,6 +172,67 @@ async def seeded_ticket(
     await db_session.commit()
     await db_session.refresh(ticket)
     return ticket
+
+
+@pytest_asyncio.fixture
+async def seeded_checkout_session(
+    db_session: AsyncSession,
+    authed_user: tuple[User, dict[str, str]],
+    seeded_flight: Flight,
+) -> CheckoutSession:
+    user, _ = authed_user
+    now = datetime.now(UTC)
+    session = CheckoutSession(
+        user_id=user.id,
+        flight_id=seeded_flight.id,
+        seats=["12A"],
+        adults_count=1,
+        total_price=Decimal("150.00"),
+        currency="USD",
+        status=CheckoutSessionStatus.OPEN.value,
+        expires_at=now + timedelta(minutes=30),
+        passengers_json=[
+            {
+                "title": "MR",
+                "given_name": "TEST",
+                "family_name": "TRAVELER",
+                "date_of_birth": "1990-01-01",
+                "gender": "M",
+                "nationality": "LY",
+                "passport_number": "P12345678",
+                "passport_expiry": (date.today() + timedelta(days=365)).isoformat(),
+                "passport_issuing_country": "LY",
+                "seat": "12A",
+            },
+        ],
+    )
+    db_session.add(session)
+    await db_session.commit()
+    await db_session.refresh(session)
+    return session
+
+
+@pytest_asyncio.fixture
+async def seeded_checkout_payment(
+    db_session: AsyncSession,
+    authed_user: tuple[User, dict[str, str]],
+    seeded_checkout_session: CheckoutSession,
+) -> Payment:
+    user, _ = authed_user
+    payment = Payment(
+        checkout_session_id=seeded_checkout_session.id,
+        reservation_id=None,
+        user_id=user.id,
+        provider="mock",
+        provider_payment_id=f"mock_pay_{uuid.uuid4().hex[:16]}",
+        amount=Decimal("150.00"),
+        currency="USD",
+        status="pending",
+    )
+    db_session.add(payment)
+    await db_session.commit()
+    await db_session.refresh(payment)
+    return payment
 
 
 @pytest_asyncio.fixture

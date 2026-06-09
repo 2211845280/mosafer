@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/constants/app_constants.dart';
+import '../../../core/network/api_client.dart';
 import '../../../core/services/secure_storage_service.dart';
 
 class AuthSessionState {
@@ -23,28 +24,49 @@ final secureStorageProvider = Provider<SecureStorageService>((ref) {
 
 final authSessionControllerProvider =
     StateNotifierProvider<AuthSessionController, AuthSessionState>((ref) {
-      return AuthSessionController(ref.watch(secureStorageProvider))..load();
+      return AuthSessionController(
+        ref.watch(secureStorageProvider),
+        ref.watch(apiClientProvider),
+      )..load();
     });
 
 class AuthSessionController extends StateNotifier<AuthSessionState> {
   final SecureStorageService _secureStorage;
+  final ApiClient _apiClient;
 
-  AuthSessionController(this._secureStorage) : super(const AuthSessionState());
+  AuthSessionController(this._secureStorage, this._apiClient)
+    : super(const AuthSessionState());
 
   Future<void> load() async {
     final token = await _secureStorage.read(AppConstants.authTokenKey);
-    state = AuthSessionState(
-      isLoading: false,
-      isAuthenticated: token != null && token.isNotEmpty,
-    );
+    if (token == null || token.isEmpty) {
+      state = const AuthSessionState(
+        isLoading: false,
+        isAuthenticated: false,
+      );
+      return;
+    }
+
+    try {
+      await _apiClient.get<Map<String, dynamic>>('/users/me');
+      state = const AuthSessionState(isLoading: false, isAuthenticated: true);
+    } catch (_) {
+      await _secureStorage.deleteAll();
+      state = const AuthSessionState(
+        isLoading: false,
+        isAuthenticated: false,
+      );
+    }
   }
 
   void setAuthenticated() {
     state = const AuthSessionState(isLoading: false, isAuthenticated: true);
   }
 
-  Future<void> clear() async {
-    await _secureStorage.deleteAll();
+  Future<void> clear({bool clearStorage = true}) async {
+    if (clearStorage) {
+      await _secureStorage.deleteAll();
+    }
     state = const AuthSessionState(isLoading: false, isAuthenticated: false);
   }
 }

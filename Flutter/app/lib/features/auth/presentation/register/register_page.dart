@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/utils/validators.dart';
+import '../../../../core/localization/error_message_localizer.dart';
+import '../../../../l10n/app_localizations.dart';
 import 'register_controller.dart';
 
 class RegisterPage extends ConsumerStatefulWidget {
@@ -36,10 +38,8 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
 
     if (!_acceptedTerms) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Please accept the Terms of Service and Privacy Policy.',
-          ),
+        SnackBar(
+          content: Text(AppLocalizations.of(context)!.registerTermsNotAccepted),
         ),
       );
       return;
@@ -55,7 +55,9 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
 
     if (success && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Account created successfully!')),
+        SnackBar(
+          content: Text(AppLocalizations.of(context)!.registerAccountCreated),
+        ),
       );
       context.goNamed('login');
     }
@@ -68,6 +70,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
   @override
   Widget build(BuildContext context) {
     final registerState = ref.watch(registerControllerProvider);
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       backgroundColor: _RegisterColors.midnight,
@@ -75,6 +78,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
         child: Column(
           children: [
             _RegisterHeader(
+              l10n: l10n,
               onBackPressed: () {
                 if (context.canPop()) {
                   context.pop();
@@ -91,9 +95,9 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      const Text(
-                        'Start your journey.',
-                        style: TextStyle(
+                      Text(
+                        l10n.registerStartJourneyTitle,
+                        style: const TextStyle(
                           color: _RegisterColors.title,
                           fontSize: 29,
                           fontWeight: FontWeight.w900,
@@ -102,9 +106,9 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                         ),
                       ),
                       const SizedBox(height: 12),
-                      const Text(
-                        'Join our community of global curators.',
-                        style: TextStyle(
+                      Text(
+                        l10n.registerJoinCommunity,
+                        style: const TextStyle(
                           color: _RegisterColors.body,
                           fontSize: 15,
                           fontWeight: FontWeight.w500,
@@ -113,40 +117,46 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                       const SizedBox(height: 34),
                       _RegisterTextField(
                         controller: _fullNameController,
-                        label: 'FULL NAME',
-                        hint: 'Julianne Smith',
+                        label: l10n.registerFullNameLabel,
+                        hint: l10n.registerFullNameHint,
                         icon: Icons.person_outline,
                         textInputAction: TextInputAction.next,
-                        validator: (value) =>
-                            Validators.required(value, fieldName: 'Full name'),
+                        validator: (value) => Validators.required(
+                          value,
+                          l10n,
+                          fieldLabel: l10n.validationFieldFullName,
+                        ),
                       ),
                       const SizedBox(height: 18),
                       _RegisterTextField(
                         controller: _emailController,
-                        label: 'EMAIL ADDRESS',
-                        hint: 'curator@musafir.travel',
+                        label: l10n.emailAddressLabel,
+                        hint: l10n.registerEmailHint,
                         icon: Icons.mail_outline,
                         keyboardType: TextInputType.emailAddress,
                         textInputAction: TextInputAction.next,
-                        validator: Validators.email,
+                        validator: (v) => Validators.email(v, l10n),
                       ),
                       const SizedBox(height: 18),
                       _RegisterTextField(
                         controller: _passwordController,
-                        label: 'PASSWORD',
+                        label: l10n.registerPasswordLabel,
                         hint: '••••••••••••',
                         icon: Icons.lock_outline,
                         obscureText: true,
                         textInputAction: TextInputAction.next,
-                        validator: Validators.password,
+                        validator: (v) => Validators.password(v, l10n),
                         onChanged: (_) => setState(() {}),
                       ),
                       const SizedBox(height: 8),
-                      _PasswordStrength(password: _passwordController.text),
+                      _PasswordStrength(
+                        l10n: l10n,
+                        password: _passwordController.text,
+                      ),
                       const SizedBox(height: 18),
                       _RegisterTextField(
                         controller: _confirmPasswordController,
-                        label: 'CONFIRM PASSWORD',
+                        label: l10n.registerConfirmPasswordLabel,
                         hint: '••••••••••••',
                         icon: Icons.lock_outline,
                         obscureText: true,
@@ -155,11 +165,13 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                         validator: (value) => Validators.confirmPassword(
                           value,
                           _passwordController.text,
+                          l10n,
                         ),
                         onSubmitted: (_) => _onCreateAccountPressed(),
                       ),
                       const SizedBox(height: 22),
                       _TermsAgreement(
+                        l10n: l10n,
                         value: _acceptedTerms,
                         onChanged: (value) {
                           setState(() => _acceptedTerms = value ?? false);
@@ -168,7 +180,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                       const SizedBox(height: 38),
                       if (registerState.hasError) ...[
                         Text(
-                          registerState.error.toString(),
+                          localizeUserFacingError(registerState.error!, l10n),
                           textAlign: TextAlign.center,
                           style: const TextStyle(
                             color: _RegisterColors.coral,
@@ -179,11 +191,12 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                         const SizedBox(height: 12),
                       ],
                       _CreateAccountButton(
+                        l10n: l10n,
                         isLoading: registerState.isLoading,
                         onPressed: _onCreateAccountPressed,
                       ),
                       const SizedBox(height: 36),
-                      _LoginPrompt(onLoginPressed: _goToLogin),
+                      _LoginPrompt(l10n: l10n, onLoginPressed: _goToLogin),
                       const SizedBox(height: 18),
                     ],
                   ),
@@ -198,9 +211,10 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
 }
 
 class _RegisterHeader extends StatelessWidget {
+  final AppLocalizations l10n;
   final VoidCallback onBackPressed;
 
-  const _RegisterHeader({required this.onBackPressed});
+  const _RegisterHeader({required this.l10n, required this.onBackPressed});
 
   @override
   Widget build(BuildContext context) {
@@ -230,9 +244,9 @@ class _RegisterHeader extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 10),
-          const Text(
-            'Create Account',
-            style: TextStyle(
+          Text(
+            l10n.registerCreateAccount,
+            style: const TextStyle(
               color: _RegisterColors.title,
               fontSize: 15,
               fontWeight: FontWeight.w800,
@@ -375,17 +389,18 @@ class _RegisterTextFieldState extends State<_RegisterTextField> {
 }
 
 class _PasswordStrength extends StatelessWidget {
+  final AppLocalizations l10n;
   final String password;
 
-  const _PasswordStrength({required this.password});
+  const _PasswordStrength({required this.l10n, required this.password});
 
   @override
   Widget build(BuildContext context) {
     final score = _passwordScore(password);
     final strength = switch (score) {
-      0 || 1 => 'Weak',
-      2 => 'Moderate',
-      _ => 'Strong',
+      0 || 1 => l10n.passwordStrengthWeak,
+      2 => l10n.passwordStrengthModerate,
+      _ => l10n.passwordStrengthStrong,
     };
     final strengthColor = switch (score) {
       0 || 1 => _RegisterColors.strengthWeak,
@@ -411,7 +426,7 @@ class _PasswordStrength extends StatelessWidget {
             Icon(Icons.info_outline, size: 10, color: strengthColor),
             const SizedBox(width: 4),
             Text(
-              'Password strength: $strength',
+              l10n.passwordStrengthLabel(strength),
               style: TextStyle(
                 color: strengthColor,
                 fontSize: 8,
@@ -439,10 +454,15 @@ class _PasswordStrength extends StatelessWidget {
 }
 
 class _TermsAgreement extends StatelessWidget {
+  final AppLocalizations l10n;
   final bool value;
   final ValueChanged<bool?> onChanged;
 
-  const _TermsAgreement({required this.value, required this.onChanged});
+  const _TermsAgreement({
+    required this.l10n,
+    required this.value,
+    required this.onChanged,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -464,23 +484,23 @@ class _TermsAgreement extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 11),
-        const Expanded(
+        Expanded(
           child: Text.rich(
             TextSpan(
-              text: 'I agree to the ',
+              text: l10n.termsAgreePrefix,
               children: [
                 TextSpan(
-                  text: 'Terms of Service',
-                  style: TextStyle(color: _RegisterColors.title),
+                  text: l10n.termsOfService,
+                  style: const TextStyle(color: _RegisterColors.title),
                 ),
-                TextSpan(text: ' and '),
+                TextSpan(text: l10n.termsAnd),
                 TextSpan(
-                  text: 'Privacy\nPolicy.',
-                  style: TextStyle(color: _RegisterColors.title),
+                  text: l10n.termsPrivacyPolicy,
+                  style: const TextStyle(color: _RegisterColors.title),
                 ),
               ],
             ),
-            style: TextStyle(
+            style: const TextStyle(
               color: _RegisterColors.body,
               fontSize: 12,
               fontWeight: FontWeight.w500,
@@ -494,10 +514,12 @@ class _TermsAgreement extends StatelessWidget {
 }
 
 class _CreateAccountButton extends StatelessWidget {
+  final AppLocalizations l10n;
   final bool isLoading;
   final VoidCallback onPressed;
 
   const _CreateAccountButton({
+    required this.l10n,
     required this.isLoading,
     required this.onPressed,
   });
@@ -544,9 +566,12 @@ class _CreateAccountButton extends StatelessWidget {
                     color: _RegisterColors.midnight,
                   ),
                 )
-              : const Text(
-                  'Create Account',
-                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800),
+              : Text(
+                  l10n.registerCreateAccount,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
         ),
       ),
@@ -555,18 +580,19 @@ class _CreateAccountButton extends StatelessWidget {
 }
 
 class _LoginPrompt extends StatelessWidget {
+  final AppLocalizations l10n;
   final VoidCallback onLoginPressed;
 
-  const _LoginPrompt({required this.onLoginPressed});
+  const _LoginPrompt({required this.l10n, required this.onLoginPressed});
 
   @override
   Widget build(BuildContext context) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        const Text(
-          'Already have an account? ',
-          style: TextStyle(
+        Text(
+          l10n.registerAlreadyHaveAccount,
+          style: const TextStyle(
             color: _RegisterColors.body,
             fontSize: 12,
             fontWeight: FontWeight.w500,
@@ -580,9 +606,9 @@ class _LoginPrompt extends StatelessWidget {
             padding: EdgeInsets.zero,
             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
           ),
-          child: const Text(
-            'Login →',
-            style: TextStyle(
+          child: Text(
+            l10n.registerLoginArrow,
+            style: const TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w900,
               decoration: TextDecoration.underline,

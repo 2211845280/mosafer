@@ -12,6 +12,7 @@ from app.db.database import Base
 class TicketStatus(StrEnum):
     """Ticket lifecycle (local-only, Epic 3)."""
 
+    PENDING_PASSENGER = "pending_passenger"
     VALID = "valid"
     USED = "used"
     CANCELED = "canceled"
