@@ -28,6 +28,8 @@
 	<true/>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Mosafer uses your location to calculate real travel time to the airport and show your route on the map.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Mosafer uses the camera to scan your ticket QR code.</string>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>

@@ -6,11 +6,13 @@ import 'package:qr_flutter/qr_flutter.dart';
 
 import '../../../../core/localization/error_message_localizer.dart';
 import '../../../../core/services/location_service.dart';
+import '../../../../core/utils/terminal_display.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../data/trips_repository.dart';
 import '../active_trip_controller.dart';
 import '../airport_indoor_map/airport_indoor_map_navigation.dart';
 import 'airport_arrival_store.dart';
+import '../../../../core/theme/app_theme_extension.dart';
 
 class AirportExperiencePage extends ConsumerStatefulWidget {
   final bool embedded;
@@ -64,11 +66,12 @@ class _AirportExperiencePageState extends ConsumerState<AirportExperiencePage> {
     required String gate,
     required AirportArrivalStep initialStep,
   }) {
+    final colors = context.colors;
     final l10n = AppLocalizations.of(context)!;
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: _AirportColors.card,
+      backgroundColor: colors.card,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -118,7 +121,7 @@ class _AirportExperiencePageState extends ConsumerState<AirportExperiencePage> {
                           width: 42,
                           height: 4,
                           decoration: BoxDecoration(
-                            color: _AirportColors.border,
+                            color: colors.border,
                             borderRadius: BorderRadius.circular(999),
                           ),
                         ),
@@ -126,8 +129,8 @@ class _AirportExperiencePageState extends ConsumerState<AirportExperiencePage> {
                       const SizedBox(height: 16),
                       Text(
                         l10n.airportCheckInTitle,
-                        style: const TextStyle(
-                          color: _AirportColors.title,
+                        style: TextStyle(
+                          color: colors.title,
                           fontSize: 18,
                           fontWeight: FontWeight.w900,
                         ),
@@ -135,8 +138,8 @@ class _AirportExperiencePageState extends ConsumerState<AirportExperiencePage> {
                       const SizedBox(height: 8),
                       Text(
                         l10n.airportCheckInGateLabel(gate),
-                        style: const TextStyle(
-                          color: _AirportColors.blue,
+                        style: TextStyle(
+                          color: colors.primary,
                           fontSize: 14,
                           fontWeight: FontWeight.w900,
                         ),
@@ -157,13 +160,13 @@ class _AirportExperiencePageState extends ConsumerState<AirportExperiencePage> {
                         ElevatedButton(
                           onPressed: advance,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: _AirportColors.blue,
-                            foregroundColor: _AirportColors.title,
+                            backgroundColor: colors.primary,
+                            foregroundColor: colors.title,
                             padding: const EdgeInsets.symmetric(vertical: 14),
                           ),
                           child: Text(
                             l10n.airportCheckInNextStep,
-                            style: const TextStyle(fontWeight: FontWeight.w900),
+                            style: TextStyle(fontWeight: FontWeight.w900),
                           ),
                         )
                       else
@@ -206,6 +209,7 @@ class _AirportExperiencePageState extends ConsumerState<AirportExperiencePage> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final trip = ref.watch(activeTripProvider);
     final l10n = AppLocalizations.of(context)!;
     if (trip == null) {
@@ -231,86 +235,83 @@ class _AirportExperiencePageState extends ConsumerState<AirportExperiencePage> {
                   sliver: SliverList.list(
                     children: [
                       _LiveExperienceIntro(
+                        l10n: l10n,
+                        airportName: data.airportName,
+                        terminal: data.terminal,
+                        onQrPressed: () => _showBoardingQr(context, ref),
+                      ),
+                      const SizedBox(height: 25),
+                      _GateSummary(
+                        l10n: l10n,
+                        terminal: data.terminal,
+                        gate: data.gate,
+                      ),
+                      if (_arrivalLoaded && _arrivalStep.hasStarted) ...[
+                        const SizedBox(height: 16),
+                        _ArrivalStatusCard(
                           l10n: l10n,
-                          airportName: data.airportName,
-                          terminal: data.terminal,
-                          onQrPressed: () => _showBoardingQr(context, ref),
-                        ),
-                        const SizedBox(height: 25),
-                        _GateSummary(
-                          l10n: l10n,
-                          terminal: data.terminal,
+                          step: _arrivalStep,
                           gate: data.gate,
-                        ),
-                        if (_arrivalLoaded && _arrivalStep.hasStarted) ...[
-                          const SizedBox(height: 16),
-                          _ArrivalStatusCard(
-                            l10n: l10n,
-                            step: _arrivalStep,
+                          onTap: () => _showCheckInSheet(
+                            reservationId: trip.reservationId,
                             gate: data.gate,
-                            onTap: () => _showCheckInSheet(
-                              reservationId: trip.reservationId,
-                              gate: data.gate,
-                              initialStep: _arrivalStep,
-                            ),
+                            initialStep: _arrivalStep,
                           ),
-                        ],
-                        const SizedBox(height: 25),
-                        _AirportMapCard(l10n: l10n, gate: data.gate),
-                        const SizedBox(height: 26),
-                        _ShopSectionHeader(l10n: l10n, gate: data.gate),
-                        const SizedBox(height: 13),
-                        _ShopCards(
-                          l10n: l10n,
-                          shops: data.shops,
-                          gate: data.gate,
                         ),
                       ],
-                    ),
-                  ),
-                ],
-              ),
-              Positioned(
-                left: 17,
-                right: 17,
-                bottom: 96,
-                child: _FixedAirportActions(
-                  l10n: l10n,
-                  gate: data.gate,
-                  reservationId: trip.reservationId,
-                  arrivalStep: _arrivalStep,
-                  onArrived: () async {
-                    await _saveArrivalStep(
-                      trip.reservationId,
-                      AirportArrivalStep.arrived,
-                    );
-                    if (!context.mounted) return;
-                    _showCheckInSheet(
-                      reservationId: trip.reservationId,
-                      gate: data.gate,
-                      initialStep: AirportArrivalStep.arrived,
-                    );
-                  },
-                  onProceedToGate: () => openAirportIndoorMap(
-                    context,
-                    gate: data.gate,
-                    routeToGate: true,
+                      const SizedBox(height: 25),
+                      _AirportMapCard(l10n: l10n, gate: data.gate),
+                      const SizedBox(height: 26),
+                      _ShopSectionHeader(l10n: l10n, gate: data.gate),
+                      const SizedBox(height: 13),
+                      _ShopCards(
+                        l10n: l10n,
+                        shops: data.shops,
+                        gate: data.gate,
+                      ),
+                    ],
                   ),
                 ),
+              ],
+            ),
+            Positioned(
+              left: 17,
+              right: 17,
+              bottom: 96,
+              child: _FixedAirportActions(
+                l10n: l10n,
+                gate: data.gate,
+                reservationId: trip.reservationId,
+                arrivalStep: _arrivalStep,
+                onArrived: () async {
+                  await _saveArrivalStep(
+                    trip.reservationId,
+                    AirportArrivalStep.arrived,
+                  );
+                  if (!context.mounted) return;
+                  _showCheckInSheet(
+                    reservationId: trip.reservationId,
+                    gate: data.gate,
+                    initialStep: AirportArrivalStep.arrived,
+                  );
+                },
+                onProceedToGate: () => openAirportIndoorMap(
+                  context,
+                  gate: data.gate,
+                  routeToGate: true,
+                ),
               ),
-            ],
-          );
-        },
-      );
+            ),
+          ],
+        );
+      },
+    );
 
     if (widget.embedded) {
-      return ColoredBox(color: _AirportColors.background, child: body);
+      return ColoredBox(color: colors.background, child: body);
     }
 
-    return Scaffold(
-      backgroundColor: _AirportColors.background,
-      body: body,
-    );
+    return Scaffold(backgroundColor: colors.background, body: body);
   }
 
   Future<_AirportData> _loadAirportData(
@@ -351,6 +352,7 @@ class _AirportExperiencePageState extends ConsumerState<AirportExperiencePage> {
     showDialog<void>(
       context: context,
       builder: (context) {
+        final colors = context.colors;
         final dialogL10n = AppLocalizations.of(context)!;
         return FutureBuilder(
           future: ref.read(tripsRepositoryProvider).getMyTickets(),
@@ -388,7 +390,7 @@ class _AirportExperiencePageState extends ConsumerState<AirportExperiencePage> {
                     ? Text(
                         localizeUserFacingError(errorMessage!, dialogL10n),
                         textAlign: TextAlign.center,
-                        style: const TextStyle(color: _AirportColors.title),
+                        style: TextStyle(color: colors.title),
                       )
                     : payload == null
                     ? Text(
@@ -396,7 +398,7 @@ class _AirportExperiencePageState extends ConsumerState<AirportExperiencePage> {
                             ? dialogL10n.airportQrInvalidTicket
                             : dialogL10n.airportQrNoTicket,
                         textAlign: TextAlign.center,
-                        style: const TextStyle(color: _AirportColors.title),
+                        style: TextStyle(color: colors.title),
                       )
                     : Container(
                         padding: const EdgeInsets.all(14),
@@ -413,7 +415,7 @@ class _AirportExperiencePageState extends ConsumerState<AirportExperiencePage> {
             };
 
             return AlertDialog(
-              backgroundColor: _AirportColors.card,
+              backgroundColor: colors.card,
               content: SizedBox(
                 width: 240,
                 height: 260,
@@ -489,14 +491,15 @@ class _AirportEmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final content = Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Text(
           l10n.openTripFirstAirportFull,
           textAlign: TextAlign.center,
-          style: const TextStyle(
-            color: _AirportColors.title,
+          style: TextStyle(
+            color: colors.title,
             fontSize: 16,
             fontWeight: FontWeight.w800,
           ),
@@ -505,13 +508,10 @@ class _AirportEmptyState extends StatelessWidget {
     );
 
     if (embedded) {
-      return ColoredBox(color: _AirportColors.background, child: content);
+      return ColoredBox(color: colors.background, child: content);
     }
 
-    return Scaffold(
-      backgroundColor: _AirportColors.background,
-      body: content,
-    );
+    return Scaffold(backgroundColor: colors.background, body: content);
   }
 }
 
@@ -530,6 +530,7 @@ class _LiveExperienceIntro extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -538,19 +539,9 @@ class _LiveExperienceIntro extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                l10n.airportLiveExperience,
-                style: const TextStyle(
-                  color: _AirportColors.title,
-                  fontSize: 8,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 2.7,
-                ),
-              ),
-              const SizedBox(height: 10),
-              Text(
                 l10n.airportWelcomeLine(airportName, terminal),
-                style: const TextStyle(
-                  color: _AirportColors.title,
+                style: TextStyle(
+                  color: colors.title,
                   fontSize: 20,
                   fontWeight: FontWeight.w900,
                   height: 1.25,
@@ -567,15 +558,11 @@ class _LiveExperienceIntro extends StatelessWidget {
             width: 34,
             height: 34,
             decoration: BoxDecoration(
-              color: _AirportColors.badge,
+              color: colors.chip,
               shape: BoxShape.circle,
-              border: Border.all(color: _AirportColors.border),
+              border: Border.all(color: colors.border),
             ),
-            child: const Icon(
-              Icons.qr_code_2,
-              color: _AirportColors.salmon,
-              size: 20,
-            ),
+            child: Icon(Icons.qr_code_2, color: colors.salmon, size: 20),
           ),
         ),
       ],
@@ -596,6 +583,7 @@ class _GateSummary extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Row(
       children: [
         Expanded(
@@ -603,7 +591,7 @@ class _GateSummary extends StatelessWidget {
           child: Container(
             height: 91,
             decoration: BoxDecoration(
-              color: _AirportColors.card,
+              color: colors.card,
               borderRadius: BorderRadius.circular(22),
             ),
             child: Column(
@@ -611,21 +599,28 @@ class _GateSummary extends StatelessWidget {
               children: [
                 Text(
                   l10n.airportTerminalLabel,
-                  style: const TextStyle(
-                    color: _AirportColors.muted,
+                  style: TextStyle(
+                    color: colors.muted,
                     fontSize: 8,
                     fontWeight: FontWeight.w900,
                     letterSpacing: 1.3,
                   ),
                 ),
                 const SizedBox(height: 9),
-                Text(
-                  terminal.replaceFirst('Terminal ', 'T'),
-                  style: const TextStyle(
-                    color: _AirportColors.title,
-                    fontSize: 39,
-                    fontWeight: FontWeight.w900,
-                    height: 0.9,
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      formatTerminalBadge(terminal),
+                      maxLines: 1,
+                      style: TextStyle(
+                        color: colors.title,
+                        fontSize: 39,
+                        fontWeight: FontWeight.w900,
+                        height: 0.9,
+                      ),
+                    ),
                   ),
                 ),
               ],
@@ -639,7 +634,7 @@ class _GateSummary extends StatelessWidget {
             height: 110,
             padding: const EdgeInsets.fromLTRB(18, 21, 18, 18),
             decoration: BoxDecoration(
-              color: _AirportColors.blue,
+              color: colors.primary,
               borderRadius: BorderRadius.circular(24),
             ),
             child: Column(
@@ -647,8 +642,8 @@ class _GateSummary extends StatelessWidget {
               children: [
                 Text(
                   l10n.airportAssignedGate,
-                  style: const TextStyle(
-                    color: _AirportColors.buttonText,
+                  style: TextStyle(
+                    color: colors.buttonText,
                     fontSize: 8,
                     fontWeight: FontWeight.w900,
                     letterSpacing: 1.8,
@@ -657,8 +652,8 @@ class _GateSummary extends StatelessWidget {
                 const SizedBox(height: 12),
                 Text(
                   gate,
-                  style: const TextStyle(
-                    color: _AirportColors.buttonText,
+                  style: TextStyle(
+                    color: colors.buttonText,
                     fontSize: 49,
                     fontWeight: FontWeight.w900,
                     height: 0.95,
@@ -686,6 +681,7 @@ class _AirportMapCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return InkWell(
       borderRadius: BorderRadius.circular(22),
       onTap: () => _openIndoorMap(context),
@@ -693,7 +689,7 @@ class _AirportMapCard extends StatelessWidget {
         height: 195,
         padding: const EdgeInsets.all(13),
         decoration: BoxDecoration(
-          color: _AirportColors.map,
+          color: colors.mapBackground,
           borderRadius: BorderRadius.circular(22),
         ),
         child: Stack(
@@ -701,24 +697,18 @@ class _AirportMapCard extends StatelessWidget {
             Positioned.fill(
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(18),
-                child: CustomPaint(painter: _MapGridPainter()),
+                child: CustomPaint(painter: _MapGridPainter(colors)),
               ),
             ),
             Positioned(
               left: 61,
               top: 39,
-              child: _MapPin(
-                label: l10n.airportYouPin,
-                color: _AirportColors.salmon,
-              ),
+              child: _MapPin(label: l10n.airportYouPin, color: colors.salmon),
             ),
             Positioned(
               right: 70,
               top: 80,
-              child: _MapPin(
-                label: gate.toUpperCase(),
-                color: _AirportColors.blue,
-              ),
+              child: _MapPin(label: gate.toUpperCase(), color: colors.primary),
             ),
             Positioned(
               left: 0,
@@ -732,9 +722,7 @@ class _AirportMapCard extends StatelessWidget {
             Positioned(
               right: 0,
               bottom: 2,
-              child: _RoundMapButton(
-                onTap: () => _openIndoorMap(context),
-              ),
+              child: _RoundMapButton(onTap: () => _openIndoorMap(context)),
             ),
           ],
         ),
@@ -744,10 +732,14 @@ class _AirportMapCard extends StatelessWidget {
 }
 
 class _MapGridPainter extends CustomPainter {
+  const _MapGridPainter(this.colors);
+
+  final AppThemeExtension colors;
+
   @override
   void paint(Canvas canvas, Size size) {
     final dotPaint = Paint()
-      ..color = _AirportColors.gridDot
+      ..color = colors.mapHall
       ..style = PaintingStyle.fill;
     for (var y = 12.0; y < size.height; y += 16) {
       for (var x = 12.0; x < size.width; x += 19) {
@@ -756,7 +748,7 @@ class _MapGridPainter extends CustomPainter {
     }
 
     final pathPaint = Paint()
-      ..color = _AirportColors.path
+      ..color = colors.mapCorridor
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.2;
     final path = Path()
@@ -779,6 +771,7 @@ class _MapPin extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Column(
       children: [
         Container(
@@ -825,14 +818,15 @@ class _MapActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return SizedBox(
       width: 132,
       height: 38,
       child: ElevatedButton.icon(
         onPressed: onTap,
         style: ElevatedButton.styleFrom(
-          backgroundColor: _AirportColors.chip,
-          foregroundColor: _AirportColors.title,
+          backgroundColor: colors.chip,
+          foregroundColor: colors.title,
           elevation: 0,
           minimumSize: const Size(0, 38),
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
@@ -844,7 +838,7 @@ class _MapActionButton extends StatelessWidget {
           label,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 9,
             fontWeight: FontWeight.w900,
             letterSpacing: 0.8,
@@ -862,11 +856,12 @@ class _RoundMapButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return IconButton.filled(
       onPressed: onTap,
       style: IconButton.styleFrom(
-        backgroundColor: _AirportColors.chip,
-        foregroundColor: _AirportColors.title,
+        backgroundColor: colors.chip,
+        foregroundColor: colors.title,
         fixedSize: const Size(34, 34),
       ),
       icon: const Icon(Icons.layers_outlined, size: 17),
@@ -882,10 +877,11 @@ class _ShopSectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Text(
       l10n.airportShopsNear(gate),
-      style: const TextStyle(
-        color: _AirportColors.title,
+      style: TextStyle(
+        color: colors.title,
         fontSize: 13,
         fontWeight: FontWeight.w900,
         letterSpacing: -0.2,
@@ -907,10 +903,10 @@ class _ShopCards extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final first = shops.isNotEmpty ? shops.first : l10n.airportCoffeeFallback;
     final second = shops.length > 1 ? shops[1] : l10n.airportLoungeFallback;
-    final firstHighlight =
-        amenityHighlightForShopTitle(first) ?? 'coffee';
+    final firstHighlight = amenityHighlightForShopTitle(first) ?? 'coffee';
     final secondHighlight = amenityHighlightForShopTitle(second) ?? 'food';
 
     return Row(
@@ -960,6 +956,7 @@ class _ShopCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return InkWell(
       borderRadius: BorderRadius.circular(16),
       onTap: onTap,
@@ -973,7 +970,7 @@ class _ShopCard extends StatelessWidget {
                   fit: BoxFit.cover,
                 )
               : null,
-          color: backgroundAsset == null ? _AirportColors.card : null,
+          color: backgroundAsset == null ? colors.card : null,
         ),
         child: Stack(
           children: [
@@ -1002,8 +999,8 @@ class _ShopCard extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: const TextStyle(
-                      color: _AirportColors.title,
+                    style: TextStyle(
+                      color: colors.title,
                       fontSize: 16,
                       fontWeight: FontWeight.w900,
                     ),
@@ -1011,8 +1008,8 @@ class _ShopCard extends StatelessWidget {
                   const SizedBox(height: 3),
                   Text(
                     subtitle,
-                    style: const TextStyle(
-                      color: _AirportColors.title,
+                    style: TextStyle(
+                      color: colors.title,
                       fontSize: 8,
                       fontWeight: FontWeight.w700,
                     ),
@@ -1046,6 +1043,7 @@ class _FixedAirportActions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -1056,18 +1054,15 @@ class _FixedAirportActions extends StatelessWidget {
             child: OutlinedButton(
               onPressed: onArrived,
               style: OutlinedButton.styleFrom(
-                foregroundColor: _AirportColors.title,
-                side: const BorderSide(color: _AirportColors.border),
+                foregroundColor: colors.title,
+                side: BorderSide(color: colors.border),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(13),
                 ),
               ),
               child: Text(
                 l10n.airportArrivedAtAirport,
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w900,
-                ),
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w900),
               ),
             ),
           ),
@@ -1078,8 +1073,8 @@ class _FixedAirportActions extends StatelessWidget {
           child: ElevatedButton(
             onPressed: onProceedToGate,
             style: ElevatedButton.styleFrom(
-              backgroundColor: _AirportColors.salmon,
-              foregroundColor: _AirportColors.buttonText,
+              backgroundColor: colors.salmon,
+              foregroundColor: colors.buttonText,
               elevation: 0,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(13),
@@ -1087,7 +1082,7 @@ class _FixedAirportActions extends StatelessWidget {
             ),
             child: Text(
               l10n.airportProceedToGate(gate),
-              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900),
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w900),
             ),
           ),
         ),
@@ -1122,19 +1117,20 @@ class _ArrivalStatusCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(18),
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: _AirportColors.badge,
+          color: colors.chip,
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: _AirportColors.border),
+          border: Border.all(color: colors.border),
         ),
         child: Row(
           children: [
-            const Icon(Icons.flight_land, color: _AirportColors.blue, size: 22),
+            Icon(Icons.flight_land, color: colors.primary, size: 22),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
@@ -1142,8 +1138,8 @@ class _ArrivalStatusCard extends StatelessWidget {
                 children: [
                   Text(
                     l10n.airportArrivalStatusTitle,
-                    style: const TextStyle(
-                      color: _AirportColors.title,
+                    style: TextStyle(
+                      color: colors.title,
                       fontSize: 12,
                       fontWeight: FontWeight.w900,
                     ),
@@ -1151,8 +1147,8 @@ class _ArrivalStatusCard extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     _statusLabel(),
-                    style: const TextStyle(
-                      color: _AirportColors.muted,
+                    style: TextStyle(
+                      color: colors.muted,
                       fontSize: 11,
                       fontWeight: FontWeight.w700,
                     ),
@@ -1160,7 +1156,7 @@ class _ArrivalStatusCard extends StatelessWidget {
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right, color: _AirportColors.muted),
+            Icon(Icons.chevron_right, color: colors.muted),
           ],
         ),
       ),
@@ -1181,11 +1177,12 @@ class _CheckInStepRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final color = done
-        ? _AirportColors.blue
+        ? colors.primary
         : active
-        ? _AirportColors.salmon
-        : _AirportColors.muted;
+        ? colors.salmon
+        : colors.muted;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
@@ -1205,9 +1202,7 @@ class _CheckInStepRow extends StatelessWidget {
             child: Text(
               label,
               style: TextStyle(
-                color: done || active
-                    ? _AirportColors.title
-                    : _AirportColors.muted,
+                color: done || active ? colors.title : colors.muted,
                 fontSize: 12,
                 fontWeight: FontWeight.w800,
               ),
@@ -1217,22 +1212,4 @@ class _CheckInStepRow extends StatelessWidget {
       ),
     );
   }
-}
-
-class _AirportColors {
-  _AirportColors._();
-
-  static const Color background = Color(0xFF061326);
-  static const Color card = Color(0xFF101F36);
-  static const Color chip = Color(0xFF26364F);
-  static const Color badge = Color(0xFF172844);
-  static const Color border = Color(0xFF314663);
-  static const Color map = Color(0xFF07172D);
-  static const Color path = Color(0xFF0E2745);
-  static const Color gridDot = Color(0xFF112B4A);
-  static const Color title = Color(0xFFD5E4FF);
-  static const Color muted = Color(0xFF77879E);
-  static const Color blue = Color(0xFF4A91F8);
-  static const Color salmon = Color(0xFFFFACA6);
-  static const Color buttonText = Color(0xFF061326);
 }

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_theme_extension.dart';
 
 class AppButton extends StatelessWidget {
   final VoidCallback? onPressed;
@@ -23,14 +23,15 @@ class AppButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final isDisabled = isLoading || onPressed == null;
     final child = isLoading
-        ? const SizedBox(
+        ? SizedBox(
             height: 20,
             width: 20,
             child: CircularProgressIndicator(
               strokeWidth: 2,
-              valueColor: AlwaysStoppedAnimation<Color>(AppColors.onPrimary),
+              valueColor: AlwaysStoppedAnimation<Color>(colors.onPrimary),
             ),
           )
         : Row(

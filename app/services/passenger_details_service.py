@@ -38,8 +38,12 @@ def activate_all_passenger_tickets(reservation: Reservation) -> None:
 
     passengers = sorted(reservation.passengers, key=lambda row: row.sequence)
     carrier = carrier_name(flight.carrier_code)
+    if ticket.ordered_by_user_id is None:
+        ticket.ordered_by_user_id = reservation.user_id
 
     for passenger in passengers:
+        if passenger.ordered_by_user_id is None:
+            passenger.ordered_by_user_id = reservation.user_id
         passenger_ticket_number = f"{ticket.ticket_number}-{passenger.sequence:02d}"
         passenger_display = f"{passenger.family_name}/{passenger.given_name}"
         seat = passenger.seat or reservation.seat
@@ -185,6 +189,7 @@ async def submit_passenger_details(
             BookingPassenger(
                 reservation_id=reservation.id,
                 sequence=idx,
+                ordered_by_user_id=reservation.user_id,
                 title=p.title.upper(),
                 given_name=p.given_name.strip().upper(),
                 family_name=p.family_name.strip().upper(),

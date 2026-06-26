@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_theme_extension.dart';
 
 class AppTextField extends StatefulWidget {
   final TextEditingController? controller;
@@ -54,6 +54,7 @@ class _AppTextFieldState extends State<AppTextField> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return TextFormField(
       controller: widget.controller,
       validator: widget.validator,
@@ -72,7 +73,7 @@ class _AppTextFieldState extends State<AppTextField> {
         hintText: widget.hint,
         prefixIcon: widget.prefixIcon != null
             ? IconTheme(
-                data: const IconThemeData(color: AppColors.primaryLight),
+                data: IconThemeData(color: colors.primaryLight),
                 child: widget.prefixIcon!,
               )
             : null,
@@ -82,7 +83,7 @@ class _AppTextFieldState extends State<AppTextField> {
                   _obscureText
                       ? Icons.visibility_outlined
                       : Icons.visibility_off_outlined,
-                  color: AppColors.onSurfaceVariant,
+                  color: colors.onSurfaceVariant,
                 ),
                 onPressed: () {
                   setState(() {

@@ -7,7 +7,7 @@ from uuid import uuid4
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 from fastapi.responses import Response
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -15,9 +15,11 @@ from app.core.config import settings
 from app.core.file_validation import has_valid_magic_bytes
 from app.core.jwt import get_current_user
 from app.core.rbac import assert_user_has_permission, require_permission
+from app.core.ticket_numbers import compact_ticket_number, ticket_number_candidates
 from app.core.ticket_pdf import build_ticket_pdf_bytes
 from app.data.airlines import carrier_name
 from app.db.database import get_db
+from app.models.booking_passengers import BookingPassenger
 from app.models.reservations import Reservation
 from app.models.tickets import Ticket, TicketImage, TicketStatus
 from app.models.users import User
@@ -26,6 +28,8 @@ from app.schemas.tickets import (
     FlightSummaryForTicket,
     QRScanRequest,
     QRScanResponse,
+    TicketClaimRequest,
+    TicketClaimResponse,
     TicketImageDBMatch,
     TicketImageScanResponse,
     TicketListItem,
@@ -37,6 +41,83 @@ from app.schemas.tickets import (
 from app.services.ai.ticket_image_analyzer import analyze_ticket_image
 
 router = APIRouter()
+
+
+def _normalized_ticket_number_column():
+    expr = func.upper(Ticket.ticket_number)
+    for separator in ("-", " ", ".", "/"):
+        expr = func.replace(expr, separator, "")
+    return expr
+
+
+def _normalized_passenger_ticket_number_column():
+    expr = func.upper(BookingPassenger.passenger_ticket_number)
+    for separator in ("-", " ", ".", "/"):
+        expr = func.replace(expr, separator, "")
+    return expr
+
+
+def _extract_ticket_number(value: str) -> str:
+    raw = value.strip()
+    if not raw:
+        return ""
+    try:
+        payload = json.loads(raw)
+        if isinstance(payload, dict):
+            return str(payload.get("ticket_number", "")).strip().upper()
+    except json.JSONDecodeError:
+        pass
+    return raw.upper()
+
+
+async def _find_ticket_by_number(
+    db: AsyncSession,
+    ticket_number: str,
+    *,
+    with_booking: bool = False,
+) -> Ticket | None:
+    candidates = ticket_number_candidates(ticket_number)
+    compact = compact_ticket_number(ticket_number)
+    conditions = []
+    if candidates:
+        conditions.append(Ticket.ticket_number.in_(candidates))
+    if compact:
+        conditions.append(_normalized_ticket_number_column() == compact)
+    if not conditions:
+        return None
+
+    stmt = select(Ticket).where(or_(*conditions))
+    if with_booking:
+        stmt = stmt.options(
+            selectinload(Ticket.booking).selectinload(Reservation.flight),
+        )
+    result = await db.execute(stmt)
+    return result.scalar_one_or_none()
+
+
+async def _find_passenger_by_ticket_number(
+    db: AsyncSession,
+    ticket_number: str,
+) -> BookingPassenger | None:
+    candidates = ticket_number_candidates(ticket_number)
+    compact = compact_ticket_number(ticket_number)
+    conditions = []
+    if candidates:
+        conditions.append(BookingPassenger.passenger_ticket_number.in_(candidates))
+    if compact:
+        conditions.append(_normalized_passenger_ticket_number_column() == compact)
+    if not conditions:
+        return None
+
+    result = await db.execute(
+        select(BookingPassenger)
+        .options(
+            selectinload(BookingPassenger.reservation).selectinload(Reservation.flight),
+            selectinload(BookingPassenger.reservation).selectinload(Reservation.ticket),
+        )
+        .where(or_(*conditions)),
+    )
+    return result.scalar_one_or_none()
 
 
 async def _fetch_user_ticket_page(
@@ -107,6 +188,103 @@ def _to_db_match(ticket: Ticket) -> TicketImageDBMatch:
             seat=booking.seat,
         ),
         issued_at=ticket.issued_at,
+    )
+
+
+def _to_db_match_from_passenger(passenger: BookingPassenger) -> TicketImageDBMatch:
+    booking = passenger.reservation
+    flight = booking.flight
+    ticket = booking.ticket
+    return TicketImageDBMatch(
+        ticket_number=passenger.passenger_ticket_number or ticket.ticket_number,
+        ticket_status=ticket.status,
+        reservation_id=booking.id,
+        reservation_status=booking.status,
+        flight=FlightSummaryForTicket(
+            carrier_code=flight.carrier_code,
+            flight_number=flight.flight_number,
+            origin_iata=flight.origin_iata,
+            destination_iata=flight.destination_iata,
+            departure_at=flight.departure_at,
+            arrival_at=flight.arrival_at,
+            seat=passenger.seat or booking.seat,
+        ),
+        issued_at=ticket.issued_at,
+    )
+
+
+def _scan_response_from_ticket(ticket: Ticket) -> QRScanResponse:
+    booking = ticket.booking
+    flight = booking.flight
+    return QRScanResponse(
+        ticket_number=ticket.ticket_number,
+        ticket_status=ticket.status,
+        reservation_id=booking.id,
+        reservation_status=booking.status,
+        flight=FlightSummaryForTicket(
+            carrier_code=flight.carrier_code,
+            flight_number=flight.flight_number,
+            origin_iata=flight.origin_iata,
+            destination_iata=flight.destination_iata,
+            departure_at=flight.departure_at,
+            arrival_at=flight.arrival_at,
+            seat=booking.seat,
+        ),
+        issued_at=ticket.issued_at,
+    )
+
+
+def _scan_response_from_passenger(passenger: BookingPassenger) -> QRScanResponse:
+    booking = passenger.reservation
+    ticket = booking.ticket
+    if ticket is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ticket not found")
+    flight = booking.flight
+    return QRScanResponse(
+        ticket_number=passenger.passenger_ticket_number or ticket.ticket_number,
+        ticket_status=ticket.status,
+        reservation_id=booking.id,
+        reservation_status=booking.status,
+        flight=FlightSummaryForTicket(
+            carrier_code=flight.carrier_code,
+            flight_number=flight.flight_number,
+            origin_iata=flight.origin_iata,
+            destination_iata=flight.destination_iata,
+            departure_at=flight.departure_at,
+            arrival_at=flight.arrival_at,
+            seat=passenger.seat or booking.seat,
+        ),
+        issued_at=ticket.issued_at,
+    )
+
+
+def _claim_response(
+    *,
+    claimed: bool,
+    ticket_number: str,
+    reservation: Reservation,
+    assigned_to_user_id: int,
+    scope: str,
+    message: str,
+    seat: str,
+) -> TicketClaimResponse:
+    flight = reservation.flight
+    return TicketClaimResponse(
+        claimed=claimed,
+        ticket_number=ticket_number,
+        reservation_id=reservation.id,
+        assigned_to_user_id=assigned_to_user_id,
+        scope=scope,
+        message=message,
+        flight=FlightSummaryForTicket(
+            carrier_code=flight.carrier_code,
+            flight_number=flight.flight_number,
+            origin_iata=flight.origin_iata,
+            destination_iata=flight.destination_iata,
+            departure_at=flight.departure_at,
+            arrival_at=flight.arrival_at,
+            seat=seat,
+        ),
     )
 
 
@@ -330,9 +508,7 @@ async def validate_ticket(
     db: AsyncSession = Depends(get_db),
 ) -> TicketValidationResponse:
     """Validate QR/ticket number: valid→used; used→already_used; canceled→invalid."""
-    tn = ticket_number.strip().upper()
-    result = await db.execute(select(Ticket).where(Ticket.ticket_number == tn))
-    ticket = result.scalar_one_or_none()
+    ticket = await _find_ticket_by_number(db, ticket_number)
     if ticket is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -389,8 +565,7 @@ async def get_ticket(
     db: AsyncSession = Depends(get_db),
 ) -> TicketRead:
     """Get ticket by ticket number (owner or admin)."""
-    result = await db.execute(select(Ticket).where(Ticket.ticket_number == ticket_number.strip().upper()))
-    ticket = result.scalar_one_or_none()
+    ticket = await _find_ticket_by_number(db, ticket_number)
     if ticket is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ticket not found")
 
@@ -400,6 +575,93 @@ async def get_ticket(
         await assert_user_has_permission(db, user, "users.admin.manage")
 
     return TicketRead.model_validate(ticket)
+
+
+@router.post(
+    "/tickets/claim",
+    response_model=TicketClaimResponse,
+    dependencies=[Depends(require_permission("tickets.view"))],
+)
+async def claim_ticket(
+    data: TicketClaimRequest,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> TicketClaimResponse:
+    """Permanently link a QR ticket to the current user's account."""
+    ticket_number = _extract_ticket_number(data.ticket_number)
+    if not ticket_number:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Ticket number is required",
+        )
+
+    passenger = await _find_passenger_by_ticket_number(db, ticket_number)
+    if passenger is not None:
+        reservation = passenger.reservation
+        if passenger.ordered_by_user_id is None:
+            passenger.ordered_by_user_id = reservation.user_id
+        if passenger.assigned_to_user_id is not None:
+            if passenger.assigned_to_user_id != user.id:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="Ticket is already assigned to another account",
+                )
+            return _claim_response(
+                claimed=False,
+                ticket_number=passenger.passenger_ticket_number or ticket_number,
+                reservation=reservation,
+                assigned_to_user_id=user.id,
+                scope="passenger",
+                message="Ticket is already assigned to this account",
+                seat=passenger.seat or reservation.seat,
+            )
+
+        passenger.assigned_to_user_id = user.id
+        await db.commit()
+        return _claim_response(
+            claimed=True,
+            ticket_number=passenger.passenger_ticket_number or ticket_number,
+            reservation=reservation,
+            assigned_to_user_id=user.id,
+            scope="passenger",
+            message="Ticket assigned to this account",
+            seat=passenger.seat or reservation.seat,
+        )
+
+    ticket = await _find_ticket_by_number(db, ticket_number, with_booking=True)
+    if ticket is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ticket not found")
+
+    reservation = ticket.booking
+    if ticket.ordered_by_user_id is None:
+        ticket.ordered_by_user_id = reservation.user_id
+    if ticket.assigned_to_user_id is not None:
+        if ticket.assigned_to_user_id != user.id:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Ticket is already assigned to another account",
+            )
+        return _claim_response(
+            claimed=False,
+            ticket_number=ticket.ticket_number,
+            reservation=reservation,
+            assigned_to_user_id=user.id,
+            scope="ticket",
+            message="Ticket is already assigned to this account",
+            seat=reservation.seat,
+        )
+
+    ticket.assigned_to_user_id = user.id
+    await db.commit()
+    return _claim_response(
+        claimed=True,
+        ticket_number=ticket.ticket_number,
+        reservation=reservation,
+        assigned_to_user_id=user.id,
+        scope="ticket",
+        message="Ticket assigned to this account",
+        seat=reservation.seat,
+    )
 
 
 @router.post(
@@ -415,51 +677,25 @@ async def scan_ticket_qr(
 
     Accepts both the new JSON format and the legacy plain ticket-number format.
     """
-    raw = data.qr_payload.strip()
-
-    try:
-        payload = json.loads(raw)
-        ticket_number = payload.get("ticket_number", "").strip().upper()
-    except (json.JSONDecodeError, AttributeError):
-        ticket_number = raw.upper()
-
+    ticket_number = _extract_ticket_number(data.qr_payload)
     if not ticket_number:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="QR payload does not contain a ticket number",
         )
 
-    result = await db.execute(
-        select(Ticket)
-        .options(selectinload(Ticket.booking).selectinload(Reservation.flight))
-        .where(Ticket.ticket_number == ticket_number),
-    )
-    ticket = result.scalar_one_or_none()
+    passenger = await _find_passenger_by_ticket_number(db, ticket_number)
+    if passenger is not None:
+        return _scan_response_from_passenger(passenger)
+
+    ticket = await _find_ticket_by_number(db, ticket_number, with_booking=True)
     if ticket is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Ticket not found",
         )
 
-    booking = ticket.booking
-    flight = booking.flight
-
-    return QRScanResponse(
-        ticket_number=ticket.ticket_number,
-        ticket_status=ticket.status,
-        reservation_id=booking.id,
-        reservation_status=booking.status,
-        flight=FlightSummaryForTicket(
-            carrier_code=flight.carrier_code,
-            flight_number=flight.flight_number,
-            origin_iata=flight.origin_iata,
-            destination_iata=flight.destination_iata,
-            departure_at=flight.departure_at,
-            arrival_at=flight.arrival_at,
-            seat=booking.seat,
-        ),
-        issued_at=ticket.issued_at,
-    )
+    return _scan_response_from_ticket(ticket)
 
 
 @router.post(
@@ -517,12 +753,16 @@ async def scan_ticket_image(
             raw_text=analysis.raw_text,
         )
 
-    result = await db.execute(
-        select(Ticket)
-        .options(selectinload(Ticket.booking).selectinload(Reservation.flight))
-        .where(Ticket.ticket_number == analysis.normalized_ticket_number),
-    )
-    ticket = result.scalar_one_or_none()
+    passenger = await _find_passenger_by_ticket_number(db, analysis.normalized_ticket_number)
+    ticket = None
+    if passenger is not None:
+        ticket = passenger.reservation.ticket
+    if ticket is None:
+        ticket = await _find_ticket_by_number(
+            db,
+            analysis.normalized_ticket_number,
+            with_booking=True,
+        )
     if ticket is None:
         warnings.append("No matching ticket was found in our records.")
         return TicketImageScanResponse(
@@ -534,6 +774,7 @@ async def scan_ticket_image(
             raw_text=analysis.raw_text,
         )
 
+    db_match = _to_db_match_from_passenger(passenger) if passenger else _to_db_match(ticket)
     if ticket.status != TicketStatus.VALID.value:
         warnings.append("Ticket is not currently valid for check-in.")
         return TicketImageScanResponse(
@@ -543,10 +784,14 @@ async def scan_ticket_image(
             extracted_fields=analysis.extracted_fields,
             field_confidence=analysis.field_confidence,
             raw_text=analysis.raw_text,
-            db_match=_to_db_match(ticket),
+            db_match=db_match,
         )
 
-    departure_at = ticket.booking.flight.departure_at
+    departure_at = (
+        passenger.reservation.flight.departure_at
+        if passenger
+        else ticket.booking.flight.departure_at
+    )
     if departure_at.tzinfo is None:
         warnings.append("Departure time timezone is missing; cannot evaluate ticket expiry safely.")
         return TicketImageScanResponse(
@@ -556,7 +801,7 @@ async def scan_ticket_image(
             extracted_fields=analysis.extracted_fields,
             field_confidence=analysis.field_confidence,
             raw_text=analysis.raw_text,
-            db_match=_to_db_match(ticket),
+            db_match=db_match,
         )
     expiry_deadline = departure_at + timedelta(minutes=settings.TICKET_EXPIRY_GRACE_MINUTES)
     if datetime.now(UTC) > expiry_deadline:
@@ -568,7 +813,7 @@ async def scan_ticket_image(
             extracted_fields=analysis.extracted_fields,
             field_confidence=analysis.field_confidence,
             raw_text=analysis.raw_text,
-            db_match=_to_db_match(ticket),
+            db_match=db_match,
         )
 
     return TicketImageScanResponse(
@@ -578,5 +823,5 @@ async def scan_ticket_image(
         extracted_fields=analysis.extracted_fields,
         field_confidence=analysis.field_confidence,
         raw_text=analysis.raw_text,
-        db_match=_to_db_match(ticket),
+        db_match=db_match,
     )

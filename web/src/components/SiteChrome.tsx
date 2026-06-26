@@ -1,10 +1,15 @@
 "use client";
 
-import { AppHeader } from "@/components/AppHeader";
+import dynamic from "next/dynamic";
 import { FooterWrapper } from "@/components/FooterWrapper";
 import { usePathname } from "@/i18n/navigation";
 import { useLocale } from "next-intl";
 import { useEffect, useState, type ReactNode } from "react";
+
+const AppHeader = dynamic(
+  () => import("@/components/AppHeader").then((mod) => mod.AppHeader),
+  { ssr: false },
+);
 
 type SessionProfile = {
   isAdmin: boolean;

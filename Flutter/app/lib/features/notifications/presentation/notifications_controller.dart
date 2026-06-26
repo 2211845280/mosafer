@@ -49,6 +49,42 @@ class NotificationsController
     );
   }
 
+  Future<void> markRead(int id) async {
+    final current = state.valueOrNull ?? const [];
+    state = AsyncValue.data(
+      current
+          .map(
+            (notification) => notification.id == id
+                ? notification.copyWith(read: true)
+                : notification,
+          )
+          .toList(),
+    );
+    final result = await _repository.markRead([id]);
+    result.when(
+      success: (_) {},
+      failure: (error) {
+        state = AsyncValue.error(error, StackTrace.current);
+        load();
+      },
+    );
+  }
+
+  Future<void> deleteNotification(int id) async {
+    final current = state.valueOrNull ?? const [];
+    state = AsyncValue.data(
+      current.where((notification) => notification.id != id).toList(),
+    );
+    final result = await _repository.deleteNotification(id);
+    result.when(
+      success: (_) {},
+      failure: (error) {
+        state = AsyncValue.error(error, StackTrace.current);
+        load();
+      },
+    );
+  }
+
   Future<void> registerDeviceForPush() async {
     await _repository.registerCurrentDevice();
   }
@@ -97,6 +133,13 @@ class AppNotification {
 
   IconData get icon {
     final lower = type.toLowerCase();
+    if (lower.startsWith('trip_todo')) {
+      return Icons.checklist_rounded;
+    }
+    if (lower.contains('critical')) return Icons.warning_amber_rounded;
+    if (lower.contains('home_departure') || lower.contains('flight_departure')) {
+      return Icons.schedule_rounded;
+    }
     if (lower.contains('gate')) return Icons.airline_stops;
     if (lower.contains('boarding')) return Icons.flight_takeoff;
     if (lower.contains('check')) return Icons.fact_check_outlined;

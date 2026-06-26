@@ -6,7 +6,7 @@ import '../../../../core/services/google_directions_service.dart';
 import '../../../../l10n/app_localizations.dart';
 import 'on_way_map_args.dart';
 import 'on_way_route_map.dart';
-import 'on_way_theme.dart';
+import '../../../../core/theme/app_theme_extension.dart';
 
 class OnWayGoogleMapPage extends ConsumerWidget {
   final OnWayMapArgs args;
@@ -15,6 +15,7 @@ class OnWayGoogleMapPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final colors = context.colors;
     final l10n = AppLocalizations.of(context)!;
     final title = args.airportName.trim().isNotEmpty
         ? args.airportName
@@ -24,12 +25,12 @@ class OnWayGoogleMapPage extends ConsumerWidget {
     );
 
     return Scaffold(
-      backgroundColor: OnWayColors.background,
-      appBar: AppBar(
-        backgroundColor: OnWayColors.background,
-        foregroundColor: OnWayColors.title,
-        title: Text(title),
-      ),
+      backgroundColor: colors.background,
+      // appBar: AppBar(
+      //   backgroundColor: colors.background,
+      //   foregroundColor: colors.title,
+      //   title: Text(title),
+      // ),
       body: OnWayRouteMap(
         args: OnWayMapArgs(
           airportCode: args.airportCode,

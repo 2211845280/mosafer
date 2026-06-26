@@ -1,7 +1,7 @@
 {
   "@@locale": "en",
   "appTitle": "Mosafer",
-  "brandMosafer": "MOSAFER",
+  "brandMosafer": "Mosafer",
   "navFlights": "FLIGHTS",
   "navMyTrips": "MY TRIPS",
   "navProfile": "PROFILE",
@@ -15,8 +15,11 @@
   "seeAll": "SEE ALL",
   "settingsTitle": "Settings",
   "settingsNotificationsSection": "NOTIFICATION SETTINGS",
+  "settingsDisplaySection": "DISPLAY SETTINGS",
+  "settingsThemeTileTitle": "Dark mode",
+  "settingsThemeTileSubtitle": "Switch between light and dark appearance",
   "settingsAccountSection": "ACCOUNT",
-  "settingsNotificationTileTitle": "Notification Setting",
+  "settingsNotificationTileTitle": "Allow notifications",
   "settingsNotificationTileSubtitle": "Stay updated on your flights",
   "settingsChangePassword": "Change Password",
   "settingsSwitchAccount": "Switch account",
@@ -56,7 +59,7 @@
   "registerPasswordLabel": "PASSWORD",
   "registerConfirmPasswordLabel": "CONFIRM PASSWORD",
   "registerTermsNotAccepted": "Please accept the Terms of Service and Privacy Policy.",
-  "registerAccountCreated": "Account created successfully!",
+  "registerAccountCreated": "Registration successful. Please verify your email.",
   "registerCreateAccount": "Create Account",
   "registerAlreadyHaveAccount": "Already have an account? ",
   "registerLogIn": "Log in",
@@ -100,6 +103,24 @@
   "errorNoInternet": "No internet connection. Check your network and try again.",
   "errorUnauthorized": "Session expired. Please sign in again.",
   "errorUnableUpdatePassword": "Unable to update password",
+  "errorSeatAlreadyTaken": "This seat is already taken",
+  "errorSeatNoLongerAvailable": "This seat is no longer available",
+  "errorSeatNotInBooking": "Seat is not part of this booking",
+  "errorDuplicateSeats": "Duplicate seat numbers in the same booking",
+  "errorInvalidSeatFormat": "Invalid seat format (use row 1-99 and letter A-F, e.g. 12A)",
+  "errorCheckoutExpired": "Checkout session expired",
+  "errorPassengerDetailsSubmitted": "Passenger details already submitted",
+  "errorReservationNotFound": "Reservation not found",
+  "errorNotYourReservation": "Not your reservation",
+  "errorAlreadyCancelled": "Already cancelled",
+  "errorCannotCancelPastFlight": "Cannot cancel a past flight",
+  "errorDuplicatePassports": "Duplicate passport numbers in the same booking",
+  "errorInvalidCredentials": "Email or password is incorrect",
+  "errorEmailNotVerified": "Please verify your email before logging in.",
+  "errorAccountDisabled": "Account is disabled.",
+  "errorServerUnavailable": "Could not reach the server. Ensure the API is running.",
+  "errorEmailAlreadyExists": "An account with this email already exists",
+  "errorCurrentPasswordIncorrect": "Current password is incorrect",
   "flightsTitle": "Flights",
   "flightsIntro": "Mosafer connects your booking, ticket QR, departure planning, airport guidance, packing, todos and notifications in one travel assistant.",
   "bookingHowTitle": "HOW BOOKING WORKS",
@@ -163,7 +184,14 @@
   "scanPastePayload": "Paste ticket QR payload",
   "scanPayloadHint": "QR raw payload or ticket code",
   "validateTicket": "Validate Ticket",
+  "scanTicketAddedSuccess": "Ticket added successfully.",
   "scanValidateTicketError": "Unable to validate ticket.",
+  "scanNoQrInImage": "No QR code was found in this image.",
+  "scanTicketNotFound": "No matching ticket was found in our records.",
+  "scanTicketInvalid": "This ticket is not valid or could not be read.",
+  "scanTicketExpired": "This ticket has expired.",
+  "scanTicketAlreadyAssigned": "This ticket is already linked to another account.",
+  "scanImageUploadError": "Could not upload the ticket image. Please try again.",
   "scanTabScanQr": "Scan QR",
   "scanTabUploadImage": "Upload Image",
   "scanUploadTitle": "Upload a ticket image",
@@ -174,6 +202,9 @@
   "scanScanNow": "Scan Now",
   "notificationsReadAll": "Read All",
   "notificationsNoYet": "No notifications yet.",
+  "notificationsDeleteConfirm": "Delete this notification?",
+  "notificationsDelete": "Delete",
+  "notificationsCancel": "Cancel",
   "notificationsToday": "TODAY",
   "notificationsEarlier": "EARLIER",
   "timeAgoNow": "now",
@@ -223,6 +254,7 @@
   "trafficHeavy": "Heavy traffic",
   "onWayTraffic": "Traffic",
   "onWayOpenInMaps": "Open in Google Maps",
+  "onWayExpandMap": "Expand map",
   "planDepartureTravelTime": "Road duration",
   "planDepartureBuffer": "SECURITY BUFFER",
   "planDepartureNoTrainsInCountry": "No trains available in this country",
@@ -234,7 +266,7 @@
       "airportCode": {"type": "String"}
     }
   },
-  "onWayDemoSubtitle": "Demo route from Taksim Square to {airportCode} airport",
+  "onWayDemoSubtitle": "Route from Taksim Square to {airportCode} airport",
   "@onWayDemoSubtitle": {
     "placeholders": {
       "airportCode": {"type": "String"}
@@ -570,6 +602,130 @@
   "timelineDay14": "D-14",
   "timelineDay7": "D-7",
   "timelineDay1": "D-1",
+  "timelineDay0": "Flight day",
+  "timelineHourBefore": "1h before",
+  "timelineHoursBefore": "{hours}h before",
+  "@timelineHoursBefore": {
+    "placeholders": {
+      "hours": {"type": "int"}
+    }
+  },
+  "todoResearchHealthRequirements": "Research Health Requirements",
+  "todoCreatePackingList": "Create Packing List",
+  "todoChargeDevices": "Charge Devices",
+  "todoHeadToAirport": "Head to Airport",
+  "todoReviewDeparturePlan": "Review Departure Plan",
+  "todoVisaTravelDocuments": "Check Visa and Travel Documents",
+  "todoHealthVaccinations": "Health Check and Vaccinations",
+  "todoConfirmTransportArrangements": "Confirm Transport Arrangements",
+  "todoConfirmFlightTickets": "Confirm Flight Tickets",
+  "packingItemMedications": "Medications",
+  "packingItemWalkingShoes": "Comfortable Walking Shoes",
+  "packingItemWaterBottle": "Reusable Water Bottle",
+  "packingItemTravelPillow": "Travel Pillow",
+  "notificationPaymentSuccessful": "Payment Successful",
+  "notificationPaymentSuccessfulBody": "Your payment of {amount} {currency} has been processed.",
+  "@notificationPaymentSuccessfulBody": {
+    "placeholders": {
+      "amount": {"type": "String"},
+      "currency": {"type": "String"}
+    }
+  },
+  "notificationPaymentFailed": "Payment Failed",
+  "notificationPaymentFailedBody": "Your payment could not be processed.",
+  "notificationPaymentRefunded": "Payment Refunded",
+  "notificationPaymentRefundedBody": "Your payment of {amount} {currency} has been refunded.",
+  "@notificationPaymentRefundedBody": {
+    "placeholders": {
+      "amount": {"type": "String"},
+      "currency": {"type": "String"}
+    }
+  },
+  "notificationFullRefund": "Full Refund",
+  "notificationFullRefundBody": "A full refund of {amount} {currency} has been issued.",
+  "@notificationFullRefundBody": {
+    "placeholders": {
+      "amount": {"type": "String"},
+      "currency": {"type": "String"}
+    }
+  },
+  "notificationPartialRefund": "Partial Refund",
+  "notificationPartialRefundBody": "A partial refund of {amount} {currency} has been issued.",
+  "@notificationPartialRefundBody": {
+    "placeholders": {
+      "amount": {"type": "String"},
+      "currency": {"type": "String"}
+    }
+  },
+  "notificationBookingCanceled": "Booking Canceled",
+  "notificationBookingCanceledBody": "Your flight booking has been canceled.",
+  "notificationDepartureUrgent": "Leave now! – {flight}",
+  "@notificationDepartureUrgent": {
+    "placeholders": {
+      "flight": {"type": "String"}
+    }
+  },
+  "notificationDepartureWarning": "You should leave soon – {flight}",
+  "@notificationDepartureWarning": {
+    "placeholders": {
+      "flight": {"type": "String"}
+    }
+  },
+  "notificationDepartureReminder": "Gentle reminder – {flight}",
+  "@notificationDepartureReminder": {
+    "placeholders": {
+      "flight": {"type": "String"}
+    }
+  },
+  "notificationDepartureBody": "Your flight {flight} departs at {departureTime}. Recommended departure: {leaveTime} ({travelMinutes} min travel, {bufferMinutes} min weather buffer).",
+  "@notificationDepartureBody": {
+    "placeholders": {
+      "flight": {"type": "String"},
+      "departureTime": {"type": "String"},
+      "leaveTime": {"type": "String"},
+      "travelMinutes": {"type": "int"},
+      "bufferMinutes": {"type": "int"}
+    }
+  },
+  "notificationTripTodoTitle": "Trip tasks reminder",
+  "notificationTripTodoEmptyBody": "Please fill in your trip task list for {flight}.",
+  "@notificationTripTodoEmptyBody": {
+    "placeholders": {
+      "flight": {"type": "String"}
+    }
+  },
+  "notificationTripTodoIncompleteBody": "Please complete your trip tasks for {flight}.",
+  "@notificationTripTodoIncompleteBody": {
+    "placeholders": {
+      "flight": {"type": "String"}
+    }
+  },
+  "notificationDepartureScheduleTitle": "Departure time reminder",
+  "notificationFlightDeparture6hBody": "Your flight {flight} departs in 6 hours.",
+  "@notificationFlightDeparture6hBody": {
+    "placeholders": {
+      "flight": {"type": "String"}
+    }
+  },
+  "notificationHomeDeparture2hBody": "Leave home for the airport in 2 hours ({flight}).",
+  "@notificationHomeDeparture2hBody": {
+    "placeholders": {
+      "flight": {"type": "String"}
+    }
+  },
+  "notificationHomeDeparture30mBody": "Leave home in 30 minutes ({flight}).",
+  "@notificationHomeDeparture30mBody": {
+    "placeholders": {
+      "flight": {"type": "String"}
+    }
+  },
+  "notificationHomeDepartureCriticalTitle": "Critical departure time",
+  "notificationHomeDepartureCriticalBody": "Leave home for the airport now ({flight}).",
+  "@notificationHomeDepartureCriticalBody": {
+    "placeholders": {
+      "flight": {"type": "String"}
+    }
+  },
   "timelineBadgeDocument": "DOCUMENT",
   "timelineBadgeTask": "TASK",
   "timelineBadgePacking": "PACKING",
@@ -592,5 +748,20 @@
     "placeholders": {
       "count": {"type": "int"}
     }
-  }
+  },
+  "todosSelectPacking": "Select tasks to delete",
+  "todosCancelSelection": "Cancel selection",
+  "todosDeleteSelected": "Delete selected ({count})",
+  "@todosDeleteSelected": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "todosDeletedCount": "{count} tasks deleted",
+  "@todosDeletedCount": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "todoConfirmBookingDetails": "Confirm Booking Details"
 }

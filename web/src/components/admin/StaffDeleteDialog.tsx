@@ -8,8 +8,51 @@ type Props = {
   staffName: string;
   open: boolean;
   onClose: () => void;
-  onDeleted: () => void;
+  onDeleted: (staffId: number) => void;
 };
+
+type ApiErrorDetail =
+  | string
+  | Array<{ msg?: string }>
+  | undefined;
+
+function extractDetailMessage(detail: ApiErrorDetail): string | undefined {
+  if (typeof detail === "string" && detail.trim()) {
+    return detail;
+  }
+  if (Array.isArray(detail)) {
+    const first = detail.find((item) => typeof item.msg === "string")?.msg;
+    return first?.trim() || undefined;
+  }
+  return undefined;
+}
+
+function resolveDeleteError(
+  status: number,
+  detail: ApiErrorDetail,
+  t: (key: string) => string,
+): string {
+  const message = extractDetailMessage(detail);
+  if (status === 403 || message === "Insufficient permissions") {
+    return t("staffDeleteNoPermission");
+  }
+  if (status === 500) {
+    return t("staffDeleteServerError");
+  }
+  if (status === 409 || message === "Could not delete admin staff due to related records") {
+    return t("staffDeleteConflict");
+  }
+  if (message === "You cannot delete your own account") {
+    return t("staffDeleteSelfForbidden");
+  }
+  if (message === "Superadmin account cannot be deleted") {
+    return t("staffDeleteSuperadminForbidden");
+  }
+  if (message) {
+    return message;
+  }
+  return t("staffDeleteError");
+}
 
 export function StaffDeleteDialog({
   staffId,
@@ -27,6 +70,10 @@ export function StaffDeleteDialog({
   useEffect(() => {
     if (!open) return;
     setErr(null);
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape" && !busy) onClose();
     };
@@ -42,12 +89,14 @@ export function StaffDeleteDialog({
         method: "DELETE",
         headers: { "Accept-Language": locale },
       });
-      const data = (await res.json().catch(() => ({}))) as { detail?: string };
+      const data = (await res.json().catch(() => ({}))) as {
+        detail?: ApiErrorDetail;
+      };
       if (!res.ok) {
-        setErr(typeof data.detail === "string" ? data.detail : t("staffDeleteError"));
+        setErr(resolveDeleteError(res.status, data.detail, t));
         return;
       }
-      onDeleted();
+      onDeleted(staffId);
       onClose();
     } catch {
       setErr(t("staffDeleteError"));

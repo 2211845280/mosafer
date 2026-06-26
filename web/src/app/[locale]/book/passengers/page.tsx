@@ -4,14 +4,18 @@ import { PassengerSeatPicker } from "@/components/booking/PassengerSeatPicker";
 import { Link, useRouter } from "@/i18n/navigation";
 import { resolveBookingError } from "@/lib/booking-errors";
 import { resolveCarrierName } from "@/lib/carriers";
-import { fetchPaymentConfig, startFlightPayment, type PaymentConfig } from "@/lib/payment";
+import { startFlightPayment } from "@/lib/payment";
 import {
   createEmptyPassenger,
   hasPassportDetails,
-  isPassengerComplete,
   mergePassportDetails,
   replacePassportDetails,
 } from "@/lib/passport-details";
+import {
+  hasPassengerFieldErrors,
+  validateAllPassengers,
+} from "@/lib/passenger-validation";
+import type { FieldErrors } from "@/lib/auth-validation";
 import type { BookingPassengerInput, CheckoutSessionDetail } from "@/types/booking";
 import type { UserProfile } from "@/types/profile";
 import { useLocale, useTranslations } from "next-intl";
@@ -55,11 +59,11 @@ function PassengersForm() {
   const [uploadingByIndex, setUploadingByIndex] = useState<Record<number, boolean>>({});
   const [messageByIndex, setMessageByIndex] = useState<Record<number, string | null>>({});
   const [errorByIndex, setErrorByIndex] = useState<Record<number, string | null>>({});
+  const [fieldErrorsByIndex, setFieldErrorsByIndex] = useState<Record<number, FieldErrors>>({});
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
   const [awaitingPayment, setAwaitingPayment] = useState(false);
-  const [paymentConfig, setPaymentConfig] = useState<PaymentConfig | null>(null);
 
   const anyPassportUploading = Object.values(uploadingByIndex).some(Boolean);
 
@@ -80,17 +84,6 @@ function PassengersForm() {
 
   const hasBlockedPassport = blockedPassengerIndexes.length > 0;
   const primaryBlockedIndex = blockedPassengerIndexes[0] ?? 0;
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      const config = await fetchPaymentConfig(locale);
-      if (!cancelled) setPaymentConfig(config);
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [locale]);
 
   useEffect(() => {
     if (!checkoutSessionId) {
@@ -171,11 +164,28 @@ function PassengersForm() {
     return () => {
       cancelled = true;
     };
-  }, [checkoutSessionId, locale, router, paymentId, t]);
+  }, [checkoutSessionId, locale, paymentId]);
+
+  function clearPassengerFieldError(index: number, field: string) {
+    setFieldErrorsByIndex((prev) => {
+      const current = prev[index];
+      if (!current?.[field]) return prev;
+      const nextErrors = { ...current };
+      delete nextErrors[field];
+      const next = { ...prev };
+      if (Object.keys(nextErrors).length === 0) {
+        delete next[index];
+      } else {
+        next[index] = nextErrors;
+      }
+      return next;
+    });
+  }
 
   function updatePassenger(index: number, field: keyof BookingPassengerInput, value: string) {
     setMessageByIndex((prev) => ({ ...prev, [index]: null }));
     setErrorByIndex((prev) => ({ ...prev, [index]: null }));
+    clearPassengerFieldError(index, field);
     if (index === 0) {
       setPrefilledFromPassport(false);
       setFilledFromOcr(false);
@@ -260,6 +270,7 @@ function PassengersForm() {
     e.preventDefault();
     if (!checkoutSessionId) return;
     setError(null);
+    setFieldErrorsByIndex({});
 
     if (hasBlockedPassport) {
       setError(
@@ -270,7 +281,9 @@ function PassengersForm() {
       return;
     }
 
-    if (!passengers.every(isPassengerComplete)) {
+    const validationErrors = validateAllPassengers(passengers, t);
+    if (hasPassengerFieldErrors(validationErrors)) {
+      setFieldErrorsByIndex(validationErrors);
       setError(t("validationIncomplete"));
       return;
     }
@@ -377,13 +390,6 @@ function PassengersForm() {
         </div>
       )}
 
-      {paymentConfig?.provider === "stripe" && paymentConfig.stripe_test_mode && (
-        <div className="mt-6 rounded-2xl border border-primary/30 bg-primary/10 p-4 text-sm">
-          <p className="font-extrabold text-primary">{tBook("stripeDemoTitle")}</p>
-          <p className="mt-1 text-muted">{tBook("stripeDemoCard")}</p>
-        </div>
-      )}
-
       {prefilledFromPassport && !hasBlockedPassport && (
         <div className="mt-6 rounded-2xl border border-primary/30 bg-primary/10 p-4 text-sm">
           <p className="font-extrabold text-primary">{t("prefilledFromPassport")}</p>
@@ -403,8 +409,15 @@ function PassengersForm() {
         </div>
       )}
 
-      <form onSubmit={(e) => void onSubmit(e)} className="mt-8 space-y-8">
-        {passengers.map((p, index) => (
+      <form noValidate onSubmit={(e) => void onSubmit(e)} className="mt-8 space-y-8">
+        {passengers.map((p, index) => {
+          const fieldErrors = fieldErrorsByIndex[index] ?? {};
+          const inputClass = (field: string, extra = "") => {
+            const base = extra ? `form-input ${extra}` : "form-input";
+            return fieldErrors[field] ? `${base} form-input-error` : base;
+          };
+
+          return (
           <section
             key={index}
             className="rounded-2xl border border-border-subtle bg-card p-6 sm:p-8"
@@ -472,85 +485,117 @@ function PassengersForm() {
               <label className="flex flex-col gap-1 text-xs font-bold uppercase text-muted">
                 {t("gender")}
                 <select
-                  required
                   value={p.gender}
                   onChange={(e) => updatePassenger(index, "gender", e.target.value)}
-                  className="form-input"
+                  aria-invalid={Boolean(fieldErrors.gender)}
+                  className={inputClass("gender")}
                 >
                   <option value="M">{t("male")}</option>
                   <option value="F">{t("female")}</option>
                 </select>
+                {fieldErrors.gender ? (
+                  <span className="form-field-error-text normal-case">{fieldErrors.gender}</span>
+                ) : null}
               </label>
               <label className="flex flex-col gap-1 text-xs font-bold uppercase text-muted">
                 {t("givenName")}
                 <input
-                  required
                   value={p.given_name}
                   onChange={(e) => updatePassenger(index, "given_name", e.target.value)}
-                  className="form-input uppercase"
+                  aria-invalid={Boolean(fieldErrors.given_name)}
+                  className={inputClass("given_name", "uppercase")}
                   placeholder="JOHN"
                 />
+                {fieldErrors.given_name ? (
+                  <span className="form-field-error-text normal-case">
+                    {fieldErrors.given_name}
+                  </span>
+                ) : null}
               </label>
               <label className="flex flex-col gap-1 text-xs font-bold uppercase text-muted">
                 {t("familyName")}
                 <input
-                  required
                   value={p.family_name}
                   onChange={(e) => updatePassenger(index, "family_name", e.target.value)}
-                  className="form-input uppercase"
+                  aria-invalid={Boolean(fieldErrors.family_name)}
+                  className={inputClass("family_name", "uppercase")}
                   placeholder="DOE"
                 />
+                {fieldErrors.family_name ? (
+                  <span className="form-field-error-text normal-case">
+                    {fieldErrors.family_name}
+                  </span>
+                ) : null}
               </label>
               <label className="flex flex-col gap-1 text-xs font-bold uppercase text-muted">
                 {t("dateOfBirth")}
                 <input
-                  required
                   type="date"
                   value={p.date_of_birth}
                   onChange={(e) => updatePassenger(index, "date_of_birth", e.target.value)}
-                  className="form-input"
+                  aria-invalid={Boolean(fieldErrors.date_of_birth)}
+                  className={inputClass("date_of_birth")}
                 />
+                {fieldErrors.date_of_birth ? (
+                  <span className="form-field-error-text normal-case">
+                    {fieldErrors.date_of_birth}
+                  </span>
+                ) : null}
               </label>
               <label className="flex flex-col gap-1 text-xs font-bold uppercase text-muted">
                 {t("nationality")}
                 <input
-                  required
                   maxLength={3}
                   value={p.nationality}
                   onChange={(e) =>
                     updatePassenger(index, "nationality", e.target.value.toUpperCase())
                   }
-                  className="form-input uppercase"
+                  aria-invalid={Boolean(fieldErrors.nationality)}
+                  className={inputClass("nationality", "uppercase")}
                   dir="ltr"
                   placeholder="LBY"
                 />
+                {fieldErrors.nationality ? (
+                  <span className="form-field-error-text normal-case">
+                    {fieldErrors.nationality}
+                  </span>
+                ) : null}
               </label>
               <label className="flex flex-col gap-1 text-xs font-bold uppercase text-muted sm:col-span-2">
                 {t("passportNumber")}
                 <input
-                  required
                   value={p.passport_number}
                   onChange={(e) =>
                     updatePassenger(index, "passport_number", e.target.value.toUpperCase())
                   }
-                  className="form-input uppercase"
+                  aria-invalid={Boolean(fieldErrors.passport_number)}
+                  className={inputClass("passport_number", "uppercase")}
                   dir="ltr"
                 />
+                {fieldErrors.passport_number ? (
+                  <span className="form-field-error-text normal-case">
+                    {fieldErrors.passport_number}
+                  </span>
+                ) : null}
               </label>
               <label className="flex flex-col gap-1 text-xs font-bold uppercase text-muted">
                 {t("passportExpiry")}
                 <input
-                  required
                   type="date"
                   value={p.passport_expiry}
                   onChange={(e) => updatePassenger(index, "passport_expiry", e.target.value)}
-                  className="form-input"
+                  aria-invalid={Boolean(fieldErrors.passport_expiry)}
+                  className={inputClass("passport_expiry")}
                 />
+                {fieldErrors.passport_expiry ? (
+                  <span className="form-field-error-text normal-case">
+                    {fieldErrors.passport_expiry}
+                  </span>
+                ) : null}
               </label>
               <label className="flex flex-col gap-1 text-xs font-bold uppercase text-muted">
                 {t("passportCountry")}
                 <input
-                  required
                   maxLength={3}
                   value={p.passport_issuing_country}
                   onChange={(e) =>
@@ -560,15 +605,22 @@ function PassengersForm() {
                       e.target.value.toUpperCase(),
                     )
                   }
-                  className="form-input uppercase"
+                  aria-invalid={Boolean(fieldErrors.passport_issuing_country)}
+                  className={inputClass("passport_issuing_country", "uppercase")}
                   dir="ltr"
                   placeholder="LBY"
                 />
+                {fieldErrors.passport_issuing_country ? (
+                  <span className="form-field-error-text normal-case">
+                    {fieldErrors.passport_issuing_country}
+                  </span>
+                ) : null}
               </label>
             </div>
             <p className="mt-4 text-xs text-muted">{t("nameHint")}</p>
           </section>
-        ))}
+          );
+        })}
 
         {error && (
           <p className="whitespace-pre-line text-sm font-semibold text-accent" role="alert">

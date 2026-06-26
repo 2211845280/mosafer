@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../../../core/theme/app_theme_extension.dart';
 
 class OpenLevelUpView extends StatelessWidget {
   const OpenLevelUpView({super.key, required this.url, required this.overlay});
@@ -9,6 +10,7 @@ class OpenLevelUpView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Stack(
       children: [
         ColoredBox(

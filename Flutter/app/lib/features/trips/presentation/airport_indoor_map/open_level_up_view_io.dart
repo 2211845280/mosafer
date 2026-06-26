@@ -1,10 +1,13 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 import 'open_level_up_crop.dart';
+import '../../../../core/theme/app_theme_extension.dart';
 
 class OpenLevelUpView extends StatefulWidget {
   const OpenLevelUpView({super.key, required this.url, required this.overlay});
@@ -62,6 +65,7 @@ class _OpenLevelUpViewState extends State<OpenLevelUpView> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final controller = _controller;
     if (!_supportsEmbeddedWebView || controller == null) {
       return _OpenExternallyFallback(url: widget.url, overlay: widget.overlay);
@@ -88,6 +92,7 @@ class _CroppedOpenLevelUpWebView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return ClipRect(
       child: Stack(
         clipBehavior: Clip.hardEdge,
@@ -97,7 +102,20 @@ class _CroppedOpenLevelUpWebView extends StatelessWidget {
             top: -openLevelUpCropTop,
             right: 0,
             bottom: 0,
-            child: WebViewWidget(controller: controller),
+            child: WebViewWidget(
+              controller: controller,
+              gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{
+                Factory<VerticalDragGestureRecognizer>(
+                  () => VerticalDragGestureRecognizer(),
+                ),
+                Factory<HorizontalDragGestureRecognizer>(
+                  () => HorizontalDragGestureRecognizer(),
+                ),
+                Factory<ScaleGestureRecognizer>(
+                  () => ScaleGestureRecognizer(),
+                ),
+              },
+            ),
           ),
         ],
       ),
@@ -113,6 +131,7 @@ class _OpenExternallyFallback extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Stack(
       children: [
         ColoredBox(

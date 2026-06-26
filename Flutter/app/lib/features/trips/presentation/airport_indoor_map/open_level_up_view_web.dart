@@ -4,6 +4,7 @@ import 'dart:html' as html;
 import 'dart:ui_web' as ui_web;
 
 import 'package:flutter/material.dart';
+import '../../../../core/theme/app_theme_extension.dart';
 
 /// Pixels cropped from embedded OpenLevelUp chrome (top navbar / left sidebar).
 const openLevelUpCropTopPx = 40;
@@ -55,6 +56,7 @@ class _OpenLevelUpViewState extends State<OpenLevelUpView> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Stack(
       children: [
         HtmlElementView(viewType: _viewType),

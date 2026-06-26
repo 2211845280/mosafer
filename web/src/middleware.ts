@@ -2,6 +2,13 @@ import createMiddleware from "next-intl/middleware";
 import { type NextRequest, NextResponse } from "next/server";
 import { isAdminRole } from "./lib/admin-roles";
 import { apiUrl } from "./lib/api";
+import {
+  apiFetch,
+  applyAuthCookiesToResponse,
+  clearAuthCookies,
+  refreshTokensFromApi,
+  type RefreshedTokens,
+} from "./lib/auth-refresh";
 import { routing } from "./i18n/routing";
 
 const intlMiddleware = createMiddleware(routing);
@@ -24,7 +31,7 @@ function isPassengerOnlyPath(path: string): boolean {
 
 async function resolveIsAdmin(token: string): Promise<boolean | null> {
   try {
-    const res = await fetch(apiUrl("/users/me"), {
+    const res = await apiFetch(apiUrl("/users/me"), {
       headers: {
         Authorization: `Bearer ${token}`,
         Accept: "application/json",
@@ -42,36 +49,87 @@ async function resolveIsAdmin(token: string): Promise<boolean | null> {
   }
 }
 
-export default async function middleware(request: NextRequest) {
-  const token = request.cookies.get("access_token")?.value;
-  const { pathname } = request.nextUrl;
-  const { locale, path } = stripLocale(pathname);
-
-  let isAdmin: boolean | null = null;
-  if (token) {
-    isAdmin = await resolveIsAdmin(token);
+async function resolveAdminWithRefresh(
+  request: NextRequest,
+): Promise<{ isAdmin: boolean | null; refreshedTokens: RefreshedTokens | null }> {
+  let token = request.cookies.get("access_token")?.value;
+  if (!token) {
+    return { isAdmin: null, refreshedTokens: null };
   }
 
+  let isAdmin = await resolveIsAdmin(token);
+  if (isAdmin !== null) {
+    return { isAdmin, refreshedTokens: null };
+  }
+
+  const refreshCookie = request.cookies.get("refresh_token")?.value;
+  if (!refreshCookie) {
+    return { isAdmin: null, refreshedTokens: null };
+  }
+
+  const refreshedTokens = await refreshTokensFromApi(refreshCookie);
+  if (!refreshedTokens) {
+    return { isAdmin: null, refreshedTokens: null };
+  }
+
+  isAdmin = await resolveIsAdmin(refreshedTokens.access_token);
+  return { isAdmin, refreshedTokens };
+}
+
+function loginRedirect(
+  request: NextRequest,
+  locale: string,
+  nextPath: string,
+  clearCookies: boolean,
+): NextResponse {
+  const loginUrl = new URL(`/${locale}/login`, request.url);
+  loginUrl.searchParams.set("next", nextPath);
+  const response = NextResponse.redirect(loginUrl);
+  if (clearCookies) {
+    clearAuthCookies(response);
+  }
+  return response;
+}
+
+export default async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+  const { locale, path } = stripLocale(pathname);
+  const fullPath = `/${locale}${path}`;
+
+  const { isAdmin, refreshedTokens } = await resolveAdminWithRefresh(request);
+
   if (path === "/login" && isAdmin === true) {
-    return NextResponse.redirect(new URL(`/${locale}/admin`, request.url));
+    const response = NextResponse.redirect(new URL(`/${locale}/admin`, request.url));
+    if (refreshedTokens) applyAuthCookiesToResponse(response, refreshedTokens);
+    return response;
   }
 
   if (isAdmin === true && isPassengerOnlyPath(path)) {
-    return NextResponse.redirect(new URL(`/${locale}/admin`, request.url));
+    const response = NextResponse.redirect(new URL(`/${locale}/admin`, request.url));
+    if (refreshedTokens) applyAuthCookiesToResponse(response, refreshedTokens);
+    return response;
   }
 
   if (path.startsWith("/admin")) {
-    if (!token) {
-      const loginUrl = new URL(`/${locale}/login`, request.url);
-      loginUrl.searchParams.set("next", `/${locale}${path}`);
-      return NextResponse.redirect(loginUrl);
+    const token = request.cookies.get("access_token")?.value;
+    if (!token && !refreshedTokens) {
+      return loginRedirect(request, locale, fullPath, false);
     }
     if (isAdmin === false) {
-      return NextResponse.redirect(new URL(`/${locale}`, request.url));
+      const response = NextResponse.redirect(new URL(`/${locale}`, request.url));
+      if (refreshedTokens) applyAuthCookiesToResponse(response, refreshedTokens);
+      return response;
+    }
+    if (isAdmin === null) {
+      return loginRedirect(request, locale, fullPath, true);
     }
   }
 
-  return intlMiddleware(request);
+  const response = intlMiddleware(request);
+  if (refreshedTokens) {
+    applyAuthCookiesToResponse(response, refreshedTokens);
+  }
+  return response;
 }
 
 export const config = {

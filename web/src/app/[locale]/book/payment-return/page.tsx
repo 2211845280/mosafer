@@ -52,7 +52,7 @@ function PaymentReturnInner() {
     return () => {
       cancelled = true;
     };
-  }, [checkoutSessionId, paymentId, sessionId, isMock, locale, router, t]);
+  }, [checkoutSessionId, paymentId, sessionId, isMock, locale, router]);
 
   if (error) {
     return (

@@ -4,6 +4,7 @@ import '../../domain/indoor_map.dart';
 import 'indoor_map_painter.dart';
 import 'indoor_route_builder.dart';
 import 'indoor_route_painter.dart';
+import '../../../../core/theme/app_theme_extension.dart';
 
 /// Native indoor floor plan with pinch-zoom; route shares map coordinates.
 class IndoorMapCanvas extends StatefulWidget {
@@ -63,6 +64,7 @@ class _IndoorMapCanvasState extends State<IndoorMapCanvas>
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final features = widget.map.featuresForLevel(widget.level);
     final pois = widget.map.poisForLevel(widget.level);
     final routePoints = widget.routeEnabled

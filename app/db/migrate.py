@@ -35,7 +35,7 @@ from app.models import (  # noqa: F401
     UserPreference,
 )
 
-ALEMBIC_HEAD = "add_reservation_hidden_at"
+ALEMBIC_HEAD = "add_trip_todo_bilingual_fields"
 
 
 async def _users_table_exists() -> bool:
@@ -61,50 +61,18 @@ async def _alembic_revision() -> str | None:
         return await conn.run_sync(check)
 
 
-async def _roles_seeded() -> bool:
-    async with engine.connect() as conn:
-
-        def check(connection) -> bool:
-            if not inspect(connection).has_table("roles"):
-                return False
-            row = connection.execute(text("SELECT COUNT(*) FROM roles")).first()
-            return row is not None and row[0] > 0
-
-        return await conn.run_sync(check)
-
-
 async def _bootstrap_fresh_schema() -> None:
     print("Fresh database detected; creating schema from SQLAlchemy models...")
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
 
-async def _seed_rbac_if_needed() -> None:
-    if await _roles_seeded():
-        return
-    print("Seeding RBAC roles and permissions...")
+async def _seed_rbac() -> None:
+    """Sync permissions/roles and ensure the configured superadmin account exists."""
+    print("Seeding/syncing RBAC roles and permissions...")
     async with AsyncSessionLocal() as session:
         await seed_rbac(session)
         await session.commit()
-
-
-async def prepare_database() -> str:
-    """Return the Alembic action needed after async DB work completes."""
-    if not await _users_table_exists():
-        await _bootstrap_fresh_schema()
-        await _seed_rbac_if_needed()
-        return "stamp"
-
-    revision = await _alembic_revision()
-    if revision is None:
-        await _seed_rbac_if_needed()
-        return "stamp"
-
-    if revision != ALEMBIC_HEAD:
-        return "upgrade"
-
-    await _seed_rbac_if_needed()
-    return "none"
 
 
 def _stamp_head() -> None:
@@ -121,22 +89,34 @@ def _upgrade_head() -> None:
     print("Alembic upgrades complete.")
 
 
-def main() -> None:
+async def main() -> None:
+    """Run all async DB work in a single event loop; Alembic stays sync in a thread."""
     try:
-        action = asyncio.run(prepare_database())
-        if action == "stamp":
-            _stamp_head()
-        elif action == "upgrade":
-            _upgrade_head()
-            asyncio.run(_seed_rbac_if_needed())
-        else:
-            print("Database schema is up to date.")
+        if not await _users_table_exists():
+            await _bootstrap_fresh_schema()
+            await _seed_rbac()
+            await asyncio.to_thread(_stamp_head)
+            return
+
+        revision = await _alembic_revision()
+        if revision is None:
+            await _seed_rbac()
+            await asyncio.to_thread(_stamp_head)
+            return
+
+        if revision != ALEMBIC_HEAD:
+            await asyncio.to_thread(_upgrade_head)
+            await _seed_rbac()
+            return
+
+        await _seed_rbac()
+        print("Database schema is up to date.")
     except Exception as exc:
         print(f"Migration failed: {exc}", file=sys.stderr)
         raise SystemExit(1) from exc
     finally:
-        asyncio.run(engine.dispose())
+        await engine.dispose()
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())

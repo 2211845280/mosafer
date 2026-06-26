@@ -24,6 +24,8 @@ class TicketRead(BaseModel):
     id: int
     booking_id: int
     ticket_number: str
+    ordered_by_user_id: int | None = None
+    assigned_to_user_id: int | None = None
     qr_code: str
     qr_image_path: str | None
     status: str
@@ -36,6 +38,8 @@ class TicketListItem(BaseModel):
     id: int
     booking_id: int
     ticket_number: str
+    ordered_by_user_id: int | None = None
+    assigned_to_user_id: int | None = None
     status: str
     issued_at: datetime
     qr_image_path: str | None
@@ -68,6 +72,24 @@ class QRScanResponse(BaseModel):
     reservation_status: str
     flight: FlightSummaryForTicket
     issued_at: datetime
+
+
+class TicketClaimRequest(BaseModel):
+    ticket_number: str = Field(
+        ...,
+        min_length=1,
+        description="Ticket number extracted from the QR payload",
+    )
+
+
+class TicketClaimResponse(BaseModel):
+    claimed: bool
+    ticket_number: str
+    reservation_id: int
+    assigned_to_user_id: int
+    scope: Literal["ticket", "passenger"]
+    message: str
+    flight: FlightSummaryForTicket
 
 
 class TicketImageExtractedFields(BaseModel):
@@ -143,6 +165,8 @@ def ticket_list_item(ticket) -> TicketListItem:
         id=ticket.id,
         booking_id=ticket.booking_id,
         ticket_number=ticket.ticket_number,
+        ordered_by_user_id=ticket.ordered_by_user_id,
+        assigned_to_user_id=ticket.assigned_to_user_id,
         status=ticket.status,
         issued_at=ticket.issued_at,
         qr_image_path=ticket.qr_image_path,

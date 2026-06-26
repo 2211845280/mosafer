@@ -3,21 +3,24 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/localization/error_message_localizer.dart';
+import '../../../core/localization/notification_message_localizer.dart';
 import '../../../l10n/app_localizations.dart';
 import 'notification_time_format.dart';
 import 'notifications_controller.dart';
+import '../../../core/theme/app_theme_extension.dart';
 
 class NotificationsPage extends ConsumerWidget {
   const NotificationsPage({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final colors = context.colors;
     final l10n = AppLocalizations.of(context)!;
     final state = ref.watch(notificationsControllerProvider);
     final controller = ref.read(notificationsControllerProvider.notifier);
 
     return Scaffold(
-      backgroundColor: _NotificationColors.background,
+      backgroundColor: colors.background,
       body: SafeArea(
         bottom: false,
         child: Column(
@@ -57,6 +60,7 @@ class NotificationsPage extends ConsumerWidget {
                                   l10n: l10n,
                                   title: l10n.notificationsToday,
                                   notifications: today,
+                                  controller: controller,
                                 ),
                               if (today.isNotEmpty && earlier.isNotEmpty)
                                 const SizedBox(height: 27),
@@ -65,6 +69,7 @@ class NotificationsPage extends ConsumerWidget {
                                   l10n: l10n,
                                   title: l10n.notificationsEarlier,
                                   notifications: earlier,
+                                  controller: controller,
                                 ),
                             ],
                           ),
@@ -90,6 +95,7 @@ class _NotificationsAppBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Padding(
       padding: const EdgeInsets.fromLTRB(14, 9, 17, 0),
       child: Row(
@@ -97,14 +103,14 @@ class _NotificationsAppBar extends StatelessWidget {
           GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTap: () => context.pop(),
-            child: const SizedBox(
+            child: SizedBox(
               width: 40,
               height: 40,
               child: Align(
                 alignment: AlignmentDirectional.centerStart,
                 child: Icon(
                   Icons.arrow_back,
-                  color: _NotificationColors.title,
+                  color: colors.title,
                   size: 20,
                 ),
               ),
@@ -114,8 +120,8 @@ class _NotificationsAppBar extends StatelessWidget {
           Expanded(
             child: Text(
               l10n.brandMosafer,
-              style: const TextStyle(
-                color: _NotificationColors.title,
+              style: TextStyle(
+                color: colors.title,
                 fontSize: 18,
                 fontWeight: FontWeight.w900,
                 letterSpacing: -0.35,
@@ -125,12 +131,12 @@ class _NotificationsAppBar extends StatelessWidget {
           TextButton(
             onPressed: onReadAll,
             style: TextButton.styleFrom(
-              foregroundColor: _NotificationColors.title,
+              foregroundColor: colors.title,
               padding: const EdgeInsets.symmetric(horizontal: 6),
             ),
             child: Text(
               l10n.notificationsReadAll,
-              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900),
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w900),
             ),
           ),
         ],
@@ -143,15 +149,18 @@ class _NotificationSectionBlock extends StatelessWidget {
   final AppLocalizations l10n;
   final String title;
   final List<AppNotification> notifications;
+  final NotificationsController controller;
 
   const _NotificationSectionBlock({
     required this.l10n,
     required this.title,
     required this.notifications,
+    required this.controller,
   });
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -159,8 +168,8 @@ class _NotificationSectionBlock extends StatelessWidget {
           padding: const EdgeInsetsDirectional.only(start: 7),
           child: Text(
             title,
-            style: const TextStyle(
-              color: _NotificationColors.sectionTitle,
+            style: TextStyle(
+              color: colors.section,
               fontSize: 12,
               fontWeight: FontWeight.w900,
               letterSpacing: 1.8,
@@ -171,114 +180,173 @@ class _NotificationSectionBlock extends StatelessWidget {
         ...notifications.map(
           (notification) => Padding(
             padding: const EdgeInsets.only(bottom: 14),
-            child: _NotificationCard(l10n: l10n, notification: notification),
+            child: _NotificationCard(
+              l10n: l10n,
+              notification: notification,
+              onTap: () => controller.markRead(notification.id),
+              onDelete: () => _confirmDelete(context, notification.id),
+            ),
           ),
         ),
       ],
     );
+  }
+
+  Future<void> _confirmDelete(BuildContext context, int id) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(l10n.notificationsDelete),
+        content: Text(l10n.notificationsDeleteConfirm),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(l10n.notificationsCancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(l10n.notificationsDelete),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) {
+      await controller.deleteNotification(id);
+    }
   }
 }
 
 class _NotificationCard extends StatelessWidget {
   final AppLocalizations l10n;
   final AppNotification notification;
+  final VoidCallback onTap;
+  final VoidCallback onDelete;
 
-  const _NotificationCard({required this.l10n, required this.notification});
+  const _NotificationCard({
+    required this.l10n,
+    required this.notification,
+    required this.onTap,
+    required this.onDelete,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final isUnread = !notification.read;
     final iconColor = isUnread
-        ? _NotificationColors.blue
-        : _NotificationColors.readIcon;
+        ? colors.primary
+        : colors.readIcon;
+    final localized = localizeNotification(notification, l10n);
 
-    return Container(
-      constraints: const BoxConstraints(minHeight: 91),
-      padding: const EdgeInsets.fromLTRB(17, 16, 16, 15),
-      decoration: BoxDecoration(
-        color: _NotificationColors.card,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: _NotificationColors.border),
-        boxShadow: isUnread
-            ? [
-                BoxShadow(
-                  color: _NotificationColors.blue.withValues(alpha: 0.11),
-                  blurRadius: 18,
-                  offset: const Offset(0, 6),
-                ),
-              ]
-            : null,
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: iconColor.withValues(alpha: isUnread ? 0.23 : 0.18),
-              shape: BoxShape.circle,
+    final card = GestureDetector(
+      onTap: onTap,
+      child: Container(
+        constraints: const BoxConstraints(minHeight: 91),
+        padding: const EdgeInsets.fromLTRB(17, 16, 16, 15),
+        decoration: BoxDecoration(
+          color: colors.card,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: colors.border),
+          boxShadow: isUnread
+              ? [
+                  BoxShadow(
+                    color: colors.primary.withValues(alpha: 0.11),
+                    blurRadius: 18,
+                    offset: const Offset(0, 6),
+                  ),
+                ]
+              : null,
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: iconColor.withValues(alpha: isUnread ? 0.23 : 0.18),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(notification.icon, color: iconColor, size: 20),
             ),
-            child: Icon(notification.icon, color: iconColor, size: 20),
-          ),
-          const SizedBox(width: 13),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        notification.title,
-                        style: TextStyle(
-                          color: isUnread
-                              ? _NotificationColors.title
-                              : _NotificationColors.readTitle,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: -0.2,
+            const SizedBox(width: 13),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          localized.$1,
+                          style: TextStyle(
+                            color: isUnread
+                                ? colors.title
+                                : colors.readTitle,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: -0.2,
+                          ),
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      formatNotificationTimeAgo(notification.createdAt, l10n),
-                      style: const TextStyle(
-                        color: _NotificationColors.muted,
-                        fontSize: 7,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        notification.body,
+                      const SizedBox(width: 8),
+                      Text(
+                        formatNotificationTimeAgo(notification.createdAt, l10n),
                         style: TextStyle(
-                          color: isUnread
-                              ? _NotificationColors.title
-                              : _NotificationColors.body,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          height: 1.35,
+                          color: colors.muted,
+                          fontSize: 7,
+                          fontWeight: FontWeight.w800,
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    _UnreadIndicator(isUnread: isUnread),
-                  ],
-                ),
-              ],
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          localized.$2,
+                          style: TextStyle(
+                            color: isUnread
+                                ? colors.title
+                                : colors.body,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            height: 1.35,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      _UnreadIndicator(isUnread: isUnread),
+                    ],
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
+    );
+
+    return Dismissible(
+      key: ValueKey('notification-${notification.id}'),
+      direction: DismissDirection.endToStart,
+      background: Container(
+        alignment: AlignmentDirectional.centerEnd,
+        padding: const EdgeInsetsDirectional.only(end: 20),
+        decoration: BoxDecoration(
+          color: colors.primary.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Icon(Icons.delete_outline, color: colors.primary),
+      ),
+      confirmDismiss: (_) async {
+        onDelete();
+        return false;
+      },
+      child: card,
     );
   }
 }
@@ -290,19 +358,20 @@ class _UnreadIndicator extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Container(
       width: 7,
       height: 7,
       margin: const EdgeInsets.only(top: 2),
       decoration: BoxDecoration(
         color: isUnread
-            ? _NotificationColors.unreadDot
-            : _NotificationColors.readDot,
+            ? colors.unreadDot
+            : colors.readDot,
         shape: BoxShape.circle,
         boxShadow: isUnread
             ? [
                 BoxShadow(
-                  color: _NotificationColors.unreadDot.withValues(alpha: 0.55),
+                  color: colors.unreadDot.withValues(alpha: 0.55),
                   blurRadius: 8,
                   spreadRadius: 1,
                 ),
@@ -326,6 +395,7 @@ class _NotificationsMessage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final l10n = AppLocalizations.of(context)!;
     return Center(
       child: Padding(
@@ -336,8 +406,8 @@ class _NotificationsMessage extends StatelessWidget {
             Text(
               message,
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: _NotificationColors.title,
+              style: TextStyle(
+                color: colors.title,
                 fontSize: 14,
                 fontWeight: FontWeight.w700,
               ),
@@ -354,23 +424,4 @@ class _NotificationsMessage extends StatelessWidget {
       ),
     );
   }
-}
-
-class _NotificationColors {
-  _NotificationColors._();
-
-  static const Color background = Color(0xFF061326);
-  static const Color card = Color(0xFF101F36);
-  static const Color border = Color(0xFF1F344F);
-  static const Color title = Color(0xFFD5E4FF);
-  static const Color body = Color(0xFFACBAD1);
-  static const Color muted = Color(0xFF7386A0);
-  static const Color sectionTitle = Color(0xFF9FB0CE);
-  static const Color readTitle = Color(0xFFB8C5DA);
-  static const Color readIcon = Color(0xFF8795AA);
-  static const Color readDot = Color(0xFF33445F);
-  static const Color unreadDot = Color(0xFFAEC8FF);
-  static const Color blue = Color(0xFF4A91F8);
-  // ignore: unused_field
-  static const Color salmon = Color(0xFFFFA982);
 }

@@ -1,15 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../../../core/localization/ai_content_localizer.dart';
 import '../../../../core/localization/error_message_localizer.dart';
 import '../../../../core/localization/locale_providers.dart';
 import '../../../../l10n/app_localizations.dart';
-import '../../../../shared/models/result.dart';
 import '../../data/trips_repository.dart';
 import '../../domain/ai_travel.dart';
 import '../active_trip_controller.dart';
 import 'timeline_destination_hero.dart';
 import 'timeline_utils.dart';
+import '../../../../core/theme/app_theme_extension.dart';
 
 class TimelinePage extends ConsumerStatefulWidget {
   const TimelinePage({super.key});
@@ -20,7 +22,6 @@ class TimelinePage extends ConsumerStatefulWidget {
 
 class _TimelinePageState extends ConsumerState<TimelinePage> {
   final Set<String> _completedKeys = {};
-  final Map<String, int> _todoIdByKey = {};
   bool _isLoading = false;
   String? _loadError;
   TimelineResult? _timeline;
@@ -42,7 +43,6 @@ class _TimelinePageState extends ConsumerState<TimelinePage> {
         _isLoading = false;
         _loadedReservationId = null;
         _completedKeys.clear();
-        _todoIdByKey.clear();
       });
       return;
     }
@@ -57,79 +57,55 @@ class _TimelinePageState extends ConsumerState<TimelinePage> {
       _loadError = null;
     });
 
-    final repo = ref.read(tripsRepositoryProvider);
-    final results = await Future.wait([
-      repo.fetchTimeline(trip.reservationId),
-      repo.getTodos(trip.reservationId),
-    ]);
+    final result = await ref
+        .read(tripsRepositoryProvider)
+        .fetchTimeline(trip.reservationId);
 
     if (!mounted) return;
 
-    final timelineResult = results[0] as Result<TimelineResult>;
-    final todosResult = results[1] as Result<List<Map<String, dynamic>>>;
+    final timeline = result.dataOrNull;
+    if (timeline != null) {
+      final completedKeys = await _loadCompletedKeys(trip.reservationId);
+      if (!mounted) return;
+      setState(() {
+        _timeline = timeline;
+        _loadedReservationId = trip.reservationId;
+        _isLoading = false;
+        _loadError = null;
+        _completedKeys
+          ..clear()
+          ..addAll(completedKeys);
+      });
+      return;
+    }
 
-    timelineResult.when(
-      success: (timeline) {
-        final todoIdByKey = <String, int>{};
-        final completedKeys = <String>{};
-
-        todosResult.when(
-          success: (todos) {
-            final todosByMatch = <String, Map<String, dynamic>>{};
-            for (final todo in todos) {
-              final matchKey = timelineTodoMatchKey(
-                title: todo['title'] as String? ?? '',
-                category: todo['category'] as String? ?? 'task',
-              );
-              todosByMatch.putIfAbsent(matchKey, () => todo);
-            }
-
-            for (var i = 0; i < timeline.items.length; i++) {
-              final item = timeline.items[i];
-              final todo = todosByMatch[timelineTodoMatchKeyForItem(item)];
-              if (todo == null) continue;
-              final key = _itemKey(i);
-              final id = todo['id'] as int?;
-              if (id == null) continue;
-              todoIdByKey[key] = id;
-              if (todo['is_completed'] == true) {
-                completedKeys.add(key);
-              }
-            }
-          },
-          failure: (_) {},
-        );
-
-        setState(() {
-          _timeline = timeline;
-          _loadedReservationId = trip.reservationId;
-          _isLoading = false;
-          _loadError = null;
-          _todoIdByKey
-            ..clear()
-            ..addAll(todoIdByKey);
-          _completedKeys
-            ..clear()
-            ..addAll(completedKeys);
-        });
-      },
-      failure: (error) {
-        setState(() {
-          _timeline = null;
-          _loadedReservationId = trip.reservationId;
-          _isLoading = false;
-          _loadError = localizeUserFacingError(error, l10n);
-          _completedKeys.clear();
-          _todoIdByKey.clear();
-        });
-      },
-    );
+    setState(() {
+      _timeline = null;
+      _loadedReservationId = trip.reservationId;
+      _isLoading = false;
+      _loadError = localizeUserFacingError(result.errorOrNull ?? '', l10n);
+      _completedKeys.clear();
+    });
   }
 
-  String _itemKey(int index) => 'timeline:$index';
+  String _completedPrefsKey(int reservationId) =>
+      'timeline_completed:$reservationId';
+
+  Future<Set<String>> _loadCompletedKeys(int reservationId) async {
+    final prefs = await SharedPreferences.getInstance();
+    return (prefs.getStringList(_completedPrefsKey(reservationId)) ?? const [])
+        .toSet();
+  }
+
+  Future<void> _saveCompletedKeys(int reservationId) async {
+    final prefs = await SharedPreferences.getInstance();
+    final keys = _completedKeys.toList()..sort();
+    await prefs.setStringList(_completedPrefsKey(reservationId), keys);
+  }
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final l10n = AppLocalizations.of(context)!;
 
     ref.listen(activeTripProvider, (previous, next) {
@@ -147,9 +123,9 @@ class _TimelinePageState extends ConsumerState<TimelinePage> {
     final bottomInset = MediaQuery.paddingOf(context).bottom + 88 + 24;
 
     return Scaffold(
-      backgroundColor: _TimelineColors.background,
+      backgroundColor: colors.background,
       body: RefreshIndicator(
-        color: _TimelineColors.blue,
+        color: colors.primary,
         onRefresh: () => _loadTimeline(force: true),
         child: CustomScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
@@ -171,6 +147,7 @@ class _TimelinePageState extends ConsumerState<TimelinePage> {
   }
 
   List<Widget> _buildBody(AppLocalizations l10n) {
+    final colors = context.colors;
     final trip = ref.watch(activeTripProvider);
     if (trip == null || trip.reservationId == 0) {
       return [
@@ -183,13 +160,13 @@ class _TimelinePageState extends ConsumerState<TimelinePage> {
           padding: const EdgeInsets.symmetric(vertical: 48),
           child: Column(
             children: [
-              const CircularProgressIndicator(color: _TimelineColors.blue),
+              CircularProgressIndicator(color: colors.primary),
               const SizedBox(height: 16),
               Text(
                 l10n.timelineLoading,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: _TimelineColors.title,
+                style: TextStyle(
+                  color: colors.title,
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
                 ),
@@ -235,6 +212,7 @@ class _TimelinePageState extends ConsumerState<TimelinePage> {
         l10n: l10n,
         timeline: timeline,
         daysUntilDeparture: daysUntil,
+        departureAt: trip.departureAt,
         completedKeys: _completedKeys,
         onTaskToggle: _toggleTask,
       ),
@@ -244,14 +222,10 @@ class _TimelinePageState extends ConsumerState<TimelinePage> {
   Future<void> _toggleTask(String key) async {
     final trip = ref.read(activeTripProvider);
     final l10n = AppLocalizations.of(context)!;
-    final timeline = _timeline;
-    if (trip == null || trip.reservationId == 0 || timeline == null) {
+    if (trip == null || trip.reservationId == 0 || _timeline == null) {
       _showMessage(l10n.timelineOpenTripFirst);
       return;
     }
-
-    final item = _itemForKey(key);
-    if (item == null) return;
 
     final wasCompleted = _completedKeys.contains(key);
     final nextCompleted = !wasCompleted;
@@ -263,68 +237,7 @@ class _TimelinePageState extends ConsumerState<TimelinePage> {
         _completedKeys.remove(key);
       }
     });
-
-    final repo = ref.read(tripsRepositoryProvider);
-    var todoId = _todoIdByKey[key];
-
-    if (todoId == null) {
-      final createResult = await repo.createTodo(
-        reservationId: trip.reservationId,
-        title: item.title,
-        category: item.category.isEmpty ? 'timeline' : item.category,
-        priority: 'important',
-      );
-      if (!mounted) return;
-      if (createResult is Failure<Map<String, dynamic>>) {
-        setState(() {
-          if (wasCompleted) {
-            _completedKeys.add(key);
-          } else {
-            _completedKeys.remove(key);
-          }
-        });
-        _showMessage(localizeUserFacingError(createResult.error, l10n));
-        return;
-      }
-      todoId = (createResult as Success<Map<String, dynamic>>).data['id'] as int?;
-      if (todoId == null) return;
-      _todoIdByKey[key] = todoId;
-    }
-
-    if (nextCompleted) {
-      final updateResult = await repo.updateTodo(
-        reservationId: trip.reservationId,
-        todoId: todoId,
-        isCompleted: true,
-      );
-      if (!mounted) return;
-      if (updateResult is Failure<Map<String, dynamic>>) {
-        setState(() => _completedKeys.remove(key));
-        _showMessage(localizeUserFacingError(updateResult.error, l10n));
-      }
-      return;
-    }
-
-    final updateResult = await repo.updateTodo(
-      reservationId: trip.reservationId,
-      todoId: todoId,
-      isCompleted: false,
-    );
-    if (!mounted) return;
-    if (updateResult is Failure<Map<String, dynamic>>) {
-      setState(() => _completedKeys.add(key));
-      _showMessage(localizeUserFacingError(updateResult.error, l10n));
-    }
-  }
-
-  TimelineItem? _itemForKey(String key) {
-    final timeline = _timeline;
-    if (timeline == null || !key.startsWith('timeline:')) return null;
-    final index = int.tryParse(key.split(':').last);
-    if (index == null || index < 0 || index >= timeline.items.length) {
-      return null;
-    }
-    return timeline.items[index];
+    await _saveCompletedKeys(trip.reservationId);
   }
 
   void _showMessage(String message) {
@@ -347,6 +260,7 @@ class _MessagePanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 32),
       child: Column(
@@ -354,8 +268,8 @@ class _MessagePanel extends StatelessWidget {
           Text(
             message,
             textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: _TimelineColors.title,
+            style: TextStyle(
+              color: colors.title,
               fontSize: 14,
               fontWeight: FontWeight.w600,
             ),
@@ -375,6 +289,7 @@ class _JourneyHero extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final colors = context.colors;
     final l10n = AppLocalizations.of(context)!;
     final trip = ref.watch(activeTripProvider);
     final heroAsset = timelineHeroAssetForDestination(trip?.toCode);
@@ -433,8 +348,8 @@ class _JourneyHero extends ConsumerWidget {
               children: [
                 Text(
                   l10n.timelineJourneyTag,
-                  style: const TextStyle(
-                    color: _TimelineColors.salmon,
+                  style: TextStyle(
+                    color: colors.salmon,
                     fontSize: 9,
                     fontWeight: FontWeight.w900,
                     letterSpacing: 1.4,
@@ -443,8 +358,8 @@ class _JourneyHero extends ConsumerWidget {
                 const SizedBox(height: 8),
                 Text(
                   l10n.timelineYourJourney,
-                  style: const TextStyle(
-                    color: _TimelineColors.title,
+                  style: TextStyle(
+                    color: colors.title,
                     fontSize: 20,
                     fontWeight: FontWeight.w900,
                     letterSpacing: -0.7,
@@ -492,6 +407,7 @@ class _TimelineList extends StatelessWidget {
   final AppLocalizations l10n;
   final TimelineResult timeline;
   final int? daysUntilDeparture;
+  final DateTime? departureAt;
   final Set<String> completedKeys;
   final ValueChanged<String> onTaskToggle;
 
@@ -499,12 +415,14 @@ class _TimelineList extends StatelessWidget {
     required this.l10n,
     required this.timeline,
     required this.daysUntilDeparture,
+    required this.departureAt,
     required this.completedKeys,
     required this.onTaskToggle,
   });
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final indexedByDay = <int, List<(int index, TimelineItem item)>>{};
     for (var i = 0; i < timeline.items.length; i++) {
       final item = timeline.items[i];
@@ -519,7 +437,7 @@ class _TimelineList extends StatelessWidget {
           left: 17,
           top: 11,
           bottom: 32,
-          child: Container(width: 2, color: _TimelineColors.line),
+          child: Container(width: 2, color: colors.divider),
         ),
         Column(
           children: [
@@ -528,6 +446,7 @@ class _TimelineList extends StatelessWidget {
               _TimelineEntry(
                 l10n: l10n,
                 daysBefore: dayKeys[i],
+                departureAt: departureAt,
                 indexedItems: indexedByDay[dayKeys[i]]!,
                 completedKeys: completedKeys,
                 onTaskToggle: onTaskToggle,
@@ -544,6 +463,7 @@ class _TimelineList extends StatelessWidget {
 class _TimelineEntry extends StatelessWidget {
   final AppLocalizations l10n;
   final int daysBefore;
+  final DateTime? departureAt;
   final List<(int index, TimelineItem item)> indexedItems;
   final Set<String> completedKeys;
   final ValueChanged<String> onTaskToggle;
@@ -551,6 +471,7 @@ class _TimelineEntry extends StatelessWidget {
   const _TimelineEntry({
     required this.l10n,
     required this.daysBefore,
+    required this.departureAt,
     required this.indexedItems,
     required this.completedKeys,
     required this.onTaskToggle,
@@ -558,9 +479,10 @@ class _TimelineEntry extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final items = indexedItems.map((entry) => entry.$2).toList();
     final category = items.first.category;
-    final dotColor = _categoryColor(category);
+    final dotColor = _categoryColor(colors, category);
     final badge = _categoryBadge(l10n, category);
     final sectionTitle = _categoryTitle(l10n, category);
 
@@ -592,7 +514,7 @@ class _TimelineEntry extends StatelessWidget {
                 children: [
                   Expanded(
                     child: Text(
-                      _dayLabel(l10n, daysBefore),
+                      timelineOffsetLabel(l10n, daysBefore, departureAt),
                       style: TextStyle(
                         color: dotColor,
                         fontSize: 12,
@@ -605,6 +527,7 @@ class _TimelineEntry extends StatelessWidget {
               ),
               const SizedBox(height: 14),
               _TimelineCard(
+                l10n: l10n,
                 title: sectionTitle,
                 indexedItems: indexedItems,
                 completedKeys: completedKeys,
@@ -618,20 +541,11 @@ class _TimelineEntry extends StatelessWidget {
     );
   }
 
-  String _dayLabel(AppLocalizations l10n, int days) {
-    return switch (days) {
-      14 => l10n.timelineDay14,
-      7 => l10n.timelineDay7,
-      1 => l10n.timelineDay1,
-      _ => l10n.timelineDayBefore(days),
-    };
-  }
-
-  Color _categoryColor(String category) {
+  Color _categoryColor(AppThemeExtension colors, String category) {
     return switch (category) {
-      'document' => _TimelineColors.blue,
-      'packing' => _TimelineColors.pink,
-      _ => _TimelineColors.salmon,
+      'document' => colors.primary,
+      'packing' => colors.salmon,
+      _ => colors.salmon,
     };
   }
 
@@ -659,16 +573,17 @@ class _TimelineBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 5),
       decoration: BoxDecoration(
-        color: _TimelineColors.badge,
+        color: colors.chip,
         borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
         label,
-        style: const TextStyle(
-          color: _TimelineColors.title,
+        style: TextStyle(
+          color: colors.title,
           fontSize: 8,
           fontWeight: FontWeight.w900,
           letterSpacing: 0.5,
@@ -679,6 +594,7 @@ class _TimelineBadge extends StatelessWidget {
 }
 
 class _TimelineCard extends StatelessWidget {
+  final AppLocalizations l10n;
   final String title;
   final List<(int index, TimelineItem item)> indexedItems;
   final Set<String> completedKeys;
@@ -686,6 +602,7 @@ class _TimelineCard extends StatelessWidget {
   final Color accentColor;
 
   const _TimelineCard({
+    required this.l10n,
     required this.title,
     required this.indexedItems,
     required this.completedKeys,
@@ -695,11 +612,12 @@ class _TimelineCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(17, 19, 17, 20),
       decoration: BoxDecoration(
-        color: _TimelineColors.card,
+        color: colors.card,
         borderRadius: BorderRadius.circular(18),
       ),
       child: Column(
@@ -707,8 +625,8 @@ class _TimelineCard extends StatelessWidget {
         children: [
           Text(
             title,
-            style: const TextStyle(
-              color: _TimelineColors.title,
+            style: TextStyle(
+              color: colors.title,
               fontSize: 15,
               fontWeight: FontWeight.w900,
               letterSpacing: -0.2,
@@ -722,7 +640,7 @@ class _TimelineCard extends StatelessWidget {
               return Padding(
                 padding: const EdgeInsets.only(bottom: 13),
                 child: _TaskRow(
-                  title: item.title,
+                  title: localizeAiContentTitle(item.title, l10n),
                   subtitle: item.description,
                   isDone: completedKeys.contains(key),
                   onTap: () => onTaskToggle(key),
@@ -751,6 +669,7 @@ class _TaskRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return InkWell(
       borderRadius: BorderRadius.circular(10),
       onTap: onTap,
@@ -761,10 +680,10 @@ class _TaskRow extends StatelessWidget {
             width: 19,
             height: 19,
             decoration: BoxDecoration(
-              color: isDone ? _TimelineColors.done : Colors.transparent,
+              color: isDone ? colors.success : Colors.transparent,
               shape: BoxShape.circle,
               border: Border.all(
-                color: isDone ? _TimelineColors.done : _TimelineColors.muted,
+                color: isDone ? colors.success : colors.muted,
                 width: 2,
               ),
             ),
@@ -784,19 +703,19 @@ class _TaskRow extends StatelessWidget {
                 Text(
                   title,
                   style: TextStyle(
-                    color: isDone ? _TimelineColors.muted : _TimelineColors.title,
+                    color: isDone ? colors.muted : colors.title,
                     fontSize: 12,
                     fontWeight: FontWeight.w800,
                     decoration: isDone ? TextDecoration.lineThrough : null,
-                    decorationColor: _TimelineColors.muted,
+                    decorationColor: colors.muted,
                   ),
                 ),
                 if (subtitle.trim().isNotEmpty) ...[
                   const SizedBox(height: 4),
                   Text(
                     subtitle,
-                    style: const TextStyle(
-                      color: _TimelineColors.muted,
+                    style: TextStyle(
+                      color: colors.muted,
                       fontSize: 11,
                       fontWeight: FontWeight.w500,
                       height: 1.3,
@@ -810,19 +729,4 @@ class _TaskRow extends StatelessWidget {
       ),
     );
   }
-}
-
-class _TimelineColors {
-  _TimelineColors._();
-
-  static const Color background = Color(0xFF061326);
-  static const Color card = Color(0xFF101F36);
-  static const Color badge = Color(0xFF24344E);
-  static const Color title = Color(0xFFD5E4FF);
-  static const Color muted = Color(0xFF5E6E87);
-  static const Color line = Color(0xFF243A56);
-  static const Color blue = Color(0xFF4A91F8);
-  static const Color salmon = Color(0xFFFFAA84);
-  static const Color pink = Color(0xFFFFA6A5);
-  static const Color done = Color(0xFF81C784);
 }

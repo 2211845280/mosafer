@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/localization/ai_content_localizer.dart';
 import '../../../../core/localization/error_message_localizer.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../data/trips_repository.dart';
 import '../active_trip_controller.dart';
 import '../packing/packing_todo_sync.dart';
+import '../../../../core/theme/app_theme_extension.dart';
 
 class TripTodosPage extends ConsumerStatefulWidget {
   const TripTodosPage({super.key});
@@ -22,6 +24,9 @@ class _TripTodosPageState extends ConsumerState<TripTodosPage> {
   bool _isLoading = true;
   String? _error;
   bool _isAddingQuickTodo = false;
+  bool _selectionMode = false;
+  final Set<int> _selectedTodoIds = {};
+  bool _isDeletingBulk = false;
 
   @override
   void initState() {
@@ -164,23 +169,65 @@ class _TripTodosPageState extends ConsumerState<TripTodosPage> {
     );
   }
 
-  Future<void> _deleteTodo(_TripTodo todo) async {
+  List<_TripTodo> get _packingTodos =>
+      _todos.where((todo) => todo.category == _TodoCategory.packing).toList();
+
+  void _exitSelectionMode() {
+    setState(() {
+      _selectionMode = false;
+      _selectedTodoIds.clear();
+    });
+  }
+
+  void _toggleSelectionMode() {
+    setState(() {
+      if (_selectionMode) {
+        _selectionMode = false;
+        _selectedTodoIds.clear();
+      } else {
+        _selectionMode = true;
+        _selectedTodoIds.clear();
+      }
+    });
+  }
+
+  void _toggleTodoSelection(int id) {
+    setState(() {
+      if (!_selectedTodoIds.remove(id)) {
+        _selectedTodoIds.add(id);
+      }
+    });
+  }
+
+  Future<void> _deleteTodos(Iterable<_TripTodo> todos) async {
     final trip = ref.read(activeTripProvider);
     if (trip == null) return;
+    final targets = todos.toList(growable: false);
+    if (targets.isEmpty) return;
+
     final previous = List<_TripTodo>.from(_todos);
-    setState(() => _todos.removeWhere((entry) => entry.id == todo.id));
-    final result = await ref
-        .read(tripsRepositoryProvider)
-        .deleteTodo(reservationId: trip.reservationId, todoId: todo.id);
+    final targetIds = targets.map((todo) => todo.id).toSet();
+    setState(() => _todos.removeWhere((entry) => targetIds.contains(entry.id)));
+
+    final result = await ref.read(tripsRepositoryProvider).deleteTodos(
+          reservationId: trip.reservationId,
+          todoIds: targets.map((todo) => todo.id).toList(growable: false),
+        );
     if (!mounted) return;
     result.when(
-      success: (_) {
-        if (todo.category == _TodoCategory.packing) {
-          ref.read(packingTodoSyncProvider.notifier).markRemoved(
-                trip.reservationId,
-                todo.title,
-              );
+      success: (count) {
+        for (final todo in targets) {
+          if (todo.category == _TodoCategory.packing) {
+            ref.read(packingTodoSyncProvider.notifier).markRemoved(
+                  trip.reservationId,
+                  todo.sourceKey ?? todo.title,
+                );
+          }
         }
+        if (_selectionMode) {
+          _exitSelectionMode();
+        }
+        _showUserMessage(AppLocalizations.of(context)!.todosDeletedCount(count));
       },
       failure: (error) {
         setState(() {
@@ -193,6 +240,26 @@ class _TripTodosPageState extends ConsumerState<TripTodosPage> {
     );
   }
 
+  Future<void> _deleteSelectedTodos() async {
+    if (_isDeletingBulk || _selectedTodoIds.isEmpty) return;
+    setState(() => _isDeletingBulk = true);
+    final selected = _todos
+        .where(
+          (todo) =>
+              _selectedTodoIds.contains(todo.id) &&
+              todo.category == _TodoCategory.packing,
+        )
+        .toList(growable: false);
+    await _deleteTodos(selected);
+    if (mounted) {
+      setState(() => _isDeletingBulk = false);
+    }
+  }
+
+  Future<void> _deleteTodo(_TripTodo todo) async {
+    await _deleteTodos([todo]);
+  }
+
   Future<String?> _showTodoTitleSheet({
     required String title,
     String initialValue = '',
@@ -202,9 +269,10 @@ class _TripTodosPageState extends ConsumerState<TripTodosPage> {
       context: context,
       barrierColor: Colors.black54,
       builder: (dialogContext) {
+        final dialogColors = dialogContext.colors;
         final dialogL10n = AppLocalizations.of(dialogContext)!;
         return Dialog(
-          backgroundColor: _TripTodosColors.card,
+          backgroundColor: dialogColors.card,
           insetPadding: const EdgeInsets.symmetric(horizontal: 28),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
@@ -217,8 +285,8 @@ class _TripTodosPageState extends ConsumerState<TripTodosPage> {
               children: [
                 Text(
                   title,
-                  style: const TextStyle(
-                    color: _TripTodosColors.title,
+                  style: TextStyle(
+                    color: dialogColors.title,
                     fontSize: 18,
                     fontWeight: FontWeight.w900,
                   ),
@@ -227,19 +295,19 @@ class _TripTodosPageState extends ConsumerState<TripTodosPage> {
                 TextField(
                   controller: controller,
                   autofocus: true,
-                  style: const TextStyle(color: _TripTodosColors.title),
+                  style: TextStyle(color: dialogColors.title),
                   decoration: InputDecoration(
                     hintText: dialogL10n.todoTitleHint,
                     filled: true,
-                    fillColor: _TripTodosColors.background,
+                    fillColor: dialogColors.background,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                       borderSide: BorderSide.none,
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(
-                        color: _TripTodosColors.documents,
+                      borderSide: BorderSide(
+                        color: dialogColors.body,
                         width: 1.5,
                       ),
                     ),
@@ -290,12 +358,15 @@ class _TripTodosPageState extends ConsumerState<TripTodosPage> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final l10n = AppLocalizations.of(context)!;
     final visibleTodos = _visibleTodos;
     final bottomInset = MediaQuery.paddingOf(context).bottom + 88 + 24;
+    final packingTodos = _packingTodos;
+    final showPackingActions = packingTodos.isNotEmpty;
 
     return Scaffold(
-      backgroundColor: _TripTodosColors.background,
+      backgroundColor: colors.background,
       body: CustomScrollView(
         slivers: [
           SliverPadding(
@@ -305,9 +376,71 @@ class _TripTodosPageState extends ConsumerState<TripTodosPage> {
                 _FilterChips(
                   l10n: l10n,
                   selectedFilter: _selectedFilter,
-                  onSelected: (filter) =>
-                      setState(() => _selectedFilter = filter),
+                  onSelected: (filter) {
+                    setState(() {
+                      _selectedFilter = filter;
+                      if (filter != _TodoFilter.packing && _selectionMode) {
+                        _exitSelectionMode();
+                      }
+                    });
+                  },
                 ),
+                if (showPackingActions) ...[
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      if (!_selectionMode) const Spacer(),
+                      TextButton.icon(
+                        onPressed: _toggleSelectionMode,
+                        icon: Icon(
+                          _selectionMode
+                              ? Icons.close
+                              : Icons.delete_outline,
+                          size: 18,
+                          color: _selectionMode ? colors.primary : colors.coral,
+                        ),
+                        label: Text(
+                          _selectionMode
+                              ? l10n.todosCancelSelection
+                              : l10n.todosSelectPacking,
+                          style: TextStyle(
+                            color:
+                                _selectionMode ? colors.primary : colors.coral,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                      if (_selectionMode) ...[
+                        const Spacer(),
+                        TextButton(
+                          onPressed: _selectedTodoIds.isEmpty || _isDeletingBulk
+                              ? null
+                              : _deleteSelectedTodos,
+                          child: _isDeletingBulk
+                              ? SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: colors.coral,
+                                  ),
+                                )
+                              : Text(
+                                  l10n.todosDeleteSelected(
+                                    _selectedTodoIds.length,
+                                  ),
+                                  style: TextStyle(
+                                    color: colors.coral,
+                                    fontWeight: FontWeight.w900,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ],
                 const SizedBox(height: 18),
                 _QuickAddTodo(
                   l10n: l10n,
@@ -326,12 +459,21 @@ class _TripTodosPageState extends ConsumerState<TripTodosPage> {
                   ...visibleTodos.map(
                     (todo) => Padding(
                       padding: const EdgeInsets.only(bottom: 13),
-                      child: _TodoCard(
+                      child: _TodoListTile(
                         l10n: l10n,
                         todo: todo,
-                        onTap: () => _toggleTodo(todo.id),
+                        selectionMode: _selectionMode,
+                        isSelected: _selectedTodoIds.contains(todo.id),
+                        onTap: () {
+                          if (_selectionMode && todo.canBulkSelect) {
+                            _toggleTodoSelection(todo.id);
+                            return;
+                          }
+                          _toggleTodo(todo.id);
+                        },
                         onEdit: () => _editTodo(todo),
                         onDelete: () => _deleteTodo(todo),
+                        onSelectToggle: () => _toggleTodoSelection(todo.id),
                       ),
                     ),
                   ),
@@ -390,6 +532,7 @@ class _FilterChipButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return InkWell(
       borderRadius: BorderRadius.circular(999),
       onTap: onTap,
@@ -399,8 +542,8 @@ class _FilterChipButton extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
         decoration: BoxDecoration(
           color: isSelected
-              ? _TripTodosColors.activeChip
-              : _TripTodosColors.chip,
+              ? colors.activeChip
+              : colors.chip,
           borderRadius: BorderRadius.circular(999),
         ),
         child: Center(
@@ -408,8 +551,8 @@ class _FilterChipButton extends StatelessWidget {
             label,
             style: TextStyle(
               color: isSelected
-                  ? _TripTodosColors.activeChipText
-                  : _TripTodosColors.title,
+                  ? colors.activeChipText
+                  : colors.title,
               fontSize: 12,
               fontWeight: FontWeight.w800,
             ),
@@ -462,10 +605,11 @@ class _QuickAddTodoState extends State<_QuickAddTodo> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Container(
       padding: const EdgeInsets.fromLTRB(14, 12, 10, 12),
       decoration: BoxDecoration(
-        color: _TripTodosColors.card,
+        color: colors.card,
         borderRadius: BorderRadius.circular(14),
       ),
       child: Row(
@@ -473,7 +617,7 @@ class _QuickAddTodoState extends State<_QuickAddTodo> {
           Expanded(
             child: TextField(
               controller: widget.controller,
-              style: const TextStyle(color: _TripTodosColors.title),
+              style: TextStyle(color: colors.title),
               decoration: InputDecoration(
                 hintText: widget.l10n.todoTitleHint,
                 border: InputBorder.none,
@@ -507,23 +651,95 @@ class _QuickAddTodoState extends State<_QuickAddTodo> {
   }
 }
 
-class _TodoCard extends StatelessWidget {
+class _TodoListTile extends StatelessWidget {
   final AppLocalizations l10n;
   final _TripTodo todo;
+  final bool selectionMode;
+  final bool isSelected;
   final VoidCallback onTap;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
+  final VoidCallback onSelectToggle;
 
-  const _TodoCard({
+  const _TodoListTile({
     required this.l10n,
     required this.todo,
+    required this.selectionMode,
+    required this.isSelected,
     required this.onTap,
     required this.onEdit,
     required this.onDelete,
+    required this.onSelectToggle,
   });
 
   @override
   Widget build(BuildContext context) {
+    final card = _TodoCard(
+      l10n: l10n,
+      todo: todo,
+      selectionMode: selectionMode,
+      isSelected: isSelected,
+      onTap: onTap,
+      onEdit: onEdit,
+      onDelete: onDelete,
+      onSelectToggle: onSelectToggle,
+    );
+
+    if (!todo.canSwipeDelete || selectionMode) {
+      return card;
+    }
+
+    final colors = context.colors;
+    return Dismissible(
+      key: ValueKey('todo-${todo.id}'),
+      direction: DismissDirection.endToStart,
+      onDismissed: (_) => onDelete(),
+      background: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 24),
+        decoration: BoxDecoration(
+          color: colors.coral,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Container(
+          width: 42,
+          height: 42,
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            shape: BoxShape.circle,
+          ),
+          child: Icon(Icons.delete_outline, color: colors.coral, size: 22),
+        ),
+      ),
+      child: card,
+    );
+  }
+}
+
+class _TodoCard extends StatelessWidget {
+  final AppLocalizations l10n;
+  final _TripTodo todo;
+  final bool selectionMode;
+  final bool isSelected;
+  final VoidCallback onTap;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
+  final VoidCallback onSelectToggle;
+
+  const _TodoCard({
+    required this.l10n,
+    required this.todo,
+    required this.selectionMode,
+    required this.isSelected,
+    required this.onTap,
+    required this.onEdit,
+    required this.onDelete,
+    required this.onSelectToggle,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
     return InkWell(
       borderRadius: BorderRadius.circular(12),
       onTap: onTap,
@@ -531,12 +747,28 @@ class _TodoCard extends StatelessWidget {
         constraints: const BoxConstraints(minHeight: 67),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
         decoration: BoxDecoration(
-          color: _TripTodosColors.card,
+          color: colors.card,
           borderRadius: BorderRadius.circular(12),
         ),
         child: Row(
           children: [
-            _TodoCheckBox(isDone: todo.isDone),
+            if (selectionMode && todo.canBulkSelect)
+              Padding(
+                padding: const EdgeInsets.only(right: 10),
+                child: InkWell(
+                  onTap: onSelectToggle,
+                  borderRadius: BorderRadius.circular(999),
+                  child: Icon(
+                    isSelected
+                        ? Icons.check_circle
+                        : Icons.radio_button_unchecked,
+                    color: isSelected ? colors.primary : colors.muted,
+                    size: 22,
+                  ),
+                ),
+              )
+            else
+              _TodoCheckBox(isDone: todo.isDone),
             const SizedBox(width: 13),
             Expanded(
               child: Column(
@@ -547,21 +779,21 @@ class _TodoCard extends StatelessWidget {
                     todo.displayTitle(l10n),
                     style: TextStyle(
                       color: todo.isDone
-                          ? _TripTodosColors.muted
-                          : _TripTodosColors.title,
+                          ? colors.muted
+                          : colors.title,
                       fontSize: 15,
                       fontWeight: FontWeight.w900,
                       letterSpacing: -0.25,
                       decoration:
                           todo.isDone ? TextDecoration.lineThrough : null,
-                      decorationColor: _TripTodosColors.muted,
+                      decorationColor: colors.muted,
                     ),
                   ),
                   const SizedBox(height: 6),
                   Text(
                     todo.category.tabLabel(l10n),
                     style: TextStyle(
-                      color: todo.category.accent,
+                      color: todo.category.accentColor(colors),
                       fontSize: 7,
                       fontWeight: FontWeight.w900,
                       letterSpacing: 1.1,
@@ -570,22 +802,23 @@ class _TodoCard extends StatelessWidget {
                 ],
               ),
             ),
-            PopupMenuButton<String>(
-              color: _TripTodosColors.card,
-              icon: const Icon(
-                Icons.more_vert,
-                color: _TripTodosColors.title,
-                size: 19,
+            if (!selectionMode)
+              PopupMenuButton<String>(
+                color: colors.card,
+                icon: Icon(
+                  Icons.more_vert,
+                  color: colors.title,
+                  size: 19,
+                ),
+                onSelected: (value) {
+                  if (value == 'edit') onEdit();
+                  if (value == 'delete') onDelete();
+                },
+                itemBuilder: (context) => [
+                  PopupMenuItem(value: 'edit', child: Text(l10n.edit)),
+                  PopupMenuItem(value: 'delete', child: Text(l10n.delete)),
+                ],
               ),
-              onSelected: (value) {
-                if (value == 'edit') onEdit();
-                if (value == 'delete') onDelete();
-              },
-              itemBuilder: (context) => [
-                PopupMenuItem(value: 'edit', child: Text(l10n.edit)),
-                PopupMenuItem(value: 'delete', child: Text(l10n.delete)),
-              ],
-            ),
           ],
         ),
       ),
@@ -600,14 +833,15 @@ class _TodoCheckBox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Container(
       width: 19,
       height: 19,
       decoration: BoxDecoration(
-        color: isDone ? _TripTodosColors.done : Colors.transparent,
+        color: isDone ? colors.success : Colors.transparent,
         shape: BoxShape.circle,
         border: Border.all(
-          color: isDone ? _TripTodosColors.done : _TripTodosColors.muted,
+          color: isDone ? colors.success : colors.muted,
           width: 2,
         ),
       ),
@@ -629,19 +863,20 @@ class _EmptyTodosMessage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final l10n = AppLocalizations.of(context)!;
     final text = message ?? l10n.todosEmptyDefault;
     return Container(
       padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
-        color: _TripTodosColors.card,
+        color: colors.card,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Text(
         text,
         textAlign: TextAlign.center,
-        style: const TextStyle(
-          color: _TripTodosColors.title,
+        style: TextStyle(
+          color: colors.title,
           fontSize: 14,
           fontWeight: FontWeight.w800,
         ),
@@ -655,22 +890,38 @@ class _TripTodo {
 
   final int id;
   final String title;
+  final String? source;
+  final String? sourceKey;
+  final String? titleAr;
+  final String? titleEn;
   final _TodoCategory category;
+  final DateTime? dueDate;
   final bool isDone;
 
   _TripTodo({
     required this.title,
+    required this.source,
+    required this.sourceKey,
+    required this.titleAr,
+    required this.titleEn,
     required this.category,
+    required this.dueDate,
     this.isDone = false,
     int? id,
   }) : id = id ?? _nextId++;
 
   factory _TripTodo.fromJson(Map<String, dynamic> json) {
     final category = _TodoCategory.fromName(json['category'] as String?);
+    final dueDateRaw = json['due_date'] as String?;
     return _TripTodo(
       id: json['id'] as int?,
       title: json['title'] as String? ?? '',
+      source: (json['source'] as String?)?.toLowerCase(),
+      sourceKey: json['source_key'] as String?,
+      titleAr: json['title_ar'] as String?,
+      titleEn: json['title_en'] as String?,
       category: category,
+      dueDate: dueDateRaw == null ? null : DateTime.tryParse(dueDateRaw),
       isDone: json['is_completed'] == true,
     );
   }
@@ -678,18 +929,47 @@ class _TripTodo {
   const _TripTodo._({
     required this.id,
     required this.title,
+    required this.source,
+    required this.sourceKey,
+    required this.titleAr,
+    required this.titleEn,
     required this.category,
+    required this.dueDate,
     required this.isDone,
   });
 
-  String displayTitle(AppLocalizations l10n) =>
-      title.isEmpty ? l10n.tripTaskDefault : title;
+  bool get canBulkSelect => category == _TodoCategory.packing;
+
+  bool get canSwipeDelete => category == _TodoCategory.packing;
+
+  bool get shouldLocalizeTitle =>
+      source == null ||
+      source == 'ai' ||
+      category == _TodoCategory.packing ||
+      dueDate != null;
+
+  String displayTitle(AppLocalizations l10n) {
+    final raw = title.isEmpty ? l10n.tripTaskDefault : title;
+    if (category == _TodoCategory.packing) {
+      final localized = l10n.localeName.startsWith('ar') ? titleAr : titleEn;
+      if (localized != null && localized.trim().isNotEmpty) {
+        return localized;
+      }
+    }
+    if (!shouldLocalizeTitle) return raw;
+    return localizeKnownAiContentTitleOrNull(raw, l10n) ?? raw;
+  }
 
   _TripTodo copyWith({bool? isDone}) {
     return _TripTodo._(
       id: id,
       title: title,
+      source: source,
+      sourceKey: sourceKey,
+      titleAr: titleAr,
+      titleEn: titleEn,
       category: category,
+      dueDate: dueDate,
       isDone: isDone ?? this.isDone,
     );
   }
@@ -711,13 +991,17 @@ extension _TodoFilterX on _TodoFilter {
 }
 
 enum _TodoCategory {
-  documents(_TripTodosColors.documents),
-  packing(_TripTodosColors.salmon),
-  logistics(_TripTodosColors.logistics);
+  documents,
+  packing,
+  logistics;
 
-  final Color accent;
-
-  const _TodoCategory(this.accent);
+  Color accentColor(AppThemeExtension colors) {
+    return switch (this) {
+      _TodoCategory.documents => colors.documents,
+      _TodoCategory.packing => colors.salmon,
+      _TodoCategory.logistics => colors.logistics,
+    };
+  }
 
   String tabLabel(AppLocalizations l10n) {
     switch (this) {
@@ -736,20 +1020,4 @@ enum _TodoCategory {
     if (normalized.contains('packing')) return packing;
     return logistics;
   }
-}
-
-class _TripTodosColors {
-  _TripTodosColors._();
-
-  static const Color background = Color(0xFF061326);
-  static const Color card = Color(0xFF101F36);
-  static const Color chip = Color(0xFF27364F);
-  static const Color activeChip = Color(0xFFDCE6FF);
-  static const Color activeChipText = Color(0xFF061326);
-  static const Color title = Color(0xFFD5E4FF);
-  static const Color muted = Color(0xFF5E6E87);
-  static const Color done = Color(0xFF81C784);
-  static const Color documents = Color(0xFF8FA9DB);
-  static const Color salmon = Color(0xFFFFACA6);
-  static const Color logistics = Color(0xFFFFA982);
 }

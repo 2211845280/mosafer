@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "861107682548",
+    "project_id": "mosafer-ceab5",
+    "storage_bucket": "mosafer-ceab5.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:861107682548:android:e375423a1e7fabde4fb2a1",
+        "android_client_info": {
+          "package_name": "com.example.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDXtppJhXfbn7w6qgCo5ICMkjoaLQfZEBo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

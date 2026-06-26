@@ -6,6 +6,7 @@ import '../../../../core/utils/validators.dart';
 import '../../../../core/localization/error_message_localizer.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../profile_state.dart';
+import '../../../../core/theme/app_theme_extension.dart';
 
 class ChangePasswordPage extends ConsumerStatefulWidget {
   const ChangePasswordPage({super.key});
@@ -71,9 +72,10 @@ class _ChangePasswordPageState extends ConsumerState<ChangePasswordPage> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final l10n = AppLocalizations.of(context)!;
     return Scaffold(
-      backgroundColor: _ChangePasswordColors.background,
+      backgroundColor: colors.background,
       body: SafeArea(
         bottom: false,
         child: Column(
@@ -132,8 +134,8 @@ class _ChangePasswordPageState extends ConsumerState<ChangePasswordPage> {
                       const SizedBox(height: 14),
                       Text(
                         _formError!,
-                        style: const TextStyle(
-                          color: _ChangePasswordColors.salmon,
+                        style: TextStyle(
+                          color: colors.salmon,
                           fontSize: 12,
                           fontWeight: FontWeight.w800,
                         ),
@@ -153,8 +155,8 @@ class _ChangePasswordPageState extends ConsumerState<ChangePasswordPage> {
                 child: ElevatedButton(
                   onPressed: _savePassword,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: _ChangePasswordColors.blue,
-                    foregroundColor: _ChangePasswordColors.background,
+                    backgroundColor: colors.primary,
+                    foregroundColor: colors.background,
                     elevation: 0,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(7),
@@ -162,7 +164,7 @@ class _ChangePasswordPageState extends ConsumerState<ChangePasswordPage> {
                   ),
                   child: Text(
                     l10n.changePasswordSave,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w900,
                       letterSpacing: 1.3,
@@ -183,6 +185,7 @@ class _ChangePasswordAppBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final l10n = AppLocalizations.of(context)!;
     return Padding(
       padding: const EdgeInsets.fromLTRB(27, 8, 19, 0),
@@ -191,14 +194,14 @@ class _ChangePasswordAppBar extends StatelessWidget {
           GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTap: () => context.goNamed('settings'),
-            child: const SizedBox(
+            child: SizedBox(
               width: 31,
               height: 34,
               child: Align(
                 alignment: Alignment.centerLeft,
                 child: Icon(
                   Icons.arrow_back,
-                  color: _ChangePasswordColors.title,
+                  color: colors.title,
                   size: 19,
                 ),
               ),
@@ -208,8 +211,8 @@ class _ChangePasswordAppBar extends StatelessWidget {
             child: Text(
               l10n.changePasswordTitle,
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: _ChangePasswordColors.title,
+              style: TextStyle(
+                color: colors.title,
                 fontSize: 13,
                 fontWeight: FontWeight.w900,
               ),
@@ -243,13 +246,14 @@ class _PasswordField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
-          style: const TextStyle(
-            color: _ChangePasswordColors.muted,
+          style: TextStyle(
+            color: colors.muted,
             fontSize: 9,
             fontWeight: FontWeight.w900,
             letterSpacing: 1.7,
@@ -261,28 +265,28 @@ class _PasswordField extends StatelessWidget {
           obscureText: obscureText,
           onChanged: onChanged,
           validator: validator,
-          cursorColor: _ChangePasswordColors.blue,
-          style: const TextStyle(
-            color: _ChangePasswordColors.title,
+          cursorColor: colors.primary,
+          style: TextStyle(
+            color: colors.title,
             fontSize: 13,
             fontWeight: FontWeight.w700,
           ),
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: const TextStyle(
-              color: _ChangePasswordColors.hint,
+            hintStyle: TextStyle(
+              color: colors.hint,
               fontSize: 13,
               fontWeight: FontWeight.w600,
             ),
             filled: true,
-            fillColor: _ChangePasswordColors.field,
+            fillColor: colors.field,
             suffixIcon: IconButton(
               onPressed: onToggleVisibility,
               icon: Icon(
                 obscureText
                     ? Icons.visibility_off_outlined
                     : Icons.visibility_outlined,
-                color: _ChangePasswordColors.muted,
+                color: colors.muted,
                 size: 19,
               ),
             ),
@@ -296,7 +300,7 @@ class _PasswordField extends StatelessWidget {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: _ChangePasswordColors.blue),
+              borderSide: BorderSide(color: colors.primary),
             ),
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 11,
@@ -320,6 +324,7 @@ class _PasswordStrengthIndicator extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final label = switch (strength) {
       0 || 1 => l10n.passwordStrengthMeterWeak,
       2 || 3 => l10n.passwordStrengthMeterGood,
@@ -332,8 +337,8 @@ class _PasswordStrengthIndicator extends StatelessWidget {
           children: [
             Text(
               l10n.passwordStrengthMeterTitle,
-              style: const TextStyle(
-                color: _ChangePasswordColors.muted,
+              style: TextStyle(
+                color: colors.muted,
                 fontSize: 7,
                 fontWeight: FontWeight.w900,
                 letterSpacing: 1,
@@ -342,8 +347,8 @@ class _PasswordStrengthIndicator extends StatelessWidget {
             const Spacer(),
             Text(
               label,
-              style: const TextStyle(
-                color: _ChangePasswordColors.title,
+              style: TextStyle(
+                color: colors.title,
                 fontSize: 7,
                 fontWeight: FontWeight.w900,
                 letterSpacing: 1,
@@ -361,8 +366,8 @@ class _PasswordStrengthIndicator extends StatelessWidget {
                 margin: EdgeInsets.only(right: index == 3 ? 0 : 5),
                 decoration: BoxDecoration(
                   color: isActive
-                      ? _ChangePasswordColors.title
-                      : _ChangePasswordColors.track,
+                      ? colors.title
+                      : colors.progressTrack,
                   borderRadius: BorderRadius.circular(999),
                 ),
               ),
@@ -381,22 +386,23 @@ class _SafetyTipCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Container(
       padding: const EdgeInsets.fromLTRB(17, 17, 17, 17),
       decoration: BoxDecoration(
-        color: _ChangePasswordColors.card,
+        color: colors.card,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: _ChangePasswordColors.border),
+        border: Border.all(color: colors.border),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const CircleAvatar(
+          CircleAvatar(
             radius: 14,
-            backgroundColor: _ChangePasswordColors.blue,
+            backgroundColor: colors.primary,
             child: Icon(
               Icons.shield_outlined,
-              color: _ChangePasswordColors.background,
+              color: colors.background,
               size: 17,
             ),
           ),
@@ -407,8 +413,8 @@ class _SafetyTipCard extends StatelessWidget {
               children: [
                 Text(
                   l10n.safetyTipTitle,
-                  style: const TextStyle(
-                    color: _ChangePasswordColors.title,
+                  style: TextStyle(
+                    color: colors.title,
                     fontSize: 12,
                     fontWeight: FontWeight.w900,
                   ),
@@ -416,8 +422,8 @@ class _SafetyTipCard extends StatelessWidget {
                 const SizedBox(height: 7),
                 Text(
                   l10n.safetyTipBody,
-                  style: const TextStyle(
-                    color: _ChangePasswordColors.body,
+                  style: TextStyle(
+                    color: colors.body,
                     fontSize: 9,
                     fontWeight: FontWeight.w600,
                     height: 1.45,
@@ -430,20 +436,4 @@ class _SafetyTipCard extends StatelessWidget {
       ),
     );
   }
-}
-
-class _ChangePasswordColors {
-  _ChangePasswordColors._();
-
-  static const Color background = Color(0xFF061326);
-  static const Color field = Color(0xFF101F36);
-  static const Color card = Color(0xFF101F36);
-  static const Color border = Color(0xFF1F344F);
-  static const Color title = Color(0xFFD5E4FF);
-  static const Color body = Color(0xFFB8C6DC);
-  static const Color muted = Color(0xFF7F90AA);
-  static const Color hint = Color(0xFF43516A);
-  static const Color blue = Color(0xFF4A91F8);
-  static const Color salmon = Color(0xFFFFA982);
-  static const Color track = Color(0xFF25344D);
 }

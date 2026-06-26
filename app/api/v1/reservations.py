@@ -3,7 +3,7 @@
 from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -13,6 +13,7 @@ from app.core.rbac import assert_user_has_permission, require_permission
 from app.core.ticket_qr import qr_content_for_ticket, write_qr_png
 from app.data.airlines import carrier_name
 from app.db.database import get_db
+from app.models.booking_passengers import BookingPassenger
 from app.models.reservations import Reservation, ReservationStatus
 from app.models.reservation_seats import ReservationSeat
 from app.models.tickets import Ticket, TicketStatus
@@ -137,6 +138,7 @@ async def create_reservation(
     ticket = Ticket(
         booking_id=reservation.id,
         ticket_number=ticket_number,
+        ordered_by_user_id=user.id,
         qr_code=qr_plain,
         qr_image_path=qr_path,
         status=TicketStatus.PENDING_PASSENGER.value,
@@ -177,9 +179,20 @@ async def list_my_reservations(
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=200),
 ) -> PaginatedResponse[ReservationWithFlightRead]:
-    """List current user's reservations with flight info."""
-    visible = (
+    """List trips owned by the user or permanently claimed via ticket QR."""
+    claimed_passenger_reservations = select(BookingPassenger.reservation_id).where(
+        BookingPassenger.assigned_to_user_id == user.id,
+    )
+    claimed_ticket_reservations = select(Ticket.booking_id).where(
+        Ticket.assigned_to_user_id == user.id,
+    )
+    user_can_view = or_(
         Reservation.user_id == user.id,
+        Reservation.id.in_(claimed_passenger_reservations),
+        Reservation.id.in_(claimed_ticket_reservations),
+    )
+    visible = (
+        user_can_view,
         Reservation.hidden_at.is_(None),
     )
     total = (
@@ -196,6 +209,7 @@ async def list_my_reservations(
         .options(
             selectinload(Reservation.flight),
             selectinload(Reservation.ticket),
+            selectinload(Reservation.passengers),
             selectinload(Reservation.reservation_seats),
         )
         .where(*visible)
@@ -205,26 +219,48 @@ async def list_my_reservations(
     )
     items: list[ReservationWithFlightRead] = []
     for r in result.scalars().all():
+        claimed_passengers = [
+            passenger
+            for passenger in sorted(r.passengers, key=lambda row: row.sequence)
+            if passenger.assigned_to_user_id == user.id
+        ]
+        claimed_passenger = claimed_passengers[0] if claimed_passengers else None
+        is_owner = r.user_id == user.id
+        visible_seat = (
+            (claimed_passenger.seat or r.seat)
+            if claimed_passenger is not None and not is_owner
+            else r.seat
+        )
+        visible_ticket_number = (
+            claimed_passenger.passenger_ticket_number
+            if claimed_passenger is not None and not is_owner
+            else (r.ticket.ticket_number if r.ticket else None)
+        )
+        visible_qr_code = (
+            claimed_passenger.qr_code
+            if claimed_passenger is not None and not is_owner
+            else (r.ticket.qr_code if r.ticket else None)
+        )
         items.append(
             ReservationWithFlightRead(
                 id=r.id,
                 user_id=r.user_id,
                 flight_id=r.flight_id,
-                seat=r.seat,
+                seat=visible_seat,
                 status=r.status,
                 total_price=r.total_price,
                 currency=r.currency,
-                adults_count=r.adults_count,
+                adults_count=r.adults_count if is_owner else 1,
                 pnr=r.pnr,
                 cabin_class=r.cabin_class,
                 passenger_details_completed_at=r.passenger_details_completed_at,
                 created_at=r.created_at,
                 flight=FlightRead.model_validate(r.flight),
-                ticket_number=r.ticket.ticket_number if r.ticket else None,
+                ticket_number=visible_ticket_number,
                 ticket_status=r.ticket.status if r.ticket else None,
                 carrier_name=carrier_name(r.flight.carrier_code),
-                qr_code=r.ticket.qr_code if r.ticket else None,
-                seats=seats_for_reservation(r),
+                qr_code=visible_qr_code,
+                seats=seats_for_reservation(r) if is_owner else [visible_seat],
             ),
         )
     return PaginatedResponse.create(items=items, total=total, page=page, page_size=page_size)

@@ -10,6 +10,7 @@ import '../../domain/trip.dart';
 import '../active_trip_controller.dart';
 import '../shared/flight_weather_section.dart';
 import '../trip_stage_controller.dart';
+import '../../../../core/theme/app_theme_extension.dart';
 
 bool _isTrainFromMitiga(String mode, String? fromCode) {
   return mode == 'transit' && fromCode?.toUpperCase() == 'MJI';
@@ -28,6 +29,7 @@ class _PlanDeparturePageState extends ConsumerState<PlanDeparturePage> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final l10n = AppLocalizations.of(context)!;
     final trip = ref.watch(activeTripProvider);
     final stageState = ref.watch(tripStageControllerProvider);
@@ -46,7 +48,7 @@ class _PlanDeparturePageState extends ConsumerState<PlanDeparturePage> {
     }
 
     return Scaffold(
-      backgroundColor: _DepartureColors.background,
+      backgroundColor: colors.background,
       body: SafeArea(
         bottom: false,
         child: CustomScrollView(
@@ -93,26 +95,27 @@ class _NoTrainsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 40),
       decoration: BoxDecoration(
-        color: _DepartureColors.card,
+        color: colors.card,
         borderRadius: BorderRadius.circular(23),
       ),
       child: Column(
         children: [
           Icon(
             Icons.train_outlined,
-            color: _DepartureColors.muted.withValues(alpha: 0.7),
+            color: colors.muted.withValues(alpha: 0.7),
             size: 40,
           ),
           const SizedBox(height: 16),
           Text(
             l10n.planDepartureNoTrainsInCountry,
             textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: _DepartureColors.title,
+            style: TextStyle(
+              color: colors.title,
               fontSize: 16,
               fontWeight: FontWeight.w800,
               height: 1.4,
@@ -132,32 +135,16 @@ class _LeaveTimeHero extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final leaveAt =
         stageState.valueOrNull?.departurePlan?['leave_at'] as String?;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-          decoration: BoxDecoration(
-            color: _DepartureColors.chip,
-            borderRadius: BorderRadius.circular(999),
-          ),
-          child: Text(
-            l10n.planDepartureSafeToLeave,
-            style: const TextStyle(
-              color: _DepartureColors.title,
-              fontSize: 9,
-              fontWeight: FontWeight.w900,
-              letterSpacing: 0.9,
-            ),
-          ),
-        ),
-        const SizedBox(height: 18),
         Text(
           _formatTime(leaveAt),
-          style: const TextStyle(
-            color: _DepartureColors.title,
+          style: TextStyle(
+            color: colors.title,
             fontSize: 46,
             fontWeight: FontWeight.w900,
             height: 0.95,
@@ -167,8 +154,8 @@ class _LeaveTimeHero extends StatelessWidget {
         const SizedBox(height: 6),
         Text(
           l10n.planDepartureHeroSubtitle,
-          style: const TextStyle(
-            color: _DepartureColors.title,
+          style: TextStyle(
+            color: colors.title,
             fontSize: 14,
             fontWeight: FontWeight.w700,
           ),
@@ -202,6 +189,7 @@ class _TransportModeSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final modes = [
       ('driving', Icons.directions_car, l10n.planDepartureModeCar),
       ('transit', Icons.train, l10n.planDepartureModeTrain),
@@ -212,8 +200,8 @@ class _TransportModeSelector extends StatelessWidget {
       children: [
         Text(
           l10n.planDepartureTransportMode,
-          style: const TextStyle(
-            color: _DepartureColors.label,
+          style: TextStyle(
+            color: colors.label,
             fontSize: 9,
             fontWeight: FontWeight.w900,
             letterSpacing: 2.4,
@@ -224,7 +212,7 @@ class _TransportModeSelector extends StatelessWidget {
           height: 43,
           padding: const EdgeInsets.all(4),
           decoration: BoxDecoration(
-            color: _DepartureColors.card,
+            color: colors.card,
             borderRadius: BorderRadius.circular(13),
           ),
           child: Row(
@@ -238,7 +226,7 @@ class _TransportModeSelector extends StatelessWidget {
                         duration: const Duration(milliseconds: 180),
                         decoration: BoxDecoration(
                           color: selectedMode == mode.$1
-                              ? _DepartureColors.blue
+                              ? colors.primary
                               : Colors.transparent,
                           borderRadius: BorderRadius.circular(10),
                         ),
@@ -248,8 +236,8 @@ class _TransportModeSelector extends StatelessWidget {
                             Icon(
                               mode.$2,
                               color: selectedMode == mode.$1
-                                  ? _DepartureColors.background
-                                  : _DepartureColors.title,
+                                  ? colors.background
+                                  : colors.title,
                               size: 15,
                             ),
                             const SizedBox(width: 7),
@@ -257,8 +245,8 @@ class _TransportModeSelector extends StatelessWidget {
                               mode.$3,
                               style: TextStyle(
                                 color: selectedMode == mode.$1
-                                    ? _DepartureColors.background
-                                    : _DepartureColors.title,
+                                    ? colors.background
+                                    : colors.title,
                                 fontSize: 12,
                                 fontWeight: FontWeight.w900,
                               ),
@@ -284,6 +272,7 @@ class _DepartureAppBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return SizedBox(
       height: 43,
       child: Row(
@@ -292,9 +281,9 @@ class _DepartureAppBar extends StatelessWidget {
             onPressed: () => context.goNamed('dashboard'),
             padding: EdgeInsets.zero,
             visualDensity: VisualDensity.compact,
-            icon: const Icon(
+            icon: Icon(
               Icons.arrow_back,
-              color: _DepartureColors.title,
+              color: colors.title,
               size: 22,
             ),
           ),
@@ -302,8 +291,8 @@ class _DepartureAppBar extends StatelessWidget {
           Expanded(
             child: Text(
               l10n.planDepartureTitle,
-              style: const TextStyle(
-                color: _DepartureColors.title,
+              style: TextStyle(
+                color: colors.title,
                 fontSize: 17,
                 fontWeight: FontWeight.w900,
                 letterSpacing: -0.35,
@@ -329,6 +318,7 @@ class _FlightWeatherCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return stageState.maybeWhen(
       data: (state) {
         final plan = state.departurePlan;
@@ -342,10 +332,10 @@ class _FlightWeatherCard extends StatelessWidget {
           originLabel: trip?.fromCity ?? trip?.fromCode ?? '--',
           destinationLabel: trip?.toCity ?? trip?.toCode ?? '--',
           weatherBufferMinutes: (plan['weather_buffer_minutes'] as num?)?.round(),
-          cardColor: _DepartureColors.card,
-          titleColor: _DepartureColors.title,
-          mutedColor: _DepartureColors.muted,
-          iconBackground: _DepartureColors.iconBackground,
+          cardColor: colors.card,
+          titleColor: colors.title,
+          mutedColor: colors.muted,
+          iconBackground: colors.iconBackground,
         );
       },
       orElse: () => const SizedBox.shrink(),
@@ -366,17 +356,18 @@ class _TimingCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Container(
       padding: const EdgeInsets.fromLTRB(26, 51, 26, 28),
       decoration: BoxDecoration(
-        color: _DepartureColors.card,
+        color: colors.card,
         borderRadius: BorderRadius.circular(23),
       ),
       child: stageState.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) => Text(
           localizeUserFacingError(error, l10n),
-          style: const TextStyle(color: _DepartureColors.salmon),
+          style: TextStyle(color: colors.salmon),
         ),
         data: (state) {
           final plan = state.departurePlan;
@@ -402,16 +393,8 @@ class _TimingCard extends StatelessWidget {
                 label: l10n.planDepartureDistance,
                 value: formatDistanceKm(l10n, distanceKm),
               ),
-              const SizedBox(height: 26),
-              _TimingRow(
-                icon: Icons.traffic,
-                label: l10n.onWayTraffic,
-                value: trafficLevel == null
-                    ? '--'
-                    : trafficLevelLabel(l10n, trafficLevel),
-              ),
               const SizedBox(height: 30),
-              const Divider(color: _DepartureColors.divider, height: 1),
+              Divider(color: colors.divider, height: 1),
               const SizedBox(height: 21),
               _ArrivalRow(l10n: l10n, expectedArrival: expectedArrival),
             ],
@@ -435,6 +418,7 @@ class _TimingRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Row(
       children: [
         _SoftIcon(icon: icon),
@@ -445,8 +429,8 @@ class _TimingRow extends StatelessWidget {
             children: [
               Text(
                 label,
-                style: const TextStyle(
-                  color: _DepartureColors.label,
+                style: TextStyle(
+                  color: colors.label,
                   fontSize: 8,
                   fontWeight: FontWeight.w900,
                   letterSpacing: 1.2,
@@ -455,8 +439,8 @@ class _TimingRow extends StatelessWidget {
               const SizedBox(height: 4),
               Text(
                 value,
-                style: const TextStyle(
-                  color: _DepartureColors.title,
+                style: TextStyle(
+                  color: colors.title,
                   fontSize: 16,
                   fontWeight: FontWeight.w900,
                 ),
@@ -476,14 +460,15 @@ class _SoftIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Container(
       width: 38,
       height: 38,
       decoration: BoxDecoration(
-        color: _DepartureColors.iconBackground,
+        color: colors.iconBackground,
         borderRadius: BorderRadius.circular(13),
       ),
-      child: Icon(icon, color: _DepartureColors.title, size: 20),
+      child: Icon(icon, color: colors.title, size: 20),
     );
   }
 }
@@ -496,6 +481,7 @@ class _ArrivalRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Row(
       children: [
         Expanded(
@@ -504,8 +490,8 @@ class _ArrivalRow extends StatelessWidget {
             children: [
               Text(
                 l10n.planDepartureEstArrival,
-                style: const TextStyle(
-                  color: _DepartureColors.label,
+                style: TextStyle(
+                  color: colors.label,
                   fontSize: 8,
                   fontWeight: FontWeight.w900,
                   letterSpacing: 1.2,
@@ -514,8 +500,8 @@ class _ArrivalRow extends StatelessWidget {
               const SizedBox(height: 4),
               Text(
                 expectedArrival,
-                style: const TextStyle(
-                  color: _DepartureColors.title,
+                style: TextStyle(
+                  color: colors.title,
                   fontSize: 25,
                   fontWeight: FontWeight.w900,
                   height: 1,
@@ -527,33 +513,17 @@ class _ArrivalRow extends StatelessWidget {
         Container(
           width: 36,
           height: 36,
-          decoration: const BoxDecoration(
-            color: _DepartureColors.warningBackground,
+          decoration: BoxDecoration(
+            color: colors.warningBackground,
             shape: BoxShape.circle,
           ),
-          child: const Icon(
+          child: Icon(
             Icons.flight_land,
-            color: _DepartureColors.salmon,
+            color: colors.salmon,
             size: 19,
           ),
         ),
       ],
     );
   }
-}
-
-class _DepartureColors {
-  _DepartureColors._();
-
-  static const Color background = Color(0xFF061326);
-  static const Color card = Color(0xFF101F36);
-  static const Color chip = Color(0xFF22385C);
-  static const Color blue = Color(0xFF4A91F8);
-  static const Color title = Color(0xFFD5E4FF);
-  static const Color label = Color(0xFFAABCE0);
-  static const Color muted = Color(0xFF6D7D95);
-  static const Color divider = Color(0xFF263A55);
-  static const Color iconBackground = Color(0xFF1D2D46);
-  static const Color warningBackground = Color(0xFF41213A);
-  static const Color salmon = Color(0xFFFFACA6);
 }

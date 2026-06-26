@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'indoor_route_builder.dart';
+import '../../../../core/theme/app_theme_extension.dart';
 
 /// Draws a route polyline in the same 0–1000 coordinate space as [IndoorMapPainter].
 class IndoorRoutePainter extends CustomPainter {

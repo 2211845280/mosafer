@@ -392,6 +392,7 @@ async def materialize_paid_reservation(
     ticket = Ticket(
         booking_id=reservation.id,
         ticket_number=ticket_number,
+        ordered_by_user_id=session.user_id,
         qr_code=qr_plain,
         qr_image_path=qr_path,
         status=TicketStatus.PENDING_PASSENGER.value,
@@ -404,6 +405,7 @@ async def materialize_paid_reservation(
             BookingPassenger(
                 reservation_id=reservation.id,
                 sequence=idx,
+                ordered_by_user_id=session.user_id,
                 title=row["title"],
                 given_name=row["given_name"],
                 family_name=row["family_name"],

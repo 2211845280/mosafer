@@ -27,13 +27,16 @@ export default async function AdminLayout({
       </div>
     );
   }
-  const profile = await fetchProfile(token);
+  const profile = await fetchProfile(token, locale);
   if (token && !profile) {
     return (
       <div className="rounded-card border border-accent/30 bg-card p-8 text-center text-sm text-accent">
-        <p>{t("analyticsLoadError")}</p>
-        <Link href="/admin" className="mt-4 inline-block font-bold text-primary underline">
-          {t("dashboard")}
+        <p>{t("sessionLoadError")}</p>
+        <Link
+          href={`/login?next=${encodeURIComponent(`/${locale}/admin`)}`}
+          className="mt-4 inline-block font-bold text-primary underline"
+        >
+          {(await getTranslations("nav"))("login")}
         </Link>
       </div>
     );

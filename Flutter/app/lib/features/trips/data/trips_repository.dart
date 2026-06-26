@@ -1,7 +1,10 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../../core/network/api_client.dart';
+import '../../../core/network/api_error.dart';
 import '../../../shared/models/result.dart';
 import '../domain/ai_travel.dart';
 import '../domain/trip.dart';
@@ -10,6 +13,20 @@ import 'airport_name_resolver.dart';
 final tripsRepositoryProvider = Provider<TripsRepository>((ref) {
   return TripsRepository(ref.watch(apiClientProvider));
 });
+
+class TripTodoDraft {
+  final String title;
+  final String? sourceKey;
+  final String? titleAr;
+  final String? titleEn;
+
+  const TripTodoDraft({
+    required this.title,
+    this.sourceKey,
+    this.titleAr,
+    this.titleEn,
+  });
+}
 
 class TripsRepository {
   final ApiClient _apiClient;
@@ -51,26 +68,101 @@ class TripsRepository {
       );
       return Success(Trip.fromTicketScanJson(response.data ?? const {}));
     } catch (e) {
+      final message = _message(e).toLowerCase();
+      if (message.contains('ticket not found')) {
+        return const Failure('scan:ticket_not_found');
+      }
+      if (message.contains('qr payload does not contain')) {
+        return const Failure('scan:invalid_ticket');
+      }
       return Failure(_message(e));
     }
   }
 
-  Future<Result<Trip>> scanTicketImage(String imagePath) async {
+  Future<Result<Trip>> scanTicketImage(XFile image) async {
     try {
       final response = await _apiClient.multipart<Map<String, dynamic>>(
         '/tickets/scan-image',
         data: FormData.fromMap({
-          'file': await MultipartFile.fromFile(imagePath),
+          'file': await _multipartFileFromImage(image),
         }),
       );
       final data = response.data ?? const {};
       if (data['decision'] != 'valid_ticket') {
-        return Failure(data['decision']?.toString() ?? 'Invalid ticket image.');
+        return Failure(_scanImageFailureCode(data));
       }
       return Success(Trip.fromTicketImageScanJson(data));
     } catch (e) {
+      final raw = e.toString().toLowerCase();
+      if (kIsWeb &&
+          (raw.contains('multipartfile') ||
+              raw.contains('dart:io') ||
+              raw.contains('unsupported operation'))) {
+        return const Failure('scan:image_upload');
+      }
       return Failure(_message(e));
     }
+  }
+
+  Future<Result<void>> claimTicket(String ticketNumber) async {
+    try {
+      await _apiClient.post<Map<String, dynamic>>(
+        '/tickets/claim',
+        data: {'ticket_number': ticketNumber},
+      );
+      return const Success<void>(null);
+    } catch (e) {
+      final message = _message(e).toLowerCase();
+      if (message.contains('already assigned to another account')) {
+        return const Failure('scan:ticket_already_assigned');
+      }
+      return Failure(_message(e));
+    }
+  }
+
+  Future<MultipartFile> _multipartFileFromImage(XFile image) async {
+    if (kIsWeb) {
+      final bytes = await image.readAsBytes();
+      final name = image.name.isNotEmpty ? image.name : 'ticket.jpg';
+      return MultipartFile.fromBytes(bytes, filename: name);
+    }
+
+    final path = image.path;
+    if (path.isNotEmpty) {
+      return MultipartFile.fromFile(
+        path,
+        filename: image.name.isNotEmpty ? image.name : null,
+      );
+    }
+
+    final bytes = await image.readAsBytes();
+    final name = image.name.isNotEmpty ? image.name : 'ticket.jpg';
+    return MultipartFile.fromBytes(bytes, filename: name);
+  }
+
+  String _scanImageFailureCode(Map<String, dynamic> data) {
+    final decision = data['decision']?.toString() ?? 'invalid_ticket';
+    if (decision == 'expired_ticket') {
+      return 'scan:expired_ticket';
+    }
+
+    final warnings = data['warnings'];
+    if (warnings is List) {
+      for (final warning in warnings) {
+        final text = warning.toString().toLowerCase();
+        if (text.contains('no matching ticket')) {
+          return 'scan:ticket_not_found';
+        }
+        if (text.contains('does not look like a valid ticket')) {
+          return 'scan:invalid_ticket';
+        }
+        if (text.contains('ticket number could not be detected')) {
+          return 'scan:invalid_ticket';
+        }
+      }
+    }
+
+    return 'scan:$decision';
   }
 
   Future<Result<List<Map<String, dynamic>>>> getMyTickets() async {
@@ -211,11 +303,22 @@ class TripsRepository {
     required String title,
     String category = 'task',
     String priority = 'recommended',
+    String? sourceKey,
+    String? titleAr,
+    String? titleEn,
   }) async {
     try {
       final response = await _apiClient.post<Map<String, dynamic>>(
         '/trips/$reservationId/todos',
-        data: {'title': title, 'category': category, 'priority': priority},
+        data: {
+          'title': title,
+          'category': category,
+          'priority': priority,
+          if (sourceKey != null && sourceKey.isNotEmpty)
+            'source_key': sourceKey,
+          if (titleAr != null && titleAr.isNotEmpty) 'title_ar': titleAr,
+          if (titleEn != null && titleEn.isNotEmpty) 'title_en': titleEn,
+        },
       );
       return Success(response.data ?? const {});
     } catch (e) {
@@ -225,20 +328,20 @@ class TripsRepository {
 
   Future<Result<int>> createTodos({
     required int reservationId,
-    required List<String> titles,
+    required List<TripTodoDraft> todos,
     String category = 'task',
     String priority = 'recommended',
   }) async {
     var created = 0;
-    for (final title
-        in titles
-            .map((value) => value.trim())
-            .where((value) => value.isNotEmpty)) {
+    for (final todo in todos.where((value) => value.title.trim().isNotEmpty)) {
       final result = await createTodo(
         reservationId: reservationId,
-        title: title,
+        title: todo.title.trim(),
         category: category,
         priority: priority,
+        sourceKey: todo.sourceKey,
+        titleAr: todo.titleAr,
+        titleEn: todo.titleEn,
       );
       if (result is Failure<Map<String, dynamic>>) {
         return Failure(result.error);
@@ -284,9 +387,25 @@ class TripsRepository {
     }
   }
 
-  String _message(Object error) {
-    return error.toString().replaceFirst('DioException [bad response]: ', '');
+  Future<Result<int>> deleteTodos({
+    required int reservationId,
+    required List<int> todoIds,
+  }) async {
+    var deleted = 0;
+    for (final todoId in todoIds) {
+      final result = await deleteTodo(
+        reservationId: reservationId,
+        todoId: todoId,
+      );
+      if (result is Failure<void>) {
+        return Failure(result.error);
+      }
+      deleted++;
+    }
+    return Success(deleted);
   }
+
+  String _message(Object error) => apiErrorMessage(error);
 
   Future<List<Trip>> _enrichAirportNames(List<Trip> trips) async {
     if (trips.isEmpty) {

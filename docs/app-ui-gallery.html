@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>معرض واجهات مسافر</title>
+  <style>
+    :root {
+      --bg: #f3f6fb;
+      --card: #ffffff;
+      --text: #1b2433;
+      --muted: #5b667a;
+      --accent: #2f6df6;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Tahoma, sans-serif;
+      background: linear-gradient(180deg, #eef3ff 0%, var(--bg) 220px);
+      color: var(--text);
+    }
+    header {
+      padding: 32px 24px 12px;
+      text-align: center;
+    }
+    header h1 { margin: 0 0 8px; font-size: 1.8rem; }
+    header p { margin: 0; color: var(--muted); }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 22px;
+      padding: 24px;
+      max-width: 1400px;
+      margin: 0 auto 40px;
+    }
+    .card {
+      background: var(--card);
+      border-radius: 18px;
+      padding: 16px;
+      box-shadow: 0 10px 30px rgba(20, 34, 66, 0.08);
+    }
+    .phone-wrap {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 12px;
+    }
+    .phone-wrap img {
+      width: 220px;
+      height: auto;
+      display: block;
+    }
+    .card h3 { margin: 0 0 6px; font-size: 1rem; }
+    .card p { margin: 0; color: var(--muted); font-size: 0.9rem; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>معرض واجهات تطبيق مسافر</h1>
+    <p>لقطات ملونة داخل إطار أندرويد — 22 شاشة</p>
+  </header>
+  <section class="grid">
+      <article class="card">
+        <div class="phone-wrap">
+          <img src="screenshots/android/01-login.png" alt="تسجيل الدخول" loading="lazy" />
+        </div>
+        <h3>1. تسجيل الدخول</h3>
+        <p>Login</p>
+      </article>
+      <article class="card">
+        <div class="phone-wrap">
+          <img src="screenshots/android/02-register.png" alt="إنشاء حساب" loading="lazy" />
+        </div>
+        <h3>2. إنشاء حساب</h3>
+        <p>Register</p>
+      </article>
+      <article class="card">
+        <div class="phone-wrap">
+          <img src="screenshots/android/03-forgot-password.png" alt="نسيت كلمة المرور" loading="lazy" />
+        </div>
+        <h3>3. نسيت كلمة المرور</h3>
+        <p>Forgot password</p>
+      </article>
+      <article class="card">
+        <div class="phone-wrap">
+          <img src="screenshots/android/04-reset-password.png" alt="إعادة تعيين كلمة المرور" loading="lazy" />
+        </div>
+        <h3>4. إعادة تعيين كلمة المرور</h3>
+        <p>Reset password</p>
+      </article>
+      <article class="card">
+        <div class="phone-wrap">
+          <img src="screenshots/android/05-explore.png" alt="الرحلات" loading="lazy" />
+        </div>
+        <h3>5. الرحلات</h3>
+        <p>Flights / Explore</p>
+      </article>
+      <article class="card">
+        <div class="phone-wrap">
+          <img src="screenshots/android/06-trips.png" alt="رحلاتي" loading="lazy" />
+        </div>
+        <h3>6. رحلاتي</h3>
+        <p>My trips</p>
+      </article>
+      <article class="card">
+        <div class="phone-wrap">
+          <img src="screenshots/android/07-profile.png" alt="الحساب" loading="lazy" />
+        </div>
+        <h3>7. الحساب</h3>
+        <p>Profile</p>
+      </article>
+      <article class="card">
+        <div class="phone-wrap">
+          <img src="screenshots/android/08-settings.png" alt="الإعدادات" loading="lazy" />
+        </div>
+        <h3>8. الإعدادات</h3>
+        <p>Settings</p>
+      </article>
+      <article class="card">
+        <div class="phone-wrap">
+          <img src="screenshots/android/09-dashboard.png" alt="في المنزل" loading="lazy" />
+        </div>
+        <h3>9. في المنزل</h3>
+        <p>Home dashboard</p>
+      </article>
+      <article class="card">
+        <div class="phone-wrap">
+          <img src="screenshots/android/10-on-way.png" alt="في الطريق" loading="lazy" />
+        </div>
+        <h3>10. في الطريق</h3>
+        <p>On the way</p>
+      </article>
+      <article class="card">
+        <div class="phone-wrap">
+          <img src="screenshots/android/11-airport.png" alt="في المطار" loading="lazy" />
+        </div>
+        <h3>11. في المطار</h3>
+        <p>Airport experience</p>
+      </article>
+      <article class="card">
+        <div class="phone-wrap">
+          <img src="screenshots/android/12-plan-departure.png" alt="خطة المغادرة" loading="lazy" />
+        </div>
+        <h3>12. خطة المغادرة</h3>
+        <p>Departure plan</p>
+      </article>
+      <article class="card">
+        <div class="phone-wrap">
+          <img src="screenshots/android/13-packing.png" alt="قائمة التجهيز" loading="lazy" />
+        </div>
+        <h3>13. قائمة التجهيز</h3>
+        <p>Packing list</p>
+      </article>
+      <article class="card">
+        <div class="phone-wrap">
+          <img src="screenshots/android/14-timeline.png" alt="الجدول الزمني" loading="lazy" />
+        </div>
+        <h3>14. الجدول الزمني</h3>
+        <p>Timeline</p>
+      </article>
+      <article class="card">
+        <div class="phone-wrap">
+          <img src="screenshots/android/15-trip-todos.png" alt="قائمة المهام" loading="lazy" />
+        </div>
+        <h3>15. قائمة المهام</h3>
+        <p>Trip todos</p>
+      </article>
+      <article class="card">
+        <div class="phone-wrap">
+          <img src="screenshots/android/16-scan.png" alt="مسح التذكرة" loading="lazy" />
+        </div>
+        <h3>16. مسح التذكرة</h3>
+        <p>Scan ticket</p>
+      </article>
+      <article class="card">
+        <div class="phone-wrap">
+          <img src="screenshots/android/17-notifications.png" alt="الإشعارات" loading="lazy" />
+        </div>
+        <h3>17. الإشعارات</h3>
+        <p>Notifications</p>
+      </article>
+      <article class="card">
+        <div class="phone-wrap">
+          <img src="screenshots/android/18-ticket-details.png" alt="تفاصيل التذكرة" loading="lazy" />
+        </div>
+        <h3>18. تفاصيل التذكرة</h3>
+        <p>Ticket details</p>
+      </article>
+      <article class="card">
+        <div class="phone-wrap">
+          <img src="screenshots/android/19-edit-profile.png" alt="تعديل الملف" loading="lazy" />
+        </div>
+        <h3>19. تعديل الملف</h3>
+        <p>Edit profile</p>
+      </article>
+      <article class="card">
+        <div class="phone-wrap">
+          <img src="screenshots/android/20-change-password.png" alt="تغيير كلمة المرور" loading="lazy" />
+        </div>
+        <h3>20. تغيير كلمة المرور</h3>
+        <p>Change password</p>
+      </article>
+      <article class="card">
+        <div class="phone-wrap">
+          <img src="screenshots/android/21-deleted-trips.png" alt="سلة المحذوفات" loading="lazy" />
+        </div>
+        <h3>21. سلة المحذوفات</h3>
+        <p>Deleted trips</p>
+      </article>
+      <article class="card">
+        <div class="phone-wrap">
+          <img src="screenshots/android/22-indoor-map.png" alt="خريطة المطار" loading="lazy" />
+        </div>
+        <h3>22. خريطة المطار</h3>
+        <p>Indoor map</p>
+      </article>
+  </section>
+</body>
+</html>

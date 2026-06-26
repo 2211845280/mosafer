@@ -14,6 +14,8 @@ Usage:
 
 from __future__ import annotations
 
+from dataclasses import dataclass
+
 import structlog
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -30,18 +32,33 @@ _PUSH_EVENTS: set[str] = {
     "flight_update",
     "gate_change",
     "departure_reminder",
-    "departure_warning",
-    "departure_urgent",
     "payment_success",
     "payment_failed",
     "payment_refunded",
+    "trip_todo_14d",
+    "trip_todo_7d",
+    "trip_todo_3d",
+    "trip_todo_1d",
+    "trip_todo_6h",
+    "trip_todo_3h",
+    "flight_departure_6h",
+    "home_departure_2h",
+    "home_departure_30m",
+    "home_departure_critical",
 }
 
 _EMAIL_EVENTS: set[str] = {
     "payment_success",
     "gate_change",
-    "departure_urgent",
+    "home_departure_critical",
 }
+
+
+@dataclass(frozen=True)
+class NotificationDispatchResult:
+    notification: Notification
+    push_tokens: int = 0
+    push_successes: int = 0
 
 
 class NotificationDispatcher:
@@ -59,25 +76,30 @@ class NotificationDispatcher:
         body: str,
         data: dict[str, str] | None = None,
         db: AsyncSession | None = None,
-    ) -> None:
+        force_push: bool = False,
+    ) -> NotificationDispatchResult | None:
         if db is None:
             logger.error("dispatcher.no_db_session")
-            return
+            return None
 
-        db.add(Notification(
+        notification = Notification(
             user_id=user_id,
             type=event_type,
             title=title,
             body=body,
-        ))
+        )
+        db.add(notification)
 
-        if event_type in _PUSH_EVENTS:
+        push_tokens = 0
+        push_successes = 0
+        if force_push or event_type in _PUSH_EVENTS:
             result = await db.execute(
                 select(DeviceToken.token).where(DeviceToken.user_id == user_id)
             )
             tokens = [row[0] for row in result.all()]
+            push_tokens = len(tokens)
             if tokens:
-                sent = await self.fcm.send_push_multi(
+                push_successes = await self.fcm.send_push_multi(
                     tokens=tokens, title=title, body=body, data=data,
                 )
                 logger.info(
@@ -85,7 +107,7 @@ class NotificationDispatcher:
                     user_id=user_id,
                     event_type=event_type,
                     tokens=len(tokens),
-                    successes=sent,
+                    successes=push_successes,
                 )
 
         if event_type in _EMAIL_EVENTS:
@@ -105,3 +127,9 @@ class NotificationDispatcher:
                     event_type=event_type,
                     success=sent,
                 )
+
+        return NotificationDispatchResult(
+            notification=notification,
+            push_tokens=push_tokens,
+            push_successes=push_successes,
+        )

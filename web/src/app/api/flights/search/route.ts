@@ -8,18 +8,27 @@ export async function GET(req: NextRequest) {
   if (!token) {
     return NextResponse.json({ detail: "Unauthorized" }, { status: 401 });
   }
+
   const qs = new URL(req.url).searchParams.toString();
-  const res = await fetch(`${apiUrl("/flights/search")}?${qs}`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-      Accept: "application/json",
-      "Accept-Language": acceptLanguageFromRequest(req),
-    },
-    cache: "no-store",
-  });
-  const text = await res.text();
-  return new NextResponse(text, {
-    status: res.status,
-    headers: { "Content-Type": "application/json" },
-  });
+  try {
+    const res = await fetch(`${apiUrl("/flights/search")}?${qs}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/json",
+        "Accept-Language": acceptLanguageFromRequest(req),
+      },
+      cache: "no-store",
+    });
+    const text = await res.text();
+    return new NextResponse(text, {
+      status: res.status,
+      headers: { "Content-Type": "application/json" },
+    });
+  } catch (error) {
+    console.error("flights.search.route_failed", error);
+    return NextResponse.json(
+      { detail: "Flight search service unavailable. Is the API running?" },
+      { status: 502 },
+    );
+  }
 }

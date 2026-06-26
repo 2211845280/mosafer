@@ -4,11 +4,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 
-import '../../../../core/services/geocoding_service.dart';
-import '../../../../core/services/home_address_controller.dart';
+import '../../../../core/debug/screenshot_fixtures.dart';
+import '../../../../core/debug/screenshot_mode.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../profile_guest_avatar.dart';
 import '../profile_state.dart';
+import '../../../../core/theme/app_theme_extension.dart';
 
 class EditProfilePage extends ConsumerStatefulWidget {
   const EditProfilePage({super.key});
@@ -21,10 +22,8 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
   late final TextEditingController _nameController;
   late final TextEditingController _emailController;
   late final TextEditingController _phoneController;
-  late final TextEditingController _homeAddressController;
   Uint8List? _pendingAvatarBytes;
   bool _isSaving = false;
-  bool _isSavingAddress = false;
 
   @override
   void initState() {
@@ -33,9 +32,24 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
     _nameController = TextEditingController(text: profile?.fullName ?? '');
     _emailController = TextEditingController(text: profile?.email ?? '');
     _phoneController = TextEditingController(text: profile?.phoneNumber ?? '');
-    _homeAddressController = TextEditingController(
-      text: ref.read(homeAddressControllerProvider).address ?? '',
-    );
+    if (kScreenshotMode) {
+      _applyProfileFields(kScreenshotProfile);
+    } else {
+      Future.microtask(_syncControllersFromProfile);
+    }
+  }
+
+  void _applyProfileFields(ProfileState profile) {
+    _nameController.text = profile.fullName;
+    _emailController.text = profile.email;
+    _phoneController.text = profile.phoneNumber;
+  }
+
+  void _syncControllersFromProfile() {
+    final profile = ref.read(profileControllerProvider).valueOrNull;
+    if (profile == null || !mounted) return;
+    _applyProfileFields(profile);
+    setState(() {});
   }
 
   @override
@@ -43,52 +57,7 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
     _nameController.dispose();
     _emailController.dispose();
     _phoneController.dispose();
-    _homeAddressController.dispose();
     super.dispose();
-  }
-
-  Future<void> _saveHomeAddress() async {
-    final l10n = AppLocalizations.of(context)!;
-    final address = _homeAddressController.text.trim();
-    if (address.length < 3) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.homeAddressTooShort)),
-      );
-      return;
-    }
-
-    setState(() => _isSavingAddress = true);
-    try {
-      final geocoded = await ref.read(geocodingServiceProvider).geocode(address);
-      final syncError = await ref
-          .read(homeAddressControllerProvider.notifier)
-          .setManualAddress(
-            address: address,
-            lat: geocoded.lat,
-            lng: geocoded.lng,
-            formattedAddress: geocoded.formattedAddress,
-          );
-      if (!mounted) return;
-      if (syncError != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(syncError)),
-        );
-        return;
-      }
-      _homeAddressController.text = geocoded.formattedAddress;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.homeAddressSaved)),
-      );
-    } catch (_) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.homeAddressGeocodeFailed)),
-      );
-    } finally {
-      if (mounted) {
-        setState(() => _isSavingAddress = false);
-      }
-    }
   }
 
   Future<void> _saveChanges() async {
@@ -139,12 +108,21 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final profileState = ref.watch(profileControllerProvider);
-    final avatarPath = profileState.valueOrNull?.avatarPath;
+    final profile = profileState.valueOrNull;
+    if (profile != null && profile.fullName.isNotEmpty) {
+      if (_nameController.text != profile.fullName) {
+        _nameController.text = profile.fullName;
+        _emailController.text = profile.email;
+        _phoneController.text = profile.phoneNumber;
+      }
+    }
+    final avatarPath = profile?.avatarPath;
     final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
-      backgroundColor: _EditProfileColors.background,
+      backgroundColor: colors.background,
       body: SafeArea(
         bottom: false,
         child: Column(
@@ -185,44 +163,6 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 20),
-                  _ProfileInputField(
-                    label: l10n.homeLocationLabel,
-                    icon: Icons.home_outlined,
-                    controller: _homeAddressController,
-                    maxLines: 2,
-                  ),
-                  const SizedBox(height: 12),
-                  SizedBox(
-                    height: 34,
-                    width: double.infinity,
-                    child: OutlinedButton(
-                      onPressed: _isSavingAddress ? null : _saveHomeAddress,
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: _EditProfileColors.title,
-                        side: BorderSide(
-                          color: _EditProfileColors.title.withValues(alpha: 0.25),
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(9),
-                        ),
-                      ),
-                      child: _isSavingAddress
-                          ? const SizedBox(
-                              width: 14,
-                              height: 14,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : Text(
-                              l10n.homeAddressSave,
-                              style: const TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w900,
-                                letterSpacing: 1.1,
-                              ),
-                            ),
-                    ),
-                  ),
                   const SizedBox(height: 28),
                   SizedBox(
                     height: 37,
@@ -230,8 +170,8 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
                     child: ElevatedButton(
                       onPressed: _isSaving ? null : _saveChanges,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: _EditProfileColors.blue,
-                        foregroundColor: _EditProfileColors.background,
+                        backgroundColor: colors.primary,
+                        foregroundColor: colors.background,
                         elevation: 0,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(9),
@@ -245,7 +185,7 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
                             )
                           : Text(
                               l10n.saveChanges,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w900,
                                 letterSpacing: 1.4,
@@ -270,6 +210,7 @@ class _EditProfileAppBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Padding(
       padding: const EdgeInsets.fromLTRB(18, 8, 18, 0),
       child: Row(
@@ -277,14 +218,14 @@ class _EditProfileAppBar extends StatelessWidget {
           GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTap: () => context.goNamed('settings'),
-            child: const SizedBox(
+            child: SizedBox(
               width: 31,
               height: 34,
               child: Align(
                 alignment: AlignmentDirectional.centerStart,
                 child: Icon(
                   Icons.arrow_back,
-                  color: _EditProfileColors.title,
+                  color: colors.title,
                   size: 19,
                 ),
               ),
@@ -292,8 +233,8 @@ class _EditProfileAppBar extends StatelessWidget {
           ),
           Text(
             l10n.editProfileTitle,
-            style: const TextStyle(
-              color: _EditProfileColors.title,
+            style: TextStyle(
+              color: colors.title,
               fontSize: 13,
               fontWeight: FontWeight.w900,
             ),
@@ -317,6 +258,7 @@ class _ProfileAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Center(
       child: Stack(
         clipBehavior: Clip.none,
@@ -326,7 +268,7 @@ class _ProfileAvatar extends StatelessWidget {
             child: Container(
               width: 92,
               height: 92,
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 color: Colors.white,
                 shape: BoxShape.circle,
               ),
@@ -347,16 +289,16 @@ class _ProfileAvatar extends StatelessWidget {
                 width: 37,
                 height: 37,
                 decoration: BoxDecoration(
-                  color: _EditProfileColors.blue,
+                  color: colors.primary,
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: _EditProfileColors.background,
+                    color: colors.background,
                     width: 3,
                   ),
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.camera_alt_outlined,
-                  color: _EditProfileColors.background,
+                  color: colors.background,
                   size: 18,
                 ),
               ),
@@ -375,7 +317,6 @@ class _ProfileInputField extends StatelessWidget {
   final TextInputType? keyboardType;
   final ValueChanged<String>? onChanged;
   final List<TextInputFormatter>? inputFormatters;
-  final int? maxLines;
 
   const _ProfileInputField({
     required this.label,
@@ -384,11 +325,11 @@ class _ProfileInputField extends StatelessWidget {
     this.keyboardType,
     this.onChanged,
     this.inputFormatters,
-    this.maxLines,
   });
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -399,17 +340,17 @@ class _ProfileInputField extends StatelessWidget {
           onChanged: onChanged,
           keyboardType: keyboardType,
           inputFormatters: inputFormatters,
-          maxLines: maxLines ?? 1,
-          cursorColor: _EditProfileColors.blue,
-          style: const TextStyle(
-            color: _EditProfileColors.title,
+          maxLines: 1,
+          cursorColor: colors.primary,
+          style: TextStyle(
+            color: colors.title,
             fontSize: 12,
             fontWeight: FontWeight.w800,
           ),
           decoration: InputDecoration(
             filled: true,
-            fillColor: _EditProfileColors.card,
-            prefixIcon: Icon(icon, color: _EditProfileColors.title, size: 18),
+            fillColor: colors.card,
+            prefixIcon: Icon(icon, color: colors.title, size: 18),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(7),
               borderSide: BorderSide.none,
@@ -420,7 +361,7 @@ class _ProfileInputField extends StatelessWidget {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(7),
-              borderSide: const BorderSide(color: _EditProfileColors.blue),
+              borderSide: BorderSide(color: colors.primary),
             ),
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 14,
@@ -440,23 +381,15 @@ class _SectionLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Text(
       text,
-      style: const TextStyle(
-        color: _EditProfileColors.title,
+      style: TextStyle(
+        color: colors.title,
         fontSize: 8,
         fontWeight: FontWeight.w900,
         letterSpacing: 1.3,
       ),
     );
   }
-}
-
-class _EditProfileColors {
-  _EditProfileColors._();
-
-  static const Color background = Color(0xFF061326);
-  static const Color card = Color(0xFF101F36);
-  static const Color title = Color(0xFFD5E4FF);
-  static const Color blue = Color(0xFF1489FF);
 }

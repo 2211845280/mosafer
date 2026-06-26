@@ -5,17 +5,19 @@ import 'package:go_router/go_router.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../domain/trip.dart';
 import '../my_trips/my_trips_controller.dart';
+import '../../../../core/theme/app_theme_extension.dart';
 
 class DeletedTripsPage extends ConsumerWidget {
   const DeletedTripsPage({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final colors = context.colors;
     final l10n = AppLocalizations.of(context)!;
     final deletedAsync = ref.watch(deletedTripsProvider);
 
     return Scaffold(
-      backgroundColor: _DeletedTripsColors.background,
+      backgroundColor: colors.background,
       body: SafeArea(
         bottom: false,
         child: Column(
@@ -30,7 +32,7 @@ class DeletedTripsPage extends ConsumerWidget {
                 error: (_, __) => Center(
                   child: Text(
                     l10n.retry,
-                    style: const TextStyle(color: _DeletedTripsColors.title),
+                    style: TextStyle(color: colors.title),
                   ),
                 ),
                 data: (entries) {
@@ -44,8 +46,8 @@ class DeletedTripsPage extends ConsumerWidget {
                             Text(
                               l10n.deletedTripsEmpty,
                               textAlign: TextAlign.center,
-                              style: const TextStyle(
-                                color: _DeletedTripsColors.muted,
+                              style: TextStyle(
+                                color: colors.muted,
                                 fontSize: 14,
                               ),
                             ),
@@ -108,15 +110,16 @@ class DeletedTripsPage extends ConsumerWidget {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) {
+        final dialogColors = dialogContext.colors;
         return AlertDialog(
-          backgroundColor: _DeletedTripsColors.card,
+          backgroundColor: dialogColors.card,
           title: Text(
             l10n.deletedTripsDeleteConfirmTitle,
-            style: const TextStyle(color: _DeletedTripsColors.title),
+            style: TextStyle(color: dialogColors.title),
           ),
           content: Text(
             l10n.deletedTripsDeleteConfirmBody,
-            style: const TextStyle(color: _DeletedTripsColors.muted),
+            style: TextStyle(color: dialogColors.muted),
           ),
           actions: [
             TextButton(
@@ -150,19 +153,20 @@ class _AutoPurgeNotice extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: _DeletedTripsColors.card,
+        color: colors.card,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: _DeletedTripsColors.border),
+        border: Border.all(color: colors.border),
       ),
       child: Text(
         text,
         textAlign: TextAlign.center,
-        style: const TextStyle(
-          color: _DeletedTripsColors.muted,
+        style: TextStyle(
+          color: colors.muted,
           fontSize: 12,
           fontWeight: FontWeight.w600,
           height: 1.45,
@@ -180,19 +184,20 @@ class _DeletedTripsAppBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Padding(
       padding: const EdgeInsets.fromLTRB(8, 8, 14, 0),
       child: Row(
         children: [
           IconButton(
             onPressed: onBack,
-            icon: const Icon(Icons.arrow_back, color: _DeletedTripsColors.title),
+            icon: Icon(Icons.arrow_back, color: colors.title),
           ),
           Expanded(
             child: Text(
               title,
-              style: const TextStyle(
-                color: _DeletedTripsColors.title,
+              style: TextStyle(
+                color: colors.title,
                 fontSize: 20,
                 fontWeight: FontWeight.w900,
               ),
@@ -217,22 +222,23 @@ class _DeletedTripTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final l10n = AppLocalizations.of(context)!;
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: _DeletedTripsColors.card,
+        color: colors.card,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: _DeletedTripsColors.border),
+        border: Border.all(color: colors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             trip.airline,
-            style: const TextStyle(
-              color: _DeletedTripsColors.title,
+            style: TextStyle(
+              color: colors.title,
               fontSize: 14,
               fontWeight: FontWeight.w900,
             ),
@@ -240,8 +246,8 @@ class _DeletedTripTile extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             '${trip.fromCode} → ${trip.toCode}',
-            style: const TextStyle(
-              color: _DeletedTripsColors.muted,
+            style: TextStyle(
+              color: colors.muted,
               fontSize: 12,
               fontWeight: FontWeight.w600,
             ),
@@ -249,8 +255,8 @@ class _DeletedTripTile extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             '${trip.fromCity} → ${trip.toCity}',
-            style: const TextStyle(
-              color: _DeletedTripsColors.muted,
+            style: TextStyle(
+              color: colors.muted,
               fontSize: 10,
               fontWeight: FontWeight.w300,
             ),
@@ -262,8 +268,8 @@ class _DeletedTripTile extends StatelessWidget {
                 child: OutlinedButton(
                   onPressed: onRestore,
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: _DeletedTripsColors.title,
-                    side: const BorderSide(color: _DeletedTripsColors.border),
+                    foregroundColor: colors.title,
+                    side: BorderSide(color: colors.border),
                   ),
                   child: Text(l10n.deletedTripsRestore),
                 ),
@@ -273,8 +279,8 @@ class _DeletedTripTile extends StatelessWidget {
                 child: OutlinedButton(
                   onPressed: onDeletePermanent,
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: _DeletedTripsColors.danger,
-                    side: const BorderSide(color: _DeletedTripsColors.danger),
+                    foregroundColor: colors.danger,
+                    side: BorderSide(color: colors.danger),
                   ),
                   child: Text(
                     l10n.deletedTripsDeletePermanent,
@@ -288,15 +294,4 @@ class _DeletedTripTile extends StatelessWidget {
       ),
     );
   }
-}
-
-class _DeletedTripsColors {
-  _DeletedTripsColors._();
-
-  static const Color background = Color(0xFF061326);
-  static const Color card = Color(0xFF101F36);
-  static const Color border = Color(0xFF314663);
-  static const Color title = Color(0xFFD5E4FF);
-  static const Color muted = Color(0xFF77879E);
-  static const Color danger = Color(0xFFE57373);
 }

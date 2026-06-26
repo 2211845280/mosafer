@@ -53,15 +53,26 @@ function ResultsBody() {
           )}`;
           return;
         }
-        const json = (await res.json()) as FlightSearchResponse & { detail?: string };
-        if (!res.ok) {
+        const raw = await res.text();
+        let json: (FlightSearchResponse & { detail?: string }) | null = null;
+        try {
+          json = raw ? (JSON.parse(raw) as FlightSearchResponse & { detail?: string }) : null;
+        } catch {
           if (!cancelled) {
-            setErr(typeof json.detail === "string" ? json.detail : t("loadError"));
+            setErr(t("loadError"));
             setData(null);
           }
           return;
         }
-        if (!cancelled) setData(json);
+        if (!res.ok) {
+          if (!cancelled) {
+            const detail = json?.detail;
+            setErr(typeof detail === "string" ? detail : t("loadError"));
+            setData(null);
+          }
+          return;
+        }
+        if (!cancelled && json) setData(json);
       } catch {
         if (!cancelled) setErr(t("loadError"));
       } finally {
@@ -71,7 +82,7 @@ function ResultsBody() {
     return () => {
       cancelled = true;
     };
-  }, [origin, dest, dep, adults, locale, t]);
+  }, [origin, dest, dep, adults, locale]);
 
   function selectOffer(offer: FlightOffer) {
     try {

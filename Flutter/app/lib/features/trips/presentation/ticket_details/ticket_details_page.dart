@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
 
 import '../../../../l10n/app_localizations.dart';
+import '../../../../core/theme/app_theme_extension.dart';
 
 class TicketDetailsPage extends StatelessWidget {
   const TicketDetailsPage({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Scaffold(
-      backgroundColor: _TicketColors.background,
+      backgroundColor: colors.background,
       body: CustomScrollView(
         slivers: [
           SliverPadding(
@@ -34,12 +36,13 @@ class _BoardingPassPreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final l10n = AppLocalizations.of(context)!;
     return Container(
       height: 224,
       margin: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
-        color: _TicketColors.card,
+        color: colors.card,
         borderRadius: const BorderRadius.only(
           bottomLeft: Radius.circular(24),
           bottomRight: Radius.circular(24),
@@ -67,7 +70,7 @@ class _BoardingPassPreview extends StatelessWidget {
                   children: [
                     Text(
                       l10n.ticketBoardingPass,
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: Colors.black,
                         fontSize: 5,
                         fontWeight: FontWeight.w900,
@@ -76,7 +79,7 @@ class _BoardingPassPreview extends StatelessWidget {
                     const SizedBox(height: 3),
                     Text(
                       l10n.brandMosafer,
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: Colors.black,
                         fontSize: 4,
                         fontWeight: FontWeight.w600,
@@ -92,7 +95,7 @@ class _BoardingPassPreview extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       l10n.ticketSafeWorkSecure,
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: Colors.black54,
                         fontSize: 4,
                       ),
@@ -113,13 +116,14 @@ class _BoardingTitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final l10n = AppLocalizations.of(context)!;
     return Column(
       children: [
         Text(
           l10n.ticketBoardingPass,
-          style: const TextStyle(
-            color: _TicketColors.muted,
+          style: TextStyle(
+            color: colors.muted,
             fontSize: 9,
             fontWeight: FontWeight.w900,
             letterSpacing: 3,
@@ -128,8 +132,8 @@ class _BoardingTitle extends StatelessWidget {
         const SizedBox(height: 7),
         Text(
           l10n.ticketScanForBoarding,
-          style: const TextStyle(
-            color: _TicketColors.title,
+          style: TextStyle(
+            color: colors.title,
             fontSize: 18,
             fontWeight: FontWeight.w900,
           ),
@@ -144,13 +148,14 @@ class _TicketInfoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final l10n = AppLocalizations.of(context)!;
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 26, 20, 20),
       decoration: BoxDecoration(
-        color: _TicketColors.card,
+        color: colors.card,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: _TicketColors.border),
+        border: Border.all(color: colors.border),
       ),
       child: Column(
         children: [
@@ -158,7 +163,7 @@ class _TicketInfoCard extends StatelessWidget {
           const SizedBox(height: 12),
           const _TicketRouteRow(),
           const SizedBox(height: 26),
-          const Divider(color: _TicketColors.divider, height: 1),
+          Divider(color: colors.divider, height: 1),
           const SizedBox(height: 22),
           _TicketDetailsGrid(l10n: l10n),
         ],
@@ -172,14 +177,15 @@ class _TicketHeaderRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final l10n = AppLocalizations.of(context)!;
     return Row(
       children: [
-        const Expanded(
+        Expanded(
           child: Text(
             'SKY-442',
             style: TextStyle(
-              color: _TicketColors.coral,
+              color: colors.coral,
               fontSize: 9,
               fontWeight: FontWeight.w800,
             ),
@@ -187,8 +193,8 @@ class _TicketHeaderRow extends StatelessWidget {
         ),
         Text(
           l10n.ticketDirect,
-          style: const TextStyle(
-            color: _TicketColors.coral,
+          style: TextStyle(
+            color: colors.coral,
             fontSize: 9,
             fontWeight: FontWeight.w800,
           ),
@@ -203,9 +209,10 @@ class _TicketRouteRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Row(
-      children: const [
-        _TicketAirport(
+      children: [
+        const _TicketAirport(
           code: 'LHR',
           name: 'London Heathrow',
           alignment: CrossAxisAlignment.start,
@@ -213,12 +220,12 @@ class _TicketRouteRow extends StatelessWidget {
         Expanded(
           child: Column(
             children: [
-              Icon(Icons.flight_takeoff, color: _TicketColors.title, size: 22),
+              Icon(Icons.flight_takeoff, color: colors.title, size: 22),
               SizedBox(height: 3),
               Text(
                 '7H 45M',
                 style: TextStyle(
-                  color: _TicketColors.muted,
+                  color: colors.muted,
                   fontSize: 7,
                   fontWeight: FontWeight.w700,
                 ),
@@ -249,13 +256,14 @@ class _TicketAirport extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Column(
       crossAxisAlignment: alignment,
       children: [
         Text(
           code,
-          style: const TextStyle(
-            color: _TicketColors.title,
+          style: TextStyle(
+            color: colors.title,
             fontSize: 27,
             fontWeight: FontWeight.w900,
             height: 1,
@@ -264,8 +272,8 @@ class _TicketAirport extends StatelessWidget {
         const SizedBox(height: 7),
         Text(
           name,
-          style: const TextStyle(
-            color: _TicketColors.body,
+          style: TextStyle(
+            color: colors.body,
             fontSize: 10,
             fontWeight: FontWeight.w500,
           ),
@@ -282,6 +290,7 @@ class _TicketDetailsGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Column(
       children: [
         Row(
@@ -326,13 +335,14 @@ class _DetailCell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
-          style: const TextStyle(
-            color: _TicketColors.muted,
+          style: TextStyle(
+            color: colors.muted,
             fontSize: 9,
             fontWeight: FontWeight.w800,
             letterSpacing: 0.8,
@@ -346,16 +356,16 @@ class _DetailCell extends StatelessWidget {
               if (suffix != null)
                 TextSpan(
                   text: suffix,
-                  style: const TextStyle(
-                    color: _TicketColors.body,
+                  style: TextStyle(
+                    color: colors.body,
                     fontSize: 10,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
             ],
           ),
-          style: const TextStyle(
-            color: _TicketColors.title,
+          style: TextStyle(
+            color: colors.title,
             fontSize: 17,
             fontWeight: FontWeight.w900,
           ),
@@ -397,17 +407,4 @@ class _QrPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
-
-class _TicketColors {
-  _TicketColors._();
-
-  static const Color background = Color(0xFF061326);
-  static const Color card = Color(0xFF101F36);
-  static const Color border = Color(0xFF213650);
-  static const Color divider = Color(0xFF263A55);
-  static const Color title = Color(0xFFD5E4FF);
-  static const Color body = Color(0xFFC0CBE0);
-  static const Color muted = Color(0xFF7D8BA3);
-  static const Color coral = Color(0xFFFFA28E);
 }

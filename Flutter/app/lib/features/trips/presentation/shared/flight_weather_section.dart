@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/models/flight_weather.dart';
 import '../../../../core/utils/weather_formatters.dart';
 import '../../../../l10n/app_localizations.dart';
+import '../../../../core/theme/app_theme_extension.dart';
 
 class FlightWeatherSection extends StatelessWidget {
   final AppLocalizations l10n;
@@ -32,6 +33,7 @@ class FlightWeatherSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     if (originWeather == null && destinationWeather == null) {
       return const SizedBox.shrink();
     }
@@ -111,6 +113,7 @@ class _WeatherRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final description = weather.description.trim().isEmpty
         ? weatherConditionLabel(l10n, weather.condition)
         : weather.description;

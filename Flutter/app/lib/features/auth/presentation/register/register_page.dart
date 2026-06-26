@@ -6,6 +6,7 @@ import '../../../../core/utils/validators.dart';
 import '../../../../core/localization/error_message_localizer.dart';
 import '../../../../l10n/app_localizations.dart';
 import 'register_controller.dart';
+import '../../../../core/theme/app_theme_extension.dart';
 
 class RegisterPage extends ConsumerStatefulWidget {
   const RegisterPage({super.key});
@@ -69,11 +70,12 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final registerState = ref.watch(registerControllerProvider);
     final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
-      backgroundColor: _RegisterColors.midnight,
+      backgroundColor: colors.background,
       body: SafeArea(
         child: Column(
           children: [
@@ -97,8 +99,8 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                     children: [
                       Text(
                         l10n.registerStartJourneyTitle,
-                        style: const TextStyle(
-                          color: _RegisterColors.title,
+                        style: TextStyle(
+                          color: colors.title,
                           fontSize: 29,
                           fontWeight: FontWeight.w900,
                           letterSpacing: -1.25,
@@ -108,8 +110,8 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                       const SizedBox(height: 12),
                       Text(
                         l10n.registerJoinCommunity,
-                        style: const TextStyle(
-                          color: _RegisterColors.body,
+                        style: TextStyle(
+                          color: colors.body,
                           fontSize: 15,
                           fontWeight: FontWeight.w500,
                         ),
@@ -182,8 +184,8 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                         Text(
                           localizeUserFacingError(registerState.error!, l10n),
                           textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            color: _RegisterColors.coral,
+                          style: TextStyle(
+                            color: colors.coral,
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
                           ),
@@ -218,13 +220,14 @@ class _RegisterHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Container(
       height: 49,
       padding: const EdgeInsets.symmetric(horizontal: 8),
-      decoration: const BoxDecoration(
-        color: _RegisterColors.header,
+      decoration: BoxDecoration(
+        color: colors.header,
         border: Border(
-          bottom: BorderSide(color: _RegisterColors.divider, width: 1),
+          bottom: BorderSide(color: colors.divider, width: 1),
         ),
       ),
       child: Row(
@@ -236,9 +239,9 @@ class _RegisterHeader extends StatelessWidget {
               padding: EdgeInsets.zero,
               splashRadius: 22,
               onPressed: onBackPressed,
-              icon: const Icon(
+              icon: Icon(
                 Icons.arrow_back,
-                color: _RegisterColors.title,
+                color: colors.title,
                 size: 21,
               ),
             ),
@@ -246,8 +249,8 @@ class _RegisterHeader extends StatelessWidget {
           const SizedBox(width: 10),
           Text(
             l10n.registerCreateAccount,
-            style: const TextStyle(
-              color: _RegisterColors.title,
+            style: TextStyle(
+              color: colors.title,
               fontSize: 15,
               fontWeight: FontWeight.w800,
             ),
@@ -300,6 +303,7 @@ class _RegisterTextFieldState extends State<_RegisterTextField> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -307,8 +311,8 @@ class _RegisterTextFieldState extends State<_RegisterTextField> {
           padding: const EdgeInsets.only(left: 2, bottom: 7),
           child: Text(
             widget.label,
-            style: const TextStyle(
-              color: _RegisterColors.label,
+            style: TextStyle(
+              color: colors.label,
               fontSize: 9,
               fontWeight: FontWeight.w900,
               letterSpacing: 1.2,
@@ -323,22 +327,22 @@ class _RegisterTextFieldState extends State<_RegisterTextField> {
           textInputAction: widget.textInputAction,
           onChanged: widget.onChanged,
           onFieldSubmitted: widget.onSubmitted,
-          cursorColor: _RegisterColors.blue,
-          style: const TextStyle(
-            color: _RegisterColors.title,
+          cursorColor: colors.primary,
+          style: TextStyle(
+            color: colors.title,
             fontSize: 14,
             fontWeight: FontWeight.w500,
           ),
           decoration: InputDecoration(
             hintText: widget.hint,
-            hintStyle: const TextStyle(
-              color: _RegisterColors.hint,
+            hintStyle: TextStyle(
+              color: colors.hint,
               fontSize: 14,
               fontWeight: FontWeight.w500,
             ),
             prefixIcon: Icon(
               widget.icon,
-              color: _RegisterColors.icon,
+              color: colors.icon,
               size: 19,
             ),
             suffixIcon: widget.obscureText
@@ -350,13 +354,13 @@ class _RegisterTextFieldState extends State<_RegisterTextField> {
                       _isObscured
                           ? (widget.obscureIcon ?? Icons.visibility_outlined)
                           : Icons.visibility_off_outlined,
-                      color: _RegisterColors.muted,
+                      color: colors.muted,
                       size: 18,
                     ),
                   )
                 : null,
             filled: true,
-            fillColor: _RegisterColors.field,
+            fillColor: colors.field,
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 14,
               vertical: 14,
@@ -371,15 +375,15 @@ class _RegisterTextFieldState extends State<_RegisterTextField> {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(9),
-              borderSide: const BorderSide(color: _RegisterColors.blue),
+              borderSide: BorderSide(color: colors.primary),
             ),
             errorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(9),
-              borderSide: const BorderSide(color: _RegisterColors.coral),
+              borderSide: BorderSide(color: colors.coral),
             ),
             focusedErrorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(9),
-              borderSide: const BorderSide(color: _RegisterColors.coral),
+              borderSide: BorderSide(color: colors.coral),
             ),
           ),
         ),
@@ -396,6 +400,7 @@ class _PasswordStrength extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final score = _passwordScore(password);
     final strength = switch (score) {
       0 || 1 => l10n.passwordStrengthWeak,
@@ -403,9 +408,9 @@ class _PasswordStrength extends StatelessWidget {
       _ => l10n.passwordStrengthStrong,
     };
     final strengthColor = switch (score) {
-      0 || 1 => _RegisterColors.strengthWeak,
-      2 => _RegisterColors.strengthModerate,
-      _ => _RegisterColors.strengthStrong,
+      0 || 1 => colors.strengthWeak,
+      2 => colors.strengthModerate,
+      _ => colors.strengthStrong,
     };
 
     return Column(
@@ -416,7 +421,7 @@ class _PasswordStrength extends StatelessWidget {
           child: LinearProgressIndicator(
             minHeight: 3,
             value: score / 4,
-            backgroundColor: _RegisterColors.progressTrack,
+            backgroundColor: colors.progressTrack,
             valueColor: AlwaysStoppedAnimation<Color>(strengthColor),
           ),
         ),
@@ -466,6 +471,7 @@ class _TermsAgreement extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -475,9 +481,9 @@ class _TermsAgreement extends StatelessWidget {
           child: Checkbox(
             value: value,
             onChanged: onChanged,
-            side: const BorderSide(color: _RegisterColors.muted),
-            activeColor: _RegisterColors.blue,
-            checkColor: _RegisterColors.midnight,
+            side: BorderSide(color: colors.muted),
+            activeColor: colors.primary,
+            checkColor: colors.background,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(4),
             ),
@@ -491,17 +497,17 @@ class _TermsAgreement extends StatelessWidget {
               children: [
                 TextSpan(
                   text: l10n.termsOfService,
-                  style: const TextStyle(color: _RegisterColors.title),
+                  style: TextStyle(color: colors.title),
                 ),
                 TextSpan(text: l10n.termsAnd),
                 TextSpan(
                   text: l10n.termsPrivacyPolicy,
-                  style: const TextStyle(color: _RegisterColors.title),
+                  style: TextStyle(color: colors.title),
                 ),
               ],
             ),
-            style: const TextStyle(
-              color: _RegisterColors.body,
+            style: TextStyle(
+              color: colors.body,
               fontSize: 12,
               fontWeight: FontWeight.w500,
               height: 1.35,
@@ -526,17 +532,18 @@ class _CreateAccountButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return DecoratedBox(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(13),
         border: Border.all(
-          color: _RegisterColors.blue.withValues(alpha: 0.7),
+          color: colors.primary.withValues(alpha: 0.7),
           width: 1,
           strokeAlign: BorderSide.strokeAlignOutside,
         ),
         boxShadow: [
           BoxShadow(
-            color: _RegisterColors.blue.withValues(alpha: 0.22),
+            color: colors.primary.withValues(alpha: 0.22),
             blurRadius: 16,
             offset: const Offset(0, 8),
           ),
@@ -547,28 +554,28 @@ class _CreateAccountButton extends StatelessWidget {
         child: ElevatedButton(
           onPressed: isLoading ? null : onPressed,
           style: ElevatedButton.styleFrom(
-            backgroundColor: _RegisterColors.blue,
-            disabledBackgroundColor: _RegisterColors.blue.withValues(
+            backgroundColor: colors.primary,
+            disabledBackgroundColor: colors.primary.withValues(
               alpha: 0.6,
             ),
-            foregroundColor: _RegisterColors.midnight,
+            foregroundColor: colors.background,
             elevation: 0,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(13),
             ),
           ),
           child: isLoading
-              ? const SizedBox(
+              ? SizedBox(
                   width: 18,
                   height: 18,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
-                    color: _RegisterColors.midnight,
+                    color: colors.background,
                   ),
                 )
               : Text(
                   l10n.registerCreateAccount,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w800,
                   ),
@@ -587,13 +594,14 @@ class _LoginPrompt extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Text(
           l10n.registerAlreadyHaveAccount,
-          style: const TextStyle(
-            color: _RegisterColors.body,
+          style: TextStyle(
+            color: colors.body,
             fontSize: 12,
             fontWeight: FontWeight.w500,
           ),
@@ -601,43 +609,22 @@ class _LoginPrompt extends StatelessWidget {
         TextButton(
           onPressed: onLoginPressed,
           style: TextButton.styleFrom(
-            foregroundColor: _RegisterColors.coral,
+            foregroundColor: colors.coral,
             minimumSize: Size.zero,
             padding: EdgeInsets.zero,
             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
           ),
           child: Text(
             l10n.registerLoginArrow,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w900,
               decoration: TextDecoration.underline,
-              decorationColor: _RegisterColors.coral,
+              decorationColor: colors.coral,
             ),
           ),
         ),
       ],
     );
   }
-}
-
-class _RegisterColors {
-  _RegisterColors._();
-
-  static const Color midnight = Color(0xFF061326);
-  static const Color header = Color(0xFF07172D);
-  static const Color field = Color(0xFF101F36);
-  static const Color divider = Color(0xFF18304A);
-  static const Color title = Color(0xFFD9E5FF);
-  static const Color body = Color(0xFFC3CEE0);
-  static const Color label = Color(0xFFAFC0DB);
-  static const Color muted = Color(0xFF74839E);
-  static const Color hint = Color(0xFF5F6F89);
-  static const Color icon = Color(0xFF97BBFF);
-  static const Color blue = Color(0xFF4A91F8);
-  static const Color coral = Color(0xFFFF8B6E);
-  static const Color strengthWeak = Color(0xFFE9413A);
-  static const Color strengthModerate = Color(0xFFFFC34A);
-  static const Color strengthStrong = Color(0xFF38D67A);
-  static const Color progressTrack = Color(0xFF36445A);
 }

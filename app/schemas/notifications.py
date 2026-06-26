@@ -21,3 +21,21 @@ class NotificationRead(BaseModel):
 
 class NotificationMarkReadRequest(BaseModel):
     ids: list[int] = Field(..., min_length=1, description="List of notification IDs to mark as read")
+
+
+class NotificationSendRequest(BaseModel):
+    title: str = Field(..., min_length=1, max_length=255)
+    body: str = Field(..., min_length=1)
+    type: str = Field(default="manual", min_length=1, max_length=50)
+    target_user_id: int | None = Field(
+        default=None,
+        description="Admin-only when different from the current user",
+    )
+    data: dict[str, str] | None = None
+
+
+class NotificationSendResponse(BaseModel):
+    notification: NotificationRead
+    push_requested: bool
+    push_tokens: int
+    push_successes: int

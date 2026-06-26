@@ -125,6 +125,7 @@ async def create_order(
     ticket = Ticket(
         booking_id=reservation.id,
         ticket_number=ticket_number,
+        ordered_by_user_id=user.id,
         qr_code=qr_plain,
         qr_image_path=qr_path,
         status=TicketStatus.VALID.value,

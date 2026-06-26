@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../core/theme/app_colors.dart';
 import '../../features/notifications/presentation/notification_push_listener.dart';
 import '../../features/notifications/presentation/notifications_controller.dart';
 import '../../l10n/app_localizations.dart';
+import '../../core/theme/app_theme_extension.dart';
 
 class AppShell extends ConsumerStatefulWidget {
   final Widget child;
@@ -35,6 +35,7 @@ class _AppShellState extends ConsumerState<AppShell> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     ref.watch(notificationsControllerProvider);
     final hasUnread = ref.watch(hasUnreadNotificationsProvider);
 
@@ -59,7 +60,7 @@ class _AppShellState extends ConsumerState<AppShell> {
         : 'dashboard';
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: colors.background,
       body: Stack(
         children: [
           Column(
@@ -153,6 +154,7 @@ class _ShellAppBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Padding(
       padding: const EdgeInsets.fromLTRB(14, 17, 14, 0),
       child: Row(
@@ -161,14 +163,14 @@ class _ShellAppBar extends StatelessWidget {
             GestureDetector(
               behavior: HitTestBehavior.opaque,
               onTap: () => context.goNamed(backRouteName),
-              child: const SizedBox(
+              child: SizedBox(
                 width: 38,
                 height: 38,
                 child: Align(
                   alignment: AlignmentDirectional.centerStart,
                   child: Icon(
                     Icons.arrow_back,
-                    color: _ShellColors.title,
+                    color: colors.onBackground,
                     size: 22,
                   ),
                 ),
@@ -179,8 +181,8 @@ class _ShellAppBar extends StatelessWidget {
           Expanded(
             child: Text(
               l10n.brandMosafer,
-              style: const TextStyle(
-                color: _ShellColors.title,
+              style: TextStyle(
+                color: colors.onBackground,
                 fontSize: 21,
                 fontWeight: FontWeight.w900,
                 letterSpacing: -0.25,
@@ -203,7 +205,7 @@ class _ShellAppBar extends StatelessWidget {
                       showSettingsAction
                           ? Icons.settings_outlined
                           : Icons.notifications_none_outlined,
-                      color: _ShellColors.icon,
+                      color: colors.onSurfaceVariant,
                       size: 22,
                     ),
                   ),
@@ -215,10 +217,10 @@ class _ShellAppBar extends StatelessWidget {
                         width: 7,
                         height: 7,
                         decoration: BoxDecoration(
-                          color: _ShellColors.coral,
+                          color: colors.secondary,
                           shape: BoxShape.circle,
                           border: Border.all(
-                            color: AppColors.background,
+                            color: colors.background,
                             width: 1,
                           ),
                         ),
@@ -247,11 +249,12 @@ class _BottomNavigation extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Container(
       height: 88,
       padding: const EdgeInsets.fromLTRB(18, 9, 18, 10),
-      decoration: const BoxDecoration(
-        color: AppColors.nav,
+      decoration: BoxDecoration(
+        color: colors.nav,
         borderRadius: BorderRadius.only(
           topLeft: Radius.circular(24),
           topRight: Radius.circular(24),
@@ -306,6 +309,7 @@ class _NavigationItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return InkWell(
       borderRadius: BorderRadius.circular(13),
       onTap: onTap,
@@ -313,7 +317,7 @@ class _NavigationItem extends StatelessWidget {
         duration: const Duration(milliseconds: 180),
         padding: const EdgeInsets.symmetric(vertical: 10),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.primary : Colors.transparent,
+          color: isSelected ? colors.primary : Colors.transparent,
           borderRadius: BorderRadius.circular(13),
         ),
         child: Column(
@@ -321,14 +325,14 @@ class _NavigationItem extends StatelessWidget {
           children: [
             Icon(
               icon,
-              color: isSelected ? AppColors.background : _ShellColors.icon,
+              color: isSelected ? colors.background : colors.onSurfaceVariant,
               size: 20,
             ),
             const SizedBox(height: 7),
             Text(
               label,
               style: TextStyle(
-                color: isSelected ? AppColors.background : _ShellColors.icon,
+                color: isSelected ? colors.background : colors.onSurfaceVariant,
                 fontSize: 9,
                 fontWeight: FontWeight.w900,
                 letterSpacing: 0.8,
@@ -339,12 +343,4 @@ class _NavigationItem extends StatelessWidget {
       ),
     );
   }
-}
-
-class _ShellColors {
-  _ShellColors._();
-
-  static const Color title = AppColors.onBackground;
-  static const Color icon = AppColors.onSurfaceVariant;
-  static const Color coral = AppColors.secondary;
 }

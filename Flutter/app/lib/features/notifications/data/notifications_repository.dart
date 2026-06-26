@@ -51,7 +51,18 @@ class NotificationsRepository {
     }
   }
 
+  Future<Result<void>> deleteNotification(int id) async {
+    try {
+      await _apiClient.delete<dynamic>('/notifications/$id');
+      return const Success(null);
+    } catch (e) {
+      return Failure(_message(e));
+    }
+  }
+
   Future<Result<void>> registerCurrentDevice() async {
+    if (kIsWeb) return const Success(null);
+
     try {
       final messaging = FirebaseMessaging.instance;
       await messaging.requestPermission();

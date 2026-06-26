@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../../core/theme/app_theme_extension.dart';
 
 int tripStageIndexForPath(String path) => switch (path) {
   '/on-way' => 1,
@@ -26,6 +27,7 @@ class TripStageTabs extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final l10n = AppLocalizations.of(context)!;
 
     return Row(
@@ -81,15 +83,16 @@ class _StageTabCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final titleColor = _TripStageTabColors.title;
-    final iconColor = _TripStageTabColors.title;
+    final colors = context.colors;
+    final titleColor = colors.title;
+    final iconColor = colors.title;
 
     final card = Container(
       height: 96,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(18),
         border: isActive
-            ? Border.all(color: _TripStageTabColors.blue, width: 2.5)
+            ? Border.all(color: colors.primary, width: 2.5)
             : null,
       ),
       child: ClipRRect(
@@ -148,11 +151,4 @@ class _StageTabCard extends StatelessWidget {
       child: card,
     );
   }
-}
-
-class _TripStageTabColors {
-  _TripStageTabColors._();
-
-  static const Color title = Color(0xFFD5E4FF);
-  static const Color blue = Color(0xFF4A91F8);
 }

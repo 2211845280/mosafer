@@ -12,7 +12,7 @@ export default async function ProfitAnalyticsPage() {
   if (token && !profile) {
     return (
       <div className="rounded-card border border-accent/30 bg-card p-6 text-sm text-accent">
-        {t("analyticsLoadError")}
+        {t("sessionLoadError")}
       </div>
     );
   }

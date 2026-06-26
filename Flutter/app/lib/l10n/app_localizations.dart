@@ -107,7 +107,7 @@ abstract class AppLocalizations {
   /// No description provided for @brandMosafer.
   ///
   /// In en, this message translates to:
-  /// **'MOSAFER'**
+  /// **'Mosafer'**
   String get brandMosafer;
 
   /// No description provided for @navFlights.
@@ -188,6 +188,24 @@ abstract class AppLocalizations {
   /// **'NOTIFICATION SETTINGS'**
   String get settingsNotificationsSection;
 
+  /// No description provided for @settingsDisplaySection.
+  ///
+  /// In en, this message translates to:
+  /// **'DISPLAY SETTINGS'**
+  String get settingsDisplaySection;
+
+  /// No description provided for @settingsThemeTileTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Dark mode'**
+  String get settingsThemeTileTitle;
+
+  /// No description provided for @settingsThemeTileSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch between light and dark appearance'**
+  String get settingsThemeTileSubtitle;
+
   /// No description provided for @settingsAccountSection.
   ///
   /// In en, this message translates to:
@@ -197,7 +215,7 @@ abstract class AppLocalizations {
   /// No description provided for @settingsNotificationTileTitle.
   ///
   /// In en, this message translates to:
-  /// **'Notification Setting'**
+  /// **'Allow notifications'**
   String get settingsNotificationTileTitle;
 
   /// No description provided for @settingsNotificationTileSubtitle.
@@ -437,7 +455,7 @@ abstract class AppLocalizations {
   /// No description provided for @registerAccountCreated.
   ///
   /// In en, this message translates to:
-  /// **'Account created successfully!'**
+  /// **'Registration successful. Please verify your email.'**
   String get registerAccountCreated;
 
   /// No description provided for @registerCreateAccount.
@@ -607,6 +625,114 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Unable to update password'**
   String get errorUnableUpdatePassword;
+
+  /// No description provided for @errorSeatAlreadyTaken.
+  ///
+  /// In en, this message translates to:
+  /// **'This seat is already taken'**
+  String get errorSeatAlreadyTaken;
+
+  /// No description provided for @errorSeatNoLongerAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'This seat is no longer available'**
+  String get errorSeatNoLongerAvailable;
+
+  /// No description provided for @errorSeatNotInBooking.
+  ///
+  /// In en, this message translates to:
+  /// **'Seat is not part of this booking'**
+  String get errorSeatNotInBooking;
+
+  /// No description provided for @errorDuplicateSeats.
+  ///
+  /// In en, this message translates to:
+  /// **'Duplicate seat numbers in the same booking'**
+  String get errorDuplicateSeats;
+
+  /// No description provided for @errorInvalidSeatFormat.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid seat format (use row 1-99 and letter A-F, e.g. 12A)'**
+  String get errorInvalidSeatFormat;
+
+  /// No description provided for @errorCheckoutExpired.
+  ///
+  /// In en, this message translates to:
+  /// **'Checkout session expired'**
+  String get errorCheckoutExpired;
+
+  /// No description provided for @errorPassengerDetailsSubmitted.
+  ///
+  /// In en, this message translates to:
+  /// **'Passenger details already submitted'**
+  String get errorPassengerDetailsSubmitted;
+
+  /// No description provided for @errorReservationNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'Reservation not found'**
+  String get errorReservationNotFound;
+
+  /// No description provided for @errorNotYourReservation.
+  ///
+  /// In en, this message translates to:
+  /// **'Not your reservation'**
+  String get errorNotYourReservation;
+
+  /// No description provided for @errorAlreadyCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Already cancelled'**
+  String get errorAlreadyCancelled;
+
+  /// No description provided for @errorCannotCancelPastFlight.
+  ///
+  /// In en, this message translates to:
+  /// **'Cannot cancel a past flight'**
+  String get errorCannotCancelPastFlight;
+
+  /// No description provided for @errorDuplicatePassports.
+  ///
+  /// In en, this message translates to:
+  /// **'Duplicate passport numbers in the same booking'**
+  String get errorDuplicatePassports;
+
+  /// No description provided for @errorInvalidCredentials.
+  ///
+  /// In en, this message translates to:
+  /// **'Email or password is incorrect'**
+  String get errorInvalidCredentials;
+
+  /// No description provided for @errorEmailNotVerified.
+  ///
+  /// In en, this message translates to:
+  /// **'Please verify your email before logging in.'**
+  String get errorEmailNotVerified;
+
+  /// No description provided for @errorAccountDisabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Account is disabled.'**
+  String get errorAccountDisabled;
+
+  /// No description provided for @errorServerUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not reach the server. Ensure the API is running.'**
+  String get errorServerUnavailable;
+
+  /// No description provided for @errorEmailAlreadyExists.
+  ///
+  /// In en, this message translates to:
+  /// **'An account with this email already exists'**
+  String get errorEmailAlreadyExists;
+
+  /// No description provided for @errorCurrentPasswordIncorrect.
+  ///
+  /// In en, this message translates to:
+  /// **'Current password is incorrect'**
+  String get errorCurrentPasswordIncorrect;
 
   /// No description provided for @flightsTitle.
   ///
@@ -956,11 +1082,53 @@ abstract class AppLocalizations {
   /// **'Validate Ticket'**
   String get validateTicket;
 
+  /// No description provided for @scanTicketAddedSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Ticket added successfully.'**
+  String get scanTicketAddedSuccess;
+
   /// No description provided for @scanValidateTicketError.
   ///
   /// In en, this message translates to:
   /// **'Unable to validate ticket.'**
   String get scanValidateTicketError;
+
+  /// No description provided for @scanNoQrInImage.
+  ///
+  /// In en, this message translates to:
+  /// **'No QR code was found in this image.'**
+  String get scanNoQrInImage;
+
+  /// No description provided for @scanTicketNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'No matching ticket was found in our records.'**
+  String get scanTicketNotFound;
+
+  /// No description provided for @scanTicketInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'This ticket is not valid or could not be read.'**
+  String get scanTicketInvalid;
+
+  /// No description provided for @scanTicketExpired.
+  ///
+  /// In en, this message translates to:
+  /// **'This ticket has expired.'**
+  String get scanTicketExpired;
+
+  /// No description provided for @scanTicketAlreadyAssigned.
+  ///
+  /// In en, this message translates to:
+  /// **'This ticket is already linked to another account.'**
+  String get scanTicketAlreadyAssigned;
+
+  /// No description provided for @scanImageUploadError.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not upload the ticket image. Please try again.'**
+  String get scanImageUploadError;
 
   /// No description provided for @scanTabScanQr.
   ///
@@ -1021,6 +1189,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No notifications yet.'**
   String get notificationsNoYet;
+
+  /// No description provided for @notificationsDeleteConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete this notification?'**
+  String get notificationsDeleteConfirm;
+
+  /// No description provided for @notificationsDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get notificationsDelete;
+
+  /// No description provided for @notificationsCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get notificationsCancel;
 
   /// No description provided for @notificationsToday.
   ///
@@ -1166,6 +1352,12 @@ abstract class AppLocalizations {
   /// **'Open in Google Maps'**
   String get onWayOpenInMaps;
 
+  /// No description provided for @onWayExpandMap.
+  ///
+  /// In en, this message translates to:
+  /// **'Expand map'**
+  String get onWayExpandMap;
+
   /// No description provided for @planDepartureTravelTime.
   ///
   /// In en, this message translates to:
@@ -1205,7 +1397,7 @@ abstract class AppLocalizations {
   /// No description provided for @onWayDemoSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Demo route from Taksim Square to {airportCode} airport'**
+  /// **'Route from Taksim Square to {airportCode} airport'**
   String onWayDemoSubtitle(String airportCode);
 
   /// No description provided for @packingLinenShirtDescription.
@@ -2347,6 +2539,258 @@ abstract class AppLocalizations {
   /// **'D-1'**
   String get timelineDay1;
 
+  /// No description provided for @timelineDay0.
+  ///
+  /// In en, this message translates to:
+  /// **'Flight day'**
+  String get timelineDay0;
+
+  /// No description provided for @timelineHourBefore.
+  ///
+  /// In en, this message translates to:
+  /// **'1h before'**
+  String get timelineHourBefore;
+
+  /// No description provided for @timelineHoursBefore.
+  ///
+  /// In en, this message translates to:
+  /// **'{hours}h before'**
+  String timelineHoursBefore(int hours);
+
+  /// No description provided for @todoResearchHealthRequirements.
+  ///
+  /// In en, this message translates to:
+  /// **'Research Health Requirements'**
+  String get todoResearchHealthRequirements;
+
+  /// No description provided for @todoCreatePackingList.
+  ///
+  /// In en, this message translates to:
+  /// **'Create Packing List'**
+  String get todoCreatePackingList;
+
+  /// No description provided for @todoChargeDevices.
+  ///
+  /// In en, this message translates to:
+  /// **'Charge Devices'**
+  String get todoChargeDevices;
+
+  /// No description provided for @todoHeadToAirport.
+  ///
+  /// In en, this message translates to:
+  /// **'Head to Airport'**
+  String get todoHeadToAirport;
+
+  /// No description provided for @todoReviewDeparturePlan.
+  ///
+  /// In en, this message translates to:
+  /// **'Review Departure Plan'**
+  String get todoReviewDeparturePlan;
+
+  /// No description provided for @todoVisaTravelDocuments.
+  ///
+  /// In en, this message translates to:
+  /// **'Check Visa and Travel Documents'**
+  String get todoVisaTravelDocuments;
+
+  /// No description provided for @todoHealthVaccinations.
+  ///
+  /// In en, this message translates to:
+  /// **'Health Check and Vaccinations'**
+  String get todoHealthVaccinations;
+
+  /// No description provided for @todoConfirmTransportArrangements.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm Transport Arrangements'**
+  String get todoConfirmTransportArrangements;
+
+  /// No description provided for @todoConfirmFlightTickets.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm Flight Tickets'**
+  String get todoConfirmFlightTickets;
+
+  /// No description provided for @packingItemMedications.
+  ///
+  /// In en, this message translates to:
+  /// **'Medications'**
+  String get packingItemMedications;
+
+  /// No description provided for @packingItemWalkingShoes.
+  ///
+  /// In en, this message translates to:
+  /// **'Comfortable Walking Shoes'**
+  String get packingItemWalkingShoes;
+
+  /// No description provided for @packingItemWaterBottle.
+  ///
+  /// In en, this message translates to:
+  /// **'Reusable Water Bottle'**
+  String get packingItemWaterBottle;
+
+  /// No description provided for @packingItemTravelPillow.
+  ///
+  /// In en, this message translates to:
+  /// **'Travel Pillow'**
+  String get packingItemTravelPillow;
+
+  /// No description provided for @notificationPaymentSuccessful.
+  ///
+  /// In en, this message translates to:
+  /// **'Payment Successful'**
+  String get notificationPaymentSuccessful;
+
+  /// No description provided for @notificationPaymentSuccessfulBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Your payment of {amount} {currency} has been processed.'**
+  String notificationPaymentSuccessfulBody(String amount, String currency);
+
+  /// No description provided for @notificationPaymentFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Payment Failed'**
+  String get notificationPaymentFailed;
+
+  /// No description provided for @notificationPaymentFailedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Your payment could not be processed.'**
+  String get notificationPaymentFailedBody;
+
+  /// No description provided for @notificationPaymentRefunded.
+  ///
+  /// In en, this message translates to:
+  /// **'Payment Refunded'**
+  String get notificationPaymentRefunded;
+
+  /// No description provided for @notificationPaymentRefundedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Your payment of {amount} {currency} has been refunded.'**
+  String notificationPaymentRefundedBody(String amount, String currency);
+
+  /// No description provided for @notificationFullRefund.
+  ///
+  /// In en, this message translates to:
+  /// **'Full Refund'**
+  String get notificationFullRefund;
+
+  /// No description provided for @notificationFullRefundBody.
+  ///
+  /// In en, this message translates to:
+  /// **'A full refund of {amount} {currency} has been issued.'**
+  String notificationFullRefundBody(String amount, String currency);
+
+  /// No description provided for @notificationPartialRefund.
+  ///
+  /// In en, this message translates to:
+  /// **'Partial Refund'**
+  String get notificationPartialRefund;
+
+  /// No description provided for @notificationPartialRefundBody.
+  ///
+  /// In en, this message translates to:
+  /// **'A partial refund of {amount} {currency} has been issued.'**
+  String notificationPartialRefundBody(String amount, String currency);
+
+  /// No description provided for @notificationBookingCanceled.
+  ///
+  /// In en, this message translates to:
+  /// **'Booking Canceled'**
+  String get notificationBookingCanceled;
+
+  /// No description provided for @notificationBookingCanceledBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Your flight booking has been canceled.'**
+  String get notificationBookingCanceledBody;
+
+  /// No description provided for @notificationDepartureUrgent.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave now! – {flight}'**
+  String notificationDepartureUrgent(String flight);
+
+  /// No description provided for @notificationDepartureWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'You should leave soon – {flight}'**
+  String notificationDepartureWarning(String flight);
+
+  /// No description provided for @notificationDepartureReminder.
+  ///
+  /// In en, this message translates to:
+  /// **'Gentle reminder – {flight}'**
+  String notificationDepartureReminder(String flight);
+
+  /// No description provided for @notificationDepartureBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Your flight {flight} departs at {departureTime}. Recommended departure: {leaveTime} ({travelMinutes} min travel, {bufferMinutes} min weather buffer).'**
+  String notificationDepartureBody(
+    String flight,
+    String departureTime,
+    String leaveTime,
+    int travelMinutes,
+    int bufferMinutes,
+  );
+
+  /// No description provided for @notificationTripTodoTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Trip tasks reminder'**
+  String get notificationTripTodoTitle;
+
+  /// No description provided for @notificationTripTodoEmptyBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Please fill in your trip task list for {flight}.'**
+  String notificationTripTodoEmptyBody(String flight);
+
+  /// No description provided for @notificationTripTodoIncompleteBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Please complete your trip tasks for {flight}.'**
+  String notificationTripTodoIncompleteBody(String flight);
+
+  /// No description provided for @notificationDepartureScheduleTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Departure time reminder'**
+  String get notificationDepartureScheduleTitle;
+
+  /// No description provided for @notificationFlightDeparture6hBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Your flight {flight} departs in 6 hours.'**
+  String notificationFlightDeparture6hBody(String flight);
+
+  /// No description provided for @notificationHomeDeparture2hBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave home for the airport in 2 hours ({flight}).'**
+  String notificationHomeDeparture2hBody(String flight);
+
+  /// No description provided for @notificationHomeDeparture30mBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave home in 30 minutes ({flight}).'**
+  String notificationHomeDeparture30mBody(String flight);
+
+  /// No description provided for @notificationHomeDepartureCriticalTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Critical departure time'**
+  String get notificationHomeDepartureCriticalTitle;
+
+  /// No description provided for @notificationHomeDepartureCriticalBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave home for the airport now ({flight}).'**
+  String notificationHomeDepartureCriticalBody(String flight);
+
   /// No description provided for @timelineBadgeDocument.
   ///
   /// In en, this message translates to:
@@ -2424,6 +2868,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count} packing items added to todos.'**
   String packingItemsAddedToTodos(int count);
+
+  /// No description provided for @todosSelectPacking.
+  ///
+  /// In en, this message translates to:
+  /// **'Select tasks to delete'**
+  String get todosSelectPacking;
+
+  /// No description provided for @todosCancelSelection.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel selection'**
+  String get todosCancelSelection;
+
+  /// No description provided for @todosDeleteSelected.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete selected ({count})'**
+  String todosDeleteSelected(int count);
+
+  /// No description provided for @todosDeletedCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} tasks deleted'**
+  String todosDeletedCount(int count);
+
+  /// No description provided for @todoConfirmBookingDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm Booking Details'**
+  String get todoConfirmBookingDetails;
 }
 
 class _AppLocalizationsDelegate

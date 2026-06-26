@@ -1,7 +1,13 @@
 "use client";
 
 import { PermissionMatrix } from "@/components/admin/PermissionMatrix";
+import { PasswordInput } from "@/components/auth/PasswordInput";
 import { backendFromUiSelection } from "@/lib/admin/system-permissions";
+import {
+  hasFieldErrors,
+  validateStaffCreate,
+  type FieldErrors,
+} from "@/lib/auth-validation";
 import { Link, useRouter } from "@/i18n/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { FormEvent, useState } from "react";
@@ -12,6 +18,7 @@ type Props = {
 
 export function StaffCreatePage({ isSuperAdminViewer }: Props) {
   const t = useTranslations("admin");
+  const tAuth = useTranslations("auth");
   const locale = useLocale();
   const router = useRouter();
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -20,7 +27,17 @@ export function StaffCreatePage({ isSuperAdminViewer }: Props) {
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [err, setErr] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [saving, setSaving] = useState(false);
+
+  function clearFieldError(field: string) {
+    setFieldErrors((current) => {
+      if (!current[field]) return current;
+      const next = { ...current };
+      delete next[field];
+      return next;
+    });
+  }
 
   function togglePerm(uiId: string) {
     setSelected((prev) => {
@@ -34,6 +51,14 @@ export function StaffCreatePage({ isSuperAdminViewer }: Props) {
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     setErr(null);
+
+    const validationErrors = validateStaffCreate(fullName, email, password, tAuth);
+    if (hasFieldErrors(validationErrors)) {
+      setFieldErrors(validationErrors);
+      return;
+    }
+    setFieldErrors({});
+
     if (selected.size === 0) {
       setErr(t("staffPickPermission"));
       return;
@@ -56,7 +81,15 @@ export function StaffCreatePage({ isSuperAdminViewer }: Props) {
       });
       const data = (await res.json().catch(() => ({}))) as { detail?: string };
       if (!res.ok) {
-        setErr(typeof data.detail === "string" ? data.detail : t("staffCreateError"));
+        const detail = typeof data.detail === "string" ? data.detail : null;
+        if (
+          detail === "An account with this email already exists" ||
+          detail?.toLowerCase().includes("email already exists")
+        ) {
+          setErr(t("staffEmailAlreadyExists"));
+        } else {
+          setErr(detail ?? t("staffCreateError"));
+        }
         return;
       }
       router.push("/admin/staff");
@@ -79,7 +112,7 @@ export function StaffCreatePage({ isSuperAdminViewer }: Props) {
         </Link>
       </div>
 
-      <form onSubmit={(e) => void onSubmit(e)} className="mt-6 space-y-4">
+      <form noValidate onSubmit={(e) => void onSubmit(e)} className="mt-6 space-y-4">
         <div className="profile-hero">
           <h2 className="text-lg font-black text-foreground">{t("staffCreateSubtitle")}</h2>
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
@@ -89,11 +122,21 @@ export function StaffCreatePage({ isSuperAdminViewer }: Props) {
               </label>
               <input
                 id="staff-name"
-                required
                 value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                className="form-input mt-1 w-full"
+                onChange={(e) => {
+                  setFullName(e.target.value);
+                  clearFieldError("fullName");
+                }}
+                aria-invalid={Boolean(fieldErrors.fullName)}
+                className={
+                  fieldErrors.fullName
+                    ? "form-input form-input-error mt-1 w-full"
+                    : "form-input mt-1 w-full"
+                }
               />
+              {fieldErrors.fullName ? (
+                <span className="form-field-error-text">{fieldErrors.fullName}</span>
+              ) : null}
             </div>
             <div className="profile-field">
               <label className={labelClass} htmlFor="staff-email">
@@ -101,27 +144,41 @@ export function StaffCreatePage({ isSuperAdminViewer }: Props) {
               </label>
               <input
                 id="staff-email"
-                required
-                type="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="form-input mt-1 w-full"
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  clearFieldError("email");
+                }}
+                aria-invalid={Boolean(fieldErrors.email)}
+                className={
+                  fieldErrors.email
+                    ? "form-input form-input-error mt-1 w-full"
+                    : "form-input mt-1 w-full"
+                }
                 dir="ltr"
               />
+              {fieldErrors.email ? (
+                <span className="form-field-error-text">{fieldErrors.email}</span>
+              ) : null}
             </div>
             <div className="profile-field">
               <label className={labelClass} htmlFor="staff-password">
                 {t("staffPassword")}
               </label>
-              <input
+              <PasswordInput
                 id="staff-password"
-                required
-                type="password"
-                minLength={8}
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="form-input mt-1 w-full"
+                invalid={Boolean(fieldErrors.password)}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  clearFieldError("password");
+                }}
+                aria-invalid={Boolean(fieldErrors.password)}
+                className="mt-1 w-full"
               />
+              {fieldErrors.password ? (
+                <span className="form-field-error-text">{fieldErrors.password}</span>
+              ) : null}
             </div>
             <div className="profile-field">
               <label className={labelClass} htmlFor="staff-phone">

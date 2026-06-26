@@ -5,6 +5,7 @@ import '../../../../core/utils/validators.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../core/localization/error_message_localizer.dart';
 import '../../data/auth_repository_impl.dart';
+import '../../../../core/theme/app_theme_extension.dart';
 
 class ForgotPasswordPage extends ConsumerStatefulWidget {
   const ForgotPasswordPage({super.key});
@@ -67,10 +68,11 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
-      backgroundColor: _AuthColors.midnight,
+      backgroundColor: colors.background,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -88,8 +90,8 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
                 const SizedBox(height: 24),
                 Text(
                   l10n.forgotPasswordSubtitle,
-                  style: const TextStyle(
-                    color: _AuthColors.muted,
+                  style: TextStyle(
+                    color: colors.muted,
                     fontSize: 13,
                     height: 1.4,
                   ),
@@ -101,9 +103,10 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
                   keyboardType: TextInputType.emailAddress,
                   textInputAction: TextInputAction.done,
                   onFieldSubmitted: (_) => _onSubmit(),
-                  cursorColor: _AuthColors.blue,
-                  style: const TextStyle(color: Colors.white, fontSize: 14),
+                  cursorColor: colors.primary,
+                  style: TextStyle(color: Colors.white, fontSize: 14),
                   decoration: _inputDecoration(
+                    context,
                     label: l10n.loginEmailLabel,
                     hint: l10n.loginEmailHint,
                     icon: Icons.mail_outline,
@@ -113,8 +116,8 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
                 if (_error != null) ...[
                   Text(
                     _error!,
-                    style: const TextStyle(
-                      color: _AuthColors.coral,
+                    style: TextStyle(
+                      color: colors.coral,
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
                     ),
@@ -125,8 +128,8 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
                 if (_successMessage != null) ...[
                   Text(
                     _successMessage!,
-                    style: const TextStyle(
-                      color: _AuthColors.blue,
+                    style: TextStyle(
+                      color: colors.primary,
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
                     ),
@@ -136,8 +139,8 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
                     const SizedBox(height: 8),
                     SelectableText(
                       _devResetLink!,
-                      style: const TextStyle(
-                        color: _AuthColors.ice,
+                      style: TextStyle(
+                        color: colors.ice,
                         fontSize: 11,
                       ),
                     ),
@@ -149,8 +152,8 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
                   child: ElevatedButton(
                     onPressed: _isLoading ? null : _onSubmit,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: _AuthColors.blue,
-                      foregroundColor: _AuthColors.midnight,
+                      backgroundColor: colors.primary,
+                      foregroundColor: colors.background,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(13),
                       ),
@@ -163,7 +166,7 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
                           )
                         : Text(
                             l10n.forgotPasswordSubmit,
-                            style: const TextStyle(fontWeight: FontWeight.w800),
+                            style: TextStyle(fontWeight: FontWeight.w800),
                           ),
                   ),
                 ),
@@ -172,7 +175,7 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
                   onPressed: () => context.goNamed('login'),
                   child: Text(
                     l10n.forgotPasswordBackToLogin,
-                    style: const TextStyle(color: _AuthColors.coral),
+                    style: TextStyle(color: colors.coral),
                   ),
                 ),
               ],
@@ -183,33 +186,25 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
     );
   }
 
-  InputDecoration _inputDecoration({
+  InputDecoration _inputDecoration(
+    BuildContext context, {
     required String label,
     required String hint,
     required IconData icon,
   }) {
+    final colors = context.colors;
     return InputDecoration(
       labelText: label,
-      labelStyle: const TextStyle(color: _AuthColors.muted, fontSize: 10),
+      labelStyle: TextStyle(color: colors.muted, fontSize: 10),
       hintText: hint,
-      hintStyle: const TextStyle(color: _AuthColors.hint),
-      prefixIcon: Icon(icon, color: _AuthColors.blue, size: 19),
+      hintStyle: TextStyle(color: colors.hint),
+      prefixIcon: Icon(icon, color: colors.primary, size: 19),
       filled: true,
-      fillColor: _AuthColors.field,
+      fillColor: colors.field,
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(9),
         borderSide: BorderSide.none,
       ),
     );
   }
-}
-
-class _AuthColors {
-  static const Color midnight = Color(0xFF061326);
-  static const Color field = Color(0xFF0C1B31);
-  static const Color blue = Color(0xFF4A91F8);
-  static const Color ice = Color(0xFFE4ECFF);
-  static const Color muted = Color(0xFFB4C0D6);
-  static const Color hint = Color(0xFF586983);
-  static const Color coral = Color(0xFFFF8B6E);
 }

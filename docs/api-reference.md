@@ -94,6 +94,43 @@ Protected endpoints require JWT bearer token:
 - Success `200`: ticket + reservation + flight summary.
 - Common errors: `400` malformed QR payload, `404` ticket not found.
 
+### Claim Ticket QR
+
+<div dir="rtl">
+
+| الحقل | التفاصيل |
+| --- | --- |
+| طريقة الطلب | `POST` |
+| مسار الطلب | `/api/v1/tickets/claim` |
+| رأس الطلب | `Authorization: Bearer <access_token>` و `Content-Type: application/json` |
+| جسم الطلب | `{"ticket_number": "MS-123456-02"}` |
+| النتيجة المتوقعة | ربط التذكرة أو تذكرة المسافر بالحساب الحالي بشكل دائم عبر `assigned_to_user_id`، مع بقاء `ordered_by_user_id` لصاحب الحجز الأصلي. |
+| شكل الرد JSON | انظر المثال أدناه. |
+
+</div>
+
+```json
+{
+  "claimed": true,
+  "ticket_number": "MS-123456-02",
+  "reservation_id": 10,
+  "assigned_to_user_id": 25,
+  "scope": "passenger",
+  "message": "Ticket assigned to this account",
+  "flight": {
+    "carrier_code": "MS",
+    "flight_number": "123",
+    "origin_iata": "CAI",
+    "destination_iata": "DXB",
+    "departure_at": "2026-08-01T10:00:00Z",
+    "arrival_at": "2026-08-01T13:00:00Z",
+    "seat": "12B"
+  }
+}
+```
+
+- Common errors: `400` missing ticket number, `404` ticket not found, `409` ticket already assigned to another account.
+
 ### Scan Ticket Image (Upload or Camera Capture)
 
 - `POST /api/v1/tickets/scan-image`
@@ -146,6 +183,56 @@ Protected endpoints require JWT bearer token:
 }
 ```
 - Common errors: `400` unsupported image type, oversized upload, invalid file content signature.
+
+---
+
+## Notifications
+
+### Send Saved Push Notification
+
+<div dir="rtl">
+
+| الحقل | التفاصيل |
+| --- | --- |
+| طريقة الطلب | `POST` |
+| مسار الطلب | `/api/v1/notifications/send` |
+| رأس الطلب | `Authorization: Bearer <access_token>` و `Content-Type: application/json` |
+| جسم الطلب | `title`, `body`, `type`, و اختيارياً `target_user_id`, `data` |
+| النتيجة المتوقعة | يحفظ الإشعار في جدول `notifications` حتى يظهر في قائمة الإشعارات، ثم يرسله Push عبر Firebase للجهاز المسجل. |
+| ملاحظة الصلاحيات | إذا لم ترسل `target_user_id` يرسل الإشعار لحسابك الحالي. إرسال إشعار لمستخدم آخر يتطلب صلاحية أدمن. |
+
+</div>
+
+```json
+{
+  "title": "تذكير بالرحلة",
+  "body": "تبقى 24 ساعة على رحلتك.",
+  "type": "manual",
+  "target_user_id": 25,
+  "data": {
+    "reservation_id": "10"
+  }
+}
+```
+
+Success `200`:
+
+```json
+{
+  "notification": {
+    "id": 120,
+    "user_id": 25,
+    "type": "manual",
+    "title": "تذكير بالرحلة",
+    "body": "تبقى 24 ساعة على رحلتك.",
+    "read": false,
+    "created_at": "2026-08-01T10:00:00Z"
+  },
+  "push_requested": true,
+  "push_tokens": 1,
+  "push_successes": 1
+}
+```
 
 ---
 

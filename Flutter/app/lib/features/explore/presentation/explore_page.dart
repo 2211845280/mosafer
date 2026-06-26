@@ -3,21 +3,31 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../core/constants/app_constants.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../trips/domain/airport_display_name.dart';
 import '../../trips/domain/trip.dart';
 import '../../trips/presentation/active_trip_controller.dart';
+import '../../../core/theme/app_theme_extension.dart';
 
 class ExplorePage extends StatelessWidget {
   const ExplorePage({super.key});
 
-  static final Uri _bookingUrl = Uri.parse('https://example.com');
+  static Future<void> _openBookingWebsite(BuildContext context) async {
+    final locale = Localizations.localeOf(context).languageCode;
+    final uri = AppConstants.bookingWebsiteUrl(locale);
+    if (await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      return;
+    }
+    await launchUrl(uri, mode: LaunchMode.platformDefault);
+  }
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final l10n = AppLocalizations.of(context)!;
     return Scaffold(
-      backgroundColor: _DashboardColors.background,
+      backgroundColor: colors.background,
       body: SafeArea(
         bottom: false,
         child: CustomScrollView(
@@ -29,22 +39,22 @@ class ExplorePage extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(22),
                     decoration: BoxDecoration(
-                      color: _DashboardColors.card,
+                      color: colors.card,
                       borderRadius: BorderRadius.circular(26),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Icon(
+                        Icon(
                           Icons.airplane_ticket_outlined,
-                          color: _DashboardColors.blue,
+                          color: colors.primary,
                           size: 34,
                         ),
                         const SizedBox(height: 18),
                         Text(
                           l10n.flightsTitle,
-                          style: const TextStyle(
-                            color: _DashboardColors.title,
+                          style: TextStyle(
+                            color: colors.title,
                             fontSize: 28,
                             fontWeight: FontWeight.w900,
                             letterSpacing: -0.8,
@@ -53,8 +63,8 @@ class ExplorePage extends StatelessWidget {
                         const SizedBox(height: 10),
                         Text(
                           l10n.flightsIntro,
-                          style: const TextStyle(
-                            color: _DashboardColors.muted,
+                          style: TextStyle(
+                            color: colors.muted,
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
                             height: 1.5,
@@ -68,10 +78,7 @@ class ExplorePage extends StatelessWidget {
                   const SizedBox(height: 18),
                   _BookFlightButton(
                     label: l10n.openBookingWebsite,
-                    onPressed: () => launchUrl(
-                      _bookingUrl,
-                      mode: LaunchMode.externalApplication,
-                    ),
+                    onPressed: () => _openBookingWebsite(context),
                   ),
                 ],
               ),
@@ -88,13 +95,14 @@ class _BookingStepsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final l10n = AppLocalizations.of(context)!;
     final steps = [l10n.bookingStep1, l10n.bookingStep2, l10n.bookingStep3];
 
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: _DashboardColors.card,
+        color: colors.card,
         borderRadius: BorderRadius.circular(22),
       ),
       child: Column(
@@ -102,8 +110,8 @@ class _BookingStepsCard extends StatelessWidget {
         children: [
           Text(
             l10n.bookingHowTitle,
-            style: const TextStyle(
-              color: _DashboardColors.muted,
+            style: TextStyle(
+              color: colors.muted,
               fontSize: 10,
               fontWeight: FontWeight.w900,
               letterSpacing: 1.5,
@@ -118,11 +126,11 @@ class _BookingStepsCard extends StatelessWidget {
                 children: [
                   CircleAvatar(
                     radius: 13,
-                    backgroundColor: _DashboardColors.blue,
+                    backgroundColor: colors.primary,
                     child: Text(
                       '${entry.$1 + 1}',
-                      style: const TextStyle(
-                        color: _DashboardColors.background,
+                      style: TextStyle(
+                        color: colors.background,
                         fontSize: 12,
                         fontWeight: FontWeight.w900,
                       ),
@@ -132,8 +140,8 @@ class _BookingStepsCard extends StatelessWidget {
                   Expanded(
                     child: Text(
                       entry.$2,
-                      style: const TextStyle(
-                        color: _DashboardColors.title,
+                      style: TextStyle(
+                        color: colors.title,
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
                         height: 1.35,
@@ -158,6 +166,7 @@ class _BookFlightButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return SizedBox(
       height: 58,
       child: ElevatedButton.icon(
@@ -165,7 +174,7 @@ class _BookFlightButton extends StatelessWidget {
         icon: const Icon(Icons.open_in_new),
         label: Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontWeight: FontWeight.w900,
             letterSpacing: 0.4,
           ),
@@ -180,6 +189,7 @@ class DashboardPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final colors = context.colors;
     return const DashboardStageContent();
   }
 }
@@ -189,6 +199,7 @@ class DashboardStageContent extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final colors = context.colors;
     final l10n = AppLocalizations.of(context)!;
     final trip = ref.watch(activeTripProvider);
     if (trip == null) {
@@ -198,17 +209,17 @@ class DashboardStageContent extends ConsumerWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(
+              Icon(
                 Icons.confirmation_number_outlined,
-                color: _DashboardColors.blue,
+                color: colors.primary,
                 size: 42,
               ),
               const SizedBox(height: 16),
               Text(
                 l10n.noActiveTripTitle,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: _DashboardColors.title,
+                style: TextStyle(
+                  color: colors.title,
                   fontSize: 18,
                   fontWeight: FontWeight.w900,
                 ),
@@ -217,7 +228,7 @@ class DashboardStageContent extends ConsumerWidget {
               Text(
                 l10n.noActiveTripSubtitle,
                 textAlign: TextAlign.center,
-                style: const TextStyle(color: _DashboardColors.muted),
+                style: TextStyle(color: colors.muted),
               ),
               const SizedBox(height: 18),
               ElevatedButton(
@@ -256,6 +267,7 @@ class _ActiveTripHero extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final l10n = AppLocalizations.of(context)!;
     final locale = Localizations.localeOf(context);
     return ClipRRect(
@@ -289,8 +301,8 @@ class _ActiveTripHero extends StatelessWidget {
               children: [
                 Text(
                   trip.airline,
-                  style: const TextStyle(
-                    color: _DashboardColors.muted,
+                  style: TextStyle(
+                    color: colors.muted,
                     fontSize: 12,
                     fontWeight: FontWeight.w900,
                     letterSpacing: 1,
@@ -305,11 +317,11 @@ class _ActiveTripHero extends StatelessWidget {
                       alignment: CrossAxisAlignment.start,
                       locale: locale,
                     ),
-                    const Expanded(
+                    Expanded(
                       child: Center(
                         child: Icon(
                           Icons.flight_takeoff,
-                          color: _DashboardColors.title,
+                          color: colors.title,
                           size: 26,
                         ),
                       ),
@@ -350,6 +362,7 @@ class _PrimaryTripActions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final l10n = AppLocalizations.of(context)!;
     return Column(
       children: [
@@ -386,20 +399,21 @@ class _ActionTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return InkWell(
       borderRadius: BorderRadius.circular(18),
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: _DashboardColors.card,
+          color: colors.card,
           borderRadius: BorderRadius.circular(18),
         ),
         child: Row(
           children: [
             CircleAvatar(
-              backgroundColor: _DashboardColors.blue.withValues(alpha: 0.18),
-              child: Icon(icon, color: _DashboardColors.blue, size: 20),
+              backgroundColor: colors.primary.withValues(alpha: 0.18),
+              child: Icon(icon, color: colors.primary, size: 20),
             ),
             const SizedBox(width: 14),
             Expanded(
@@ -408,8 +422,8 @@ class _ActionTile extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: const TextStyle(
-                      color: _DashboardColors.title,
+                    style: TextStyle(
+                      color: colors.title,
                       fontSize: 13,
                       fontWeight: FontWeight.w900,
                     ),
@@ -417,8 +431,8 @@ class _ActionTile extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     subtitle,
-                    style: const TextStyle(
-                      color: _DashboardColors.muted,
+                    style: TextStyle(
+                      color: colors.muted,
                       fontSize: 10,
                       fontWeight: FontWeight.w600,
                     ),
@@ -426,7 +440,7 @@ class _ActionTile extends StatelessWidget {
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right, color: _DashboardColors.title),
+            Icon(Icons.chevron_right, color: colors.title),
           ],
         ),
       ),
@@ -440,13 +454,14 @@ class _BoardingSummary extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Column(
+    final colors = context.colors;
+    return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           'Boarding in',
           style: TextStyle(
-            color: _DashboardColors.muted,
+            color: colors.muted,
             fontSize: 12,
             fontWeight: FontWeight.w500,
           ),
@@ -471,7 +486,7 @@ class _BoardingSummary extends StatelessWidget {
               child: Text(
                 'min',
                 style: TextStyle(
-                  color: _DashboardColors.title,
+                  color: colors.title,
                   fontSize: 17,
                   fontWeight: FontWeight.w700,
                 ),
@@ -490,7 +505,8 @@ class _RouteSummary extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Row(
+    final colors = context.colors;
+    return Row(
       children: [
         _AirportCode(
           code: 'LHR',
@@ -502,7 +518,7 @@ class _RouteSummary extends StatelessWidget {
           child: Center(
             child: Icon(
               Icons.flight_takeoff,
-              color: _DashboardColors.title,
+              color: colors.title,
               size: 26,
             ),
           ),
@@ -533,6 +549,7 @@ class _AirportCode extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final isArabic = locale.languageCode == 'ar';
     final displayCity = airportDisplayName(
       iata: code,
@@ -545,7 +562,7 @@ class _AirportCode extends StatelessWidget {
       children: [
         Text(
           code,
-          style: const TextStyle(
+          style: TextStyle(
             color: Colors.white,
             fontSize: 29,
             fontWeight: FontWeight.w900,
@@ -564,7 +581,7 @@ class _AirportCode extends StatelessWidget {
                 ? TextAlign.end
                 : TextAlign.start,
             style: TextStyle(
-              color: _DashboardColors.title,
+              color: colors.title,
               fontSize: 9,
               fontWeight: isArabic ? FontWeight.w300 : FontWeight.w700,
               height: 1.2,
@@ -583,6 +600,7 @@ class _FlightMetaCards extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return const Row(
       children: [
         Expanded(
@@ -614,10 +632,11 @@ class _FlightMetaCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Container(
       height: 72,
       decoration: BoxDecoration(
-        color: transparent ? Colors.transparent : _DashboardColors.card,
+        color: transparent ? Colors.transparent : colors.card,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -625,8 +644,8 @@ class _FlightMetaCard extends StatelessWidget {
         children: [
           Text(
             label,
-            style: const TextStyle(
-              color: _DashboardColors.muted,
+            style: TextStyle(
+              color: colors.muted,
               fontSize: 8,
               fontWeight: FontWeight.w900,
               letterSpacing: 1.3,
@@ -635,8 +654,8 @@ class _FlightMetaCard extends StatelessWidget {
           const SizedBox(height: 6),
           Text(
             value,
-            style: const TextStyle(
-              color: _DashboardColors.title,
+            style: TextStyle(
+              color: colors.title,
               fontSize: 17,
               fontWeight: FontWeight.w900,
             ),
@@ -654,10 +673,11 @@ class _SectionTitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Text(
       text,
-      style: const TextStyle(
-        color: _DashboardColors.title,
+      style: TextStyle(
+        color: colors.title,
         fontSize: 12,
         fontWeight: FontWeight.w900,
         letterSpacing: 1.3,
@@ -671,6 +691,7 @@ class _PreparationGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final l10n = AppLocalizations.of(context)!;
     final items = [
       _PreparationItem(
@@ -723,6 +744,7 @@ class _PreparationItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return InkWell(
       borderRadius: BorderRadius.circular(18),
       onTap: routeName == null ? () {} : () => context.goNamed(routeName!),
@@ -731,7 +753,7 @@ class _PreparationItem extends StatelessWidget {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(18),
           border: Border.all(
-            color: _DashboardColors.blue,
+            color: colors.primary,
             width: 1,
             strokeAlign: BorderSide.strokeAlignOutside,
           ),
@@ -739,12 +761,12 @@ class _PreparationItem extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, color: _DashboardColors.title, size: 20),
+            Icon(icon, color: colors.title, size: 20),
             const SizedBox(height: 10),
             Text(
               label,
               textAlign: TextAlign.center,
-              style: const TextStyle(
+              style: TextStyle(
                 color: Colors.white,
                 fontSize: 8,
                 fontWeight: FontWeight.w600,
@@ -763,7 +785,8 @@ class _AttachmentsSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Column(
+    final colors = context.colors;
+    return Column(
       children: [
         Row(
           children: [
@@ -771,7 +794,7 @@ class _AttachmentsSection extends StatelessWidget {
             Text(
               '2 FILES',
               style: TextStyle(
-                color: _DashboardColors.title,
+                color: colors.title,
                 fontSize: 8,
                 fontWeight: FontWeight.w800,
                 letterSpacing: 0.8,
@@ -804,13 +827,14 @@ class _AttachmentCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Container(
       height: 63,
       padding: const EdgeInsets.symmetric(horizontal: 15),
       decoration: BoxDecoration(
-        color: _DashboardColors.attachment,
+        color: colors.attachment,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: _DashboardColors.attachmentBorder),
+        border: Border.all(color: colors.attachmentBorder),
       ),
       child: Row(
         children: [
@@ -818,12 +842,12 @@ class _AttachmentCard extends StatelessWidget {
             width: 31,
             height: 31,
             decoration: BoxDecoration(
-              color: _DashboardColors.pdfBackground,
+              color: colors.pdfBackground,
               borderRadius: BorderRadius.circular(9),
             ),
-            child: const Icon(
+            child: Icon(
               Icons.picture_as_pdf_outlined,
-              color: _DashboardColors.pdf,
+              color: colors.pdf,
               size: 18,
             ),
           ),
@@ -835,8 +859,8 @@ class _AttachmentCard extends StatelessWidget {
               children: [
                 Text(
                   fileName,
-                  style: const TextStyle(
-                    color: _DashboardColors.title,
+                  style: TextStyle(
+                    color: colors.title,
                     fontSize: 12,
                     fontWeight: FontWeight.w900,
                   ),
@@ -844,8 +868,8 @@ class _AttachmentCard extends StatelessWidget {
                 const SizedBox(height: 3),
                 Text(
                   details,
-                  style: const TextStyle(
-                    color: _DashboardColors.muted,
+                  style: TextStyle(
+                    color: colors.muted,
                     fontSize: 8,
                     fontWeight: FontWeight.w600,
                   ),
@@ -855,9 +879,9 @@ class _AttachmentCard extends StatelessWidget {
           ),
           IconButton(
             onPressed: () {},
-            icon: const Icon(
+            icon: Icon(
               Icons.visibility_outlined,
-              color: _DashboardColors.title,
+              color: colors.title,
               size: 20,
             ),
           ),
@@ -872,14 +896,15 @@ class _UploadAttachmentButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return SizedBox(
       height: 43,
       width: double.infinity,
       child: OutlinedButton.icon(
         onPressed: () {},
         style: OutlinedButton.styleFrom(
-          foregroundColor: _DashboardColors.title,
-          side: const BorderSide(color: _DashboardColors.dashedBorder),
+          foregroundColor: colors.title,
+          side: BorderSide(color: colors.dashedBorder),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(13),
           ),
@@ -904,14 +929,15 @@ class _AirportExperienceButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return SizedBox(
       height: 52,
       width: double.infinity,
       child: ElevatedButton(
         onPressed: () => context.goNamed('airportExperience'),
         style: ElevatedButton.styleFrom(
-          backgroundColor: _DashboardColors.salmon,
-          foregroundColor: _DashboardColors.buttonText,
+          backgroundColor: colors.salmon,
+          foregroundColor: colors.buttonText,
           elevation: 0,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(13),
@@ -928,21 +954,4 @@ class _AirportExperienceButton extends StatelessWidget {
       ),
     );
   }
-}
-
-class _DashboardColors {
-  _DashboardColors._();
-
-  static const Color background = Color(0xFF061326);
-  static const Color card = Color(0xFF101F36);
-  static const Color attachment = Color(0xFF1B2A42);
-  static const Color attachmentBorder = Color(0xFF263B59);
-  static const Color title = Color(0xFFD5E4FF);
-  static const Color muted = Color(0xFF6F7D94);
-  static const Color blue = Color(0xFF4A91F8);
-  static const Color dashedBorder = Color(0xFF334762);
-  static const Color salmon = Color(0xFFFFACA6);
-  static const Color buttonText = Color(0xFF4E1017);
-  static const Color pdfBackground = Color(0xFF4B2538);
-  static const Color pdf = Color(0xFFFFA8A0);
 }

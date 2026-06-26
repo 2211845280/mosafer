@@ -12,7 +12,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get appTitle => 'مسافر';
 
   @override
-  String get brandMosafer => 'MOSAFER';
+  String get brandMosafer => 'مسافر';
 
   @override
   String get navFlights => 'الرحلات';
@@ -54,10 +54,19 @@ class AppLocalizationsAr extends AppLocalizations {
   String get settingsNotificationsSection => 'إعدادات الإشعارات';
 
   @override
+  String get settingsDisplaySection => 'إعدادات العرض';
+
+  @override
+  String get settingsThemeTileTitle => 'الوضع الداكن';
+
+  @override
+  String get settingsThemeTileSubtitle => 'التبديل بين الوضع الفاتح والداكن';
+
+  @override
   String get settingsAccountSection => 'الحساب';
 
   @override
-  String get settingsNotificationTileTitle => 'إشعارات الرحلة';
+  String get settingsNotificationTileTitle => 'السماح بوصول الإشعارات';
 
   @override
   String get settingsNotificationTileSubtitle =>
@@ -183,7 +192,8 @@ class AppLocalizationsAr extends AppLocalizations {
       'يرجى الموافقة على شروط الاستخدام وسياسة الخصوصية.';
 
   @override
-  String get registerAccountCreated => 'تم إنشاء الحساب بنجاح!';
+  String get registerAccountCreated =>
+      'تم التسجيل بنجاح. يرجى تأكيد بريدك الإلكتروني.';
 
   @override
   String get registerCreateAccount => 'إنشاء حساب';
@@ -275,6 +285,63 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get errorUnableUpdatePassword => 'تعذّر تحديث كلمة المرور';
+
+  @override
+  String get errorSeatAlreadyTaken => 'المقعد محجوز بالفعل';
+
+  @override
+  String get errorSeatNoLongerAvailable => 'المقعد لم يعد متاحاً';
+
+  @override
+  String get errorSeatNotInBooking => 'المقعد غير مضمّن في هذا الحجز';
+
+  @override
+  String get errorDuplicateSeats => 'أرقام مقاعد مكررة في نفس الحجز';
+
+  @override
+  String get errorInvalidSeatFormat => 'صيغة المقعد غير صالحة (مثال: 12A)';
+
+  @override
+  String get errorCheckoutExpired => 'انتهت صلاحية جلسة الحجز';
+
+  @override
+  String get errorPassengerDetailsSubmitted => 'تم إرسال بيانات المسافر مسبقاً';
+
+  @override
+  String get errorReservationNotFound => 'لم يُعثر على الحجز';
+
+  @override
+  String get errorNotYourReservation => 'هذا الحجز لا يخصك';
+
+  @override
+  String get errorAlreadyCancelled => 'تم إلغاء الحجز مسبقاً';
+
+  @override
+  String get errorCannotCancelPastFlight => 'لا يمكن إلغاء رحلة منتهية';
+
+  @override
+  String get errorDuplicatePassports => 'أرقام جوازات مكررة في نفس الحجز';
+
+  @override
+  String get errorInvalidCredentials =>
+      'البريد الإلكتروني أو كلمة المرور غير صحيحة';
+
+  @override
+  String get errorEmailNotVerified =>
+      'يرجى تأكيد بريدك الإلكتروني قبل تسجيل الدخول.';
+
+  @override
+  String get errorAccountDisabled => 'الحساب معطّل.';
+
+  @override
+  String get errorServerUnavailable =>
+      'تعذّر الاتصال بالخادم. تأكد من تشغيل الـ API.';
+
+  @override
+  String get errorEmailAlreadyExists => 'يوجد حساب بهذا البريد مسبقاً';
+
+  @override
+  String get errorCurrentPasswordIncorrect => 'كلمة المرور الحالية غير صحيحة';
 
   @override
   String get flightsTitle => 'الرحلات';
@@ -371,7 +438,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get timeline => 'الجدول الزمني';
 
   @override
-  String get todosLabel => 'المهام';
+  String get todosLabel => 'قائمة المهام';
 
   @override
   String get attachmentsSection => 'المرفقات';
@@ -460,7 +527,29 @@ class AppLocalizationsAr extends AppLocalizations {
   String get validateTicket => 'التحقق من التذكرة';
 
   @override
+  String get scanTicketAddedSuccess => 'تم إضافة التذكرة.';
+
+  @override
   String get scanValidateTicketError => 'تعذّر التحقق من التذكرة.';
+
+  @override
+  String get scanNoQrInImage => 'لم يُعثر على رمز QR في هذه الصورة.';
+
+  @override
+  String get scanTicketNotFound => 'لم نعثر على التذكرة في سجلاتنا.';
+
+  @override
+  String get scanTicketInvalid => 'التذكرة غير صالحة أو تعذّر قراءتها.';
+
+  @override
+  String get scanTicketExpired => 'انتهت صلاحية هذه التذكرة.';
+
+  @override
+  String get scanTicketAlreadyAssigned =>
+      'هذه التذكرة مرتبطة بحساب آخر بالفعل.';
+
+  @override
+  String get scanImageUploadError => 'تعذّر رفع صورة التذكرة. حاول مرة أخرى.';
 
   @override
   String get scanTabScanQr => 'مسح الرمز';
@@ -492,6 +581,15 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get notificationsNoYet => 'لا توجد إشعارات بعد.';
+
+  @override
+  String get notificationsDeleteConfirm => 'حذف هذا الإشعار؟';
+
+  @override
+  String get notificationsDelete => 'حذف';
+
+  @override
+  String get notificationsCancel => 'إلغاء';
 
   @override
   String get notificationsToday => 'اليوم';
@@ -576,6 +674,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get onWayOpenInMaps => 'فتح في خرائط Google';
 
   @override
+  String get onWayExpandMap => 'توسيع الخريطة';
+
+  @override
   String get planDepartureTravelTime => 'مدة الطريق';
 
   @override
@@ -597,7 +698,7 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String onWayDemoSubtitle(String airportCode) {
-    return 'مسار تجريبي من ميدان تقسيم إلى مطار $airportCode';
+    return 'من ميدان تقسيم إلى مطار $airportCode';
   }
 
   @override
@@ -1238,6 +1339,165 @@ class AppLocalizationsAr extends AppLocalizations {
   String get timelineDay1 => 'قبل يوم';
 
   @override
+  String get timelineDay0 => 'يوم الرحلة';
+
+  @override
+  String get timelineHourBefore => 'قبل ساعة';
+
+  @override
+  String timelineHoursBefore(int hours) {
+    return 'قبل $hours ساعة';
+  }
+
+  @override
+  String get todoResearchHealthRequirements => 'البحث عن متطلبات الصحة';
+
+  @override
+  String get todoCreatePackingList => 'إنشاء قائمة التجهيز';
+
+  @override
+  String get todoChargeDevices => 'شحن الأجهزة';
+
+  @override
+  String get todoHeadToAirport => 'التوجه إلى المطار';
+
+  @override
+  String get todoReviewDeparturePlan => 'مراجعة خطة المغادرة';
+
+  @override
+  String get todoVisaTravelDocuments => 'فحص التأشيرة ووثائق السفر';
+
+  @override
+  String get todoHealthVaccinations => 'الفحص الصحي والتطعيمات';
+
+  @override
+  String get todoConfirmTransportArrangements => 'تأكيد ترتيبات النقل';
+
+  @override
+  String get todoConfirmFlightTickets => 'تأكيد تذاكر الطيران';
+
+  @override
+  String get packingItemMedications => 'الأدوية';
+
+  @override
+  String get packingItemWalkingShoes => 'حذاء مريح للمشي';
+
+  @override
+  String get packingItemWaterBottle => 'زجاجة ماء قابلة لإعادة الاستخدام';
+
+  @override
+  String get packingItemTravelPillow => 'وسادة سفر';
+
+  @override
+  String get notificationPaymentSuccessful => 'تم الدفع بنجاح';
+
+  @override
+  String notificationPaymentSuccessfulBody(String amount, String currency) {
+    return 'تمت معالجة دفعتك بمبلغ $amount $currency.';
+  }
+
+  @override
+  String get notificationPaymentFailed => 'فشل الدفع';
+
+  @override
+  String get notificationPaymentFailedBody => 'تعذّر معالجة دفعتك.';
+
+  @override
+  String get notificationPaymentRefunded => 'تم استرداد الدفع';
+
+  @override
+  String notificationPaymentRefundedBody(String amount, String currency) {
+    return 'تم استرداد $amount $currency إلى حسابك.';
+  }
+
+  @override
+  String get notificationFullRefund => 'استرداد كامل';
+
+  @override
+  String notificationFullRefundBody(String amount, String currency) {
+    return 'تم استرداد $amount $currency بالكامل.';
+  }
+
+  @override
+  String get notificationPartialRefund => 'استرداد جزئي';
+
+  @override
+  String notificationPartialRefundBody(String amount, String currency) {
+    return 'تم استرداد $amount $currency جزئياً.';
+  }
+
+  @override
+  String get notificationBookingCanceled => 'تم إلغاء الحجز';
+
+  @override
+  String get notificationBookingCanceledBody => 'تم إلغاء حجز رحلتك.';
+
+  @override
+  String notificationDepartureUrgent(String flight) {
+    return 'انطلق الآن! – $flight';
+  }
+
+  @override
+  String notificationDepartureWarning(String flight) {
+    return 'يجب أن تنطلق قريباً – $flight';
+  }
+
+  @override
+  String notificationDepartureReminder(String flight) {
+    return 'تذكير لطيف – $flight';
+  }
+
+  @override
+  String notificationDepartureBody(
+    String flight,
+    String departureTime,
+    String leaveTime,
+    int travelMinutes,
+    int bufferMinutes,
+  ) {
+    return 'رحلتك $flight تغادر الساعة $departureTime. المغادرة الموصى بها: $leaveTime ($travelMinutes دقيقة سفر، $bufferMinutes دقيقة احتياط للطقس).';
+  }
+
+  @override
+  String get notificationTripTodoTitle => 'تذكير بمهام الرحلة';
+
+  @override
+  String notificationTripTodoEmptyBody(String flight) {
+    return 'عليك تعبئة قائمة مهام الرحلة $flight.';
+  }
+
+  @override
+  String notificationTripTodoIncompleteBody(String flight) {
+    return 'عليك إكمال مهام الرحلة $flight.';
+  }
+
+  @override
+  String get notificationDepartureScheduleTitle => 'تذكير بموعد المغادرة';
+
+  @override
+  String notificationFlightDeparture6hBody(String flight) {
+    return 'تبقى على موعد رحلتك $flight 6 ساعات.';
+  }
+
+  @override
+  String notificationHomeDeparture2hBody(String flight) {
+    return 'تبقى على موعد المغادرة من المنزل نحو المطار ساعتين ($flight).';
+  }
+
+  @override
+  String notificationHomeDeparture30mBody(String flight) {
+    return 'تبقى على المغادرة من المنزل نصف ساعة ($flight).';
+  }
+
+  @override
+  String get notificationHomeDepartureCriticalTitle => 'موعد المغادرة الحاسم';
+
+  @override
+  String notificationHomeDepartureCriticalBody(String flight) {
+    return 'يجب المغادرة حالاً من المنزل نحو المطار ($flight).';
+  }
+
+  @override
   String get timelineBadgeDocument => 'وثائق';
 
   @override
@@ -1279,4 +1539,23 @@ class AppLocalizationsAr extends AppLocalizations {
   String packingItemsAddedToTodos(int count) {
     return 'تمت إضافة $count عنصراً من التجهيز إلى المهام.';
   }
+
+  @override
+  String get todosSelectPacking => 'تحديد مهام لحذفها';
+
+  @override
+  String get todosCancelSelection => 'إلغاء التحديد';
+
+  @override
+  String todosDeleteSelected(int count) {
+    return 'حذف المحدد ($count)';
+  }
+
+  @override
+  String todosDeletedCount(int count) {
+    return 'تم حذف $count مهمة';
+  }
+
+  @override
+  String get todoConfirmBookingDetails => 'تأكيد بيانات الحجز';
 }

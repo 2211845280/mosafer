@@ -14,6 +14,7 @@ from app.core.config import settings
 from app.workers.departure_alert import check_departure_alerts
 from app.workers.flight_status_poller import poll_flight_statuses
 from app.workers.tasks import sample_task
+from app.workers.trip_todo_reminder import check_trip_todo_reminders
 
 logger = structlog.get_logger(__name__)
 
@@ -49,10 +50,16 @@ async def on_shutdown(ctx: dict) -> None:
 
 
 class WorkerSettings:
-    functions = [sample_task, poll_flight_statuses, check_departure_alerts]
+    functions = [
+        sample_task,
+        poll_flight_statuses,
+        check_departure_alerts,
+        check_trip_todo_reminders,
+    ]
     cron_jobs = [
         cron(poll_flight_statuses, minute={m for m in range(0, 60, 3)}),
-        cron(check_departure_alerts, minute={0, 30}),
+        cron(check_departure_alerts, minute={m for m in range(0, 60, 15)}),
+        cron(check_trip_todo_reminders, minute={m for m in range(0, 60, 15)}),
     ]
     redis_settings = _parse_redis_url(settings.REDIS_URL)
     on_startup = on_startup

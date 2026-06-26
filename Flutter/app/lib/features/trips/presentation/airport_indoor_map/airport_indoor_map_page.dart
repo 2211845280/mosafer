@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/localization/error_message_localizer.dart';
+import '../../../../core/network/api_error.dart';
 import '../../../../core/services/maps_service.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../data/trips_repository.dart';
@@ -10,6 +11,7 @@ import '../../domain/indoor_map.dart';
 import '../active_trip_controller.dart';
 import 'indoor_geo_overlay.dart';
 import 'open_level_up_view.dart';
+import '../../../../core/theme/app_theme_extension.dart';
 
 class AirportIndoorMapPage extends ConsumerStatefulWidget {
   const AirportIndoorMapPage({
@@ -47,6 +49,7 @@ class _AirportIndoorMapPageState extends ConsumerState<AirportIndoorMapPage> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final l10n = AppLocalizations.of(context)!;
     final trip = ref.watch(activeTripProvider);
 
@@ -57,7 +60,7 @@ class _AirportIndoorMapPageState extends ConsumerState<AirportIndoorMapPage> {
           child: Text(
             l10n.openTripFirstAirportFull,
             textAlign: TextAlign.center,
-            style: const TextStyle(color: _MapColors.title),
+            style: TextStyle(color: colors.title),
           ),
         ),
       );
@@ -127,19 +130,14 @@ class _AirportIndoorMapPageState extends ConsumerState<AirportIndoorMapPage> {
                         onOpenFullMap: () => _openFullMap(map, level),
                       ),
                       const SizedBox(height: 10),
-                      _LevelSelector(
-                        levels: map.levels,
-                        selectedLevel: level,
-                        onSelected: (lvl) => setState(() => _selectedLevel = lvl),
-                      ),
                       if (showWrongLevelHint) ...[
                         const SizedBox(height: 8),
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 16),
                           child: Text(
                             l10n.indoorMapRouteWrongLevel,
-                            style: const TextStyle(
-                              color: _MapColors.coral,
+                            style: TextStyle(
+                              color: colors.coral,
                               fontSize: 11,
                               fontWeight: FontWeight.w700,
                             ),
@@ -149,35 +147,37 @@ class _AirportIndoorMapPageState extends ConsumerState<AirportIndoorMapPage> {
                       const SizedBox(height: 10),
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 16),
-                        child: SizedBox(
-                          height: mapHeight,
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(22),
-                            child: ColoredBox(
-                              color: _MapColors.background,
-                              child: Stack(
-                                children: [
-                                  OpenLevelUpView(
-                                    url: _openLevelUpUrl(map, level),
-                                    overlay: IndoorGeoOverlay(
-                                      map: map,
-                                      routeEnabled: routeActive,
-                                      highlightPois: levelHighlights,
-                                      highlightCategory: map.highlightCategory,
+                        child: _IndoorMapScrollShield(
+                          child: SizedBox(
+                            height: mapHeight,
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(22),
+                              child: ColoredBox(
+                                color: colors.background,
+                                child: Stack(
+                                  children: [
+                                    OpenLevelUpView(
+                                      url: _openLevelUpUrl(map, level),
+                                      overlay: IndoorGeoOverlay(
+                                        map: map,
+                                        routeEnabled: routeActive,
+                                        highlightPois: levelHighlights,
+                                        highlightCategory: map.highlightCategory,
+                                      ),
                                     ),
-                                  ),
-                                  Positioned(
-                                    left: 12,
-                                    right: 12,
-                                    bottom: 12,
-                                    child: _LevelMapBadge(
-                                      l10n: l10n,
-                                      level: level,
-                                      highlightCategory: map.highlightCategory,
-                                      hasHighlights: levelHighlights.isNotEmpty,
+                                    Positioned(
+                                      left: 12,
+                                      right: 12,
+                                      bottom: 12,
+                                      child: _LevelMapBadge(
+                                        l10n: l10n,
+                                        level: level,
+                                        highlightCategory: map.highlightCategory,
+                                        hasHighlights: levelHighlights.isNotEmpty,
+                                      ),
                                     ),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
                             ),
                           ),
@@ -210,9 +210,9 @@ class _AirportIndoorMapPageState extends ConsumerState<AirportIndoorMapPage> {
                           },
                           style: FilledButton.styleFrom(
                             backgroundColor: _routeSimulationEnabled
-                                ? _MapColors.chip
-                                : _MapColors.blue,
-                            foregroundColor: _MapColors.title,
+                                ? colors.chip
+                                : colors.primary,
+                            foregroundColor: colors.title,
                             padding: const EdgeInsets.symmetric(vertical: 14),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(16),
@@ -227,7 +227,7 @@ class _AirportIndoorMapPageState extends ConsumerState<AirportIndoorMapPage> {
                             _routeSimulationEnabled
                                 ? l10n.indoorMapHideRoute
                                 : l10n.indoorMapGoToGate(activeGate),
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontWeight: FontWeight.w900,
                               fontSize: 14,
                             ),
@@ -246,11 +246,12 @@ class _AirportIndoorMapPageState extends ConsumerState<AirportIndoorMapPage> {
   }
 
   Widget _scaffold({required AppLocalizations l10n, required Widget body}) {
+    final colors = context.colors;
     return Scaffold(
-      backgroundColor: _MapColors.background,
+      backgroundColor: colors.background,
       appBar: AppBar(
-        backgroundColor: _MapColors.background,
-        foregroundColor: _MapColors.title,
+        backgroundColor: colors.background,
+        foregroundColor: colors.title,
         title: Text(l10n.indoorMapTitle),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
@@ -321,6 +322,7 @@ class _AirportIndoorMapPageState extends ConsumerState<AirportIndoorMapPage> {
   }
 
   Future<IndoorMapData?> _loadMap(int reservationId) async {
+    final trip = ref.read(activeTripProvider);
     final result = await ref
         .read(tripsRepositoryProvider)
         .airportIndoorMap(
@@ -330,7 +332,15 @@ class _AirportIndoorMapPageState extends ConsumerState<AirportIndoorMapPage> {
         );
     return result.when(
       success: (data) => IndoorMapData.fromJson(data),
-      failure: (error) => throw Exception(error),
+      failure: (error) {
+        if (trip != null && trip.fromCode.toUpperCase() == 'IST') {
+          return IndoorMapData.istOfflineFallback(
+            gate: widget.gate,
+            highlightCategory: widget.highlightCategory,
+          );
+        }
+        throw unwrapApiError(error);
+      },
     );
   }
 
@@ -382,13 +392,14 @@ class _MapHeaderCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
       child: DecoratedBox(
         decoration: BoxDecoration(
-          color: _MapColors.chip,
+          color: colors.chip,
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: _MapColors.border),
+          border: Border.all(color: colors.border),
         ),
         child: Padding(
           padding: const EdgeInsets.all(14),
@@ -400,8 +411,8 @@ class _MapHeaderCard extends StatelessWidget {
                   Expanded(
                     child: Text(
                       map.airportName,
-                      style: const TextStyle(
-                        color: _MapColors.title,
+                      style: TextStyle(
+                        color: colors.title,
                         fontSize: 16,
                         fontWeight: FontWeight.w900,
                       ),
@@ -409,7 +420,7 @@ class _MapHeaderCard extends StatelessWidget {
                   ),
                   DecoratedBox(
                     decoration: BoxDecoration(
-                      color: _MapColors.blue.withValues(alpha: 0.2),
+                      color: colors.primary.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(999),
                     ),
                     child: Padding(
@@ -419,8 +430,8 @@ class _MapHeaderCard extends StatelessWidget {
                       ),
                       child: Text(
                         map.airportIata,
-                        style: const TextStyle(
-                          color: _MapColors.blue,
+                        style: TextStyle(
+                          color: colors.primary,
                           fontWeight: FontWeight.w900,
                           fontSize: 11,
                         ),
@@ -432,26 +443,21 @@ class _MapHeaderCard extends StatelessWidget {
               const SizedBox(height: 8),
               Row(
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.flight_takeoff,
-                    color: _MapColors.blue,
+                    color: colors.primary,
                     size: 18,
                   ),
                   const SizedBox(width: 6),
                   Text(
                     l10n.indoorMapGateLevel(activeGate, gateLevel),
-                    style: const TextStyle(
-                      color: _MapColors.title,
+                    style: TextStyle(
+                      color: colors.title,
                       fontSize: 13,
                       fontWeight: FontWeight.w800,
                     ),
                   ),
                 ],
-              ),
-              const SizedBox(height: 6),
-              Text(
-                map.message ?? l10n.indoorMapOpenLevelUpSource,
-                style: const TextStyle(color: _MapColors.muted, fontSize: 11),
               ),
               const SizedBox(height: 10),
               Align(
@@ -461,7 +467,7 @@ class _MapHeaderCard extends StatelessWidget {
                   icon: const Icon(Icons.open_in_new, size: 16),
                   label: Text(l10n.indoorMapOpenFullMap),
                   style: TextButton.styleFrom(
-                    foregroundColor: _MapColors.blue,
+                    foregroundColor: colors.primary,
                     padding: EdgeInsets.zero,
                     visualDensity: VisualDensity.compact,
                   ),
@@ -490,68 +496,28 @@ class _LevelMapBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final label = hasHighlights && highlightCategory != null
         ? l10n.indoorMapHighlightBadge(level, highlightCategory!)
         : l10n.indoorMapLevelBadge(level);
 
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: _MapColors.overlay,
+        color: colors.overlay,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: _MapColors.border),
+        border: Border.all(color: colors.border),
       ),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         child: Text(
           label,
           textAlign: TextAlign.center,
-          style: const TextStyle(
-            color: _MapColors.title,
+          style: TextStyle(
+            color: colors.title,
             fontSize: 12,
             fontWeight: FontWeight.w800,
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _LevelSelector extends StatelessWidget {
-  const _LevelSelector({
-    required this.levels,
-    required this.selectedLevel,
-    required this.onSelected,
-  });
-
-  final List<IndoorLevel> levels;
-  final String selectedLevel;
-  final ValueChanged<String> onSelected;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 44,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        itemCount: levels.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 8),
-        itemBuilder: (context, index) {
-          final lvl = levels[index];
-          final selected = lvl.id == selectedLevel;
-          return ChoiceChip(
-            label: Text(lvl.label),
-            selected: selected,
-            onSelected: (_) => onSelected(lvl.id),
-            selectedColor: _MapColors.blue,
-            labelStyle: TextStyle(
-              color: selected ? _MapColors.background : _MapColors.title,
-              fontWeight: FontWeight.w700,
-              fontSize: 11,
-            ),
-            backgroundColor: _MapColors.chip,
-          );
-        },
       ),
     );
   }
@@ -572,15 +538,16 @@ class _AmenityHighlightCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final title = category == 'coffee'
         ? l10n.indoorMapCoffeeNearGate(gate)
         : l10n.indoorMapFoodNearGate(gate);
 
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: _MapColors.chip,
+        color: colors.chip,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: _MapColors.border),
+        border: Border.all(color: colors.border),
       ),
       child: Padding(
         padding: const EdgeInsets.all(12),
@@ -589,8 +556,8 @@ class _AmenityHighlightCard extends StatelessWidget {
           children: [
             Text(
               title,
-              style: const TextStyle(
-                color: _MapColors.title,
+              style: TextStyle(
+                color: colors.title,
                 fontSize: 13,
                 fontWeight: FontWeight.w900,
               ),
@@ -614,8 +581,8 @@ class _AmenityHighlightCard extends StatelessWidget {
                     Expanded(
                       child: Text(
                         poi.label,
-                        style: const TextStyle(
-                          color: _MapColors.title,
+                        style: TextStyle(
+                          color: colors.title,
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
                         ),
@@ -639,6 +606,7 @@ class _RouteStepsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final steps = [
       l10n.indoorMapRouteStepEntrance,
       l10n.indoorMapRouteStepSecurity,
@@ -649,9 +617,9 @@ class _RouteStepsCard extends StatelessWidget {
 
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: _MapColors.chip,
+        color: colors.chip,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: _MapColors.border),
+        border: Border.all(color: colors.border),
       ),
       child: Padding(
         padding: const EdgeInsets.all(12),
@@ -661,13 +629,13 @@ class _RouteStepsCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                const Icon(Icons.navigation, color: _MapColors.blue, size: 18),
+                Icon(Icons.navigation, color: colors.primary, size: 18),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     l10n.indoorMapRouteTitle(gate),
-                    style: const TextStyle(
-                      color: _MapColors.title,
+                    style: TextStyle(
+                      color: colors.title,
                       fontSize: 13,
                       fontWeight: FontWeight.w900,
                     ),
@@ -675,8 +643,8 @@ class _RouteStepsCard extends StatelessWidget {
                 ),
                 Text(
                   l10n.indoorMapRouteEta(12),
-                  style: const TextStyle(
-                    color: _MapColors.blue,
+                  style: TextStyle(
+                    color: colors.primary,
                     fontSize: 12,
                     fontWeight: FontWeight.w900,
                   ),
@@ -691,7 +659,7 @@ class _RouteStepsCard extends StatelessWidget {
                 for (final step in steps)
                   DecoratedBox(
                     decoration: BoxDecoration(
-                      color: _MapColors.background,
+                      color: colors.background,
                       borderRadius: BorderRadius.circular(999),
                     ),
                     child: Padding(
@@ -701,8 +669,8 @@ class _RouteStepsCard extends StatelessWidget {
                       ),
                       child: Text(
                         step,
-                        style: const TextStyle(
-                          color: _MapColors.title,
+                        style: TextStyle(
+                          color: colors.title,
                           fontSize: 10,
                           fontWeight: FontWeight.w800,
                         ),
@@ -725,6 +693,7 @@ class _LoadingState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -735,7 +704,7 @@ class _LoadingState extends StatelessWidget {
             const SizedBox(height: 16),
             Text(
               message,
-              style: const TextStyle(color: _MapColors.muted, fontSize: 13),
+              style: TextStyle(color: colors.muted, fontSize: 13),
             ),
           ],
         ),
@@ -761,6 +730,7 @@ class _ErrorState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -770,15 +740,30 @@ class _ErrorState extends StatelessWidget {
             Text(
               message,
               textAlign: TextAlign.center,
-              style: const TextStyle(color: _MapColors.coral),
+              style: TextStyle(color: colors.coral),
             ),
             const SizedBox(height: 16),
             Row(
-              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                OutlinedButton(onPressed: onBack, child: Text(backLabel)),
+                Expanded(
+                  child: OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size(0, 40),
+                    ),
+                    onPressed: onBack,
+                    child: Text(backLabel),
+                  ),
+                ),
                 const SizedBox(width: 12),
-                FilledButton(onPressed: onRetry, child: Text(retryLabel)),
+                Expanded(
+                  child: FilledButton(
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size(0, 40),
+                    ),
+                    onPressed: onRetry,
+                    child: Text(retryLabel),
+                  ),
+                ),
               ],
             ),
           ],
@@ -801,6 +786,7 @@ class _UnsupportedState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -810,10 +796,16 @@ class _UnsupportedState extends StatelessWidget {
             Text(
               message,
               textAlign: TextAlign.center,
-              style: const TextStyle(color: _MapColors.title),
+              style: TextStyle(color: colors.title),
             ),
             const SizedBox(height: 16),
-            OutlinedButton(onPressed: onBack, child: Text(backLabel)),
+            OutlinedButton(
+              style: OutlinedButton.styleFrom(
+                minimumSize: const Size(0, 40),
+              ),
+              onPressed: onBack,
+              child: Text(backLabel),
+            ),
           ],
         ),
       ),
@@ -821,15 +813,44 @@ class _UnsupportedState extends StatelessWidget {
   }
 }
 
-class _MapColors {
-  _MapColors._();
+/// Holds the parent [CustomScrollView] while the user pans the embedded map.
+class _IndoorMapScrollShield extends StatefulWidget {
+  const _IndoorMapScrollShield({required this.child});
 
-  static const Color background = Color(0xFF061326);
-  static const Color chip = Color(0xFF26364F);
-  static const Color title = Color(0xFFD5E4FF);
-  static const Color muted = Color(0xFF77879E);
-  static const Color blue = Color(0xFF4A91F8);
-  static const Color coral = Color(0xFFFF8B6E);
-  static const Color border = Color(0x334A91F8);
-  static const Color overlay = Color(0xE0061326);
+  final Widget child;
+
+  @override
+  State<_IndoorMapScrollShield> createState() => _IndoorMapScrollShieldState();
+}
+
+class _IndoorMapScrollShieldState extends State<_IndoorMapScrollShield> {
+  ScrollHoldController? _hold;
+
+  @override
+  void dispose() {
+    _hold?.cancel();
+    super.dispose();
+  }
+
+  void _releaseHold() {
+    _hold?.cancel();
+    _hold = null;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Listener(
+      behavior: HitTestBehavior.translucent,
+      onPointerDown: (_) {
+        final position = Scrollable.maybeOf(context)?.position;
+        if (position != null) {
+          _hold?.cancel();
+          _hold = position.hold(() {});
+        }
+      },
+      onPointerUp: (_) => _releaseHold(),
+      onPointerCancel: (_) => _releaseHold(),
+      child: widget.child,
+    );
+  }
 }

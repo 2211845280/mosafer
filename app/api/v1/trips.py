@@ -24,6 +24,7 @@ from app.models.user_preferences import UserPreference
 from app.models.users import User
 from app.schemas.ai import (
     DestinationTipsResult,
+    PackingItem,
     PackingListResult,
     PackingWeatherContext,
     TimelineItem,
@@ -56,6 +57,160 @@ from app.services.istanbul_indoor_highlights import apply_amenity_highlights
 logger = structlog.get_logger(__name__)
 
 router = APIRouter()
+
+_REDUNDANT_BOOKED_TASK_PATTERNS = (
+    "book flight",
+    "book ticket",
+    "book tickets",
+    "book transport",
+    "book transportation",
+    "book taxi",
+    "book airport taxi",
+    "arrange transport",
+    "arrange transportation",
+    "reserve flight",
+    "purchase ticket",
+    "purchase tickets",
+    "احجز تذكرة",
+    "احجز تذاكر",
+    "احجز تذاكر الطيران",
+    "احجز وسيلة",
+    "احجز مواصلات",
+    "احجز النقل",
+    "احجز أجرة",
+    "ترتيب وسائل",
+    "ترتيب النقل",
+    "حجز تذاكر",
+)
+
+_TRANSPORT_TASK_PATTERNS = (
+    "transport",
+    "transportation",
+    "taxi",
+    "airport transfer",
+    "وسيلة النقل",
+    "وسائل النقل",
+    "مواصلات",
+    "أجرة",
+    "نقل",
+)
+
+
+def _normalized_timeline_text(*parts: str) -> str:
+    return " ".join(part.strip().lower() for part in parts if part and part.strip())
+
+
+def _is_redundant_booked_trip_task(title: str, description: str = "") -> bool:
+    normalized = _normalized_timeline_text(title, description)
+    return any(pattern in normalized for pattern in _REDUNDANT_BOOKED_TASK_PATTERNS)
+
+
+def _is_early_transport_task(item: TimelineItem) -> bool:
+    if item.days_before <= 1:
+        return False
+    normalized = _normalized_timeline_text(item.title, item.description)
+    return any(pattern in normalized for pattern in _TRANSPORT_TASK_PATTERNS)
+
+
+def _default_timeline_items(locale: str) -> list[TimelineItem]:
+    if locale == "ar":
+        return [
+            TimelineItem(
+                days_before=14,
+                title="التحقق من صلاحية جواز السفر",
+                description="تأكد من صلاحية 6 أشهر على الأقل",
+                category="document",
+            ),
+            TimelineItem(
+                days_before=7,
+                title="تأكيد بيانات الحجز",
+                description="راجع تفاصيل الرحلة والمقعد في التطبيق",
+                category="document",
+            ),
+            TimelineItem(
+                days_before=7,
+                title="بدء تجهيز الأساسيات",
+                description="استخدم قائمة التجهيز الذكية",
+                category="packing",
+            ),
+            TimelineItem(
+                days_before=1,
+                title="شحن الأجهزة",
+                description="الهاتف، الحاسوب، بنك الطاقة",
+                category="task",
+            ),
+            TimelineItem(
+                days_before=1,
+                title="مراجعة خطة المغادرة",
+                description="تحقق من وقت المغادرة والمسار",
+                category="task",
+            ),
+            TimelineItem(
+                days_before=0,
+                title="التوجه إلى المطار",
+                description="راجع خطة المغادرة للتوقيت",
+                category="task",
+            ),
+        ]
+    return [
+        TimelineItem(
+            days_before=14,
+            title="Check passport validity",
+            description="Ensure 6+ months validity",
+            category="document",
+        ),
+        TimelineItem(
+            days_before=7,
+            title="Confirm booking details",
+            description="Review flight and seat details in the app",
+            category="document",
+        ),
+        TimelineItem(
+            days_before=7,
+            title="Start packing essentials",
+            description="Use the smart packing list",
+            category="packing",
+        ),
+        TimelineItem(
+            days_before=1,
+            title="Charge devices",
+            description="Phone, laptop, power bank",
+            category="task",
+        ),
+        TimelineItem(
+            days_before=1,
+            title="Review departure plan",
+            description="Check leave time and route",
+            category="task",
+        ),
+        TimelineItem(
+            days_before=0,
+            title="Head to airport",
+            description="Check departure plan for timing",
+            category="task",
+        ),
+    ]
+
+
+def _timeline_item_key(item: TimelineItem) -> str:
+    return _normalized_timeline_text(item.title, item.category)
+
+
+def _filter_timeline_items(items: list[TimelineItem], locale: str = "en") -> list[TimelineItem]:
+    filtered = [
+        item
+        for item in items
+        if not _is_redundant_booked_trip_task(item.title, item.description)
+        and not _is_early_transport_task(item)
+    ]
+    existing = {_timeline_item_key(item) for item in filtered}
+    for fallback in _default_timeline_items(locale):
+        key = _timeline_item_key(fallback)
+        if key not in existing:
+            filtered.append(fallback)
+            existing.add(key)
+    filtered.sort(key=lambda item: item.days_before, reverse=True)
+    return filtered
 
 _planner = DeparturePlanner()
 _status_service = MockFlightStatusService()
@@ -554,7 +709,12 @@ async def get_airport_indoor_map(
         )
 
     cache_key = f"indoor_map:IST:{gate or 'none'}:{highlight or 'none'}"
-    cached = await cache.get(cache_key)
+    cached = None
+    try:
+        cached = await cache.get(cache_key)
+    except Exception as exc:
+        logger.warning("indoor_map.cache_get_failed", key=cache_key, error=str(exc))
+
     if cached is not None:
         logger.debug("indoor_map.cache_hit", key=cache_key)
         return IndoorMapResponse(**cached)
@@ -562,9 +722,16 @@ async def get_airport_indoor_map(
     highlight_gate = gate or None
     if highlight_gate is None:
         status_cache_key = f"flight:status:{flight.id}"
-        cached_status = await cache.get(status_cache_key)
-        if cached_status and cached_status.get("departure_gate"):
-            highlight_gate = str(cached_status["departure_gate"])
+        try:
+            cached_status = await cache.get(status_cache_key)
+            if cached_status and cached_status.get("departure_gate"):
+                highlight_gate = str(cached_status["departure_gate"])
+        except Exception as exc:
+            logger.warning(
+                "indoor_map.status_cache_get_failed",
+                key=status_cache_key,
+                error=str(exc),
+            )
 
     result = await fetch_istanbul_indoor_map(highlight_gate=highlight_gate)
     result = apply_amenity_highlights(
@@ -575,7 +742,10 @@ async def get_airport_indoor_map(
     from app.services.istanbul_indoor_geo import enrich_indoor_map
 
     result = enrich_indoor_map(result, gate=highlight_gate)
-    await cache.set(cache_key, result.model_dump(mode="json"), ttl_seconds=86400)
+    try:
+        await cache.set(cache_key, result.model_dump(mode="json"), ttl_seconds=86400)
+    except Exception as exc:
+        logger.warning("indoor_map.cache_set_failed", key=cache_key, error=str(exc))
     return result
 
 
@@ -629,6 +799,84 @@ async def _build_packing_weather(
     )
 
 
+def _merge_bilingual_packing_items(
+    ar_items: list[PackingItem],
+    en_items: list[PackingItem],
+    section: str,
+) -> list[PackingItem]:
+    merged: list[PackingItem] = []
+    for index in range(max(len(ar_items), len(en_items))):
+        ar_item = ar_items[index] if index < len(ar_items) else None
+        en_item = en_items[index] if index < len(en_items) else None
+        title_ar = ar_item.title if ar_item else (en_item.title if en_item else "")
+        title_en = en_item.title if en_item else (ar_item.title if ar_item else "")
+        note_ar = ar_item.note if ar_item else (en_item.note if en_item else "")
+        note_en = en_item.note if en_item else (ar_item.note if ar_item else "")
+        title = title_en or title_ar
+        if not title.strip():
+            continue
+        merged.append(
+            PackingItem(
+                key=f"{section}:{index}",
+                title=title,
+                note=note_en or note_ar,
+                title_ar=title_ar,
+                title_en=title_en,
+                note_ar=note_ar,
+                note_en=note_en,
+            )
+        )
+    return merged
+
+
+def _merge_bilingual_packing_lists(
+    ar_list: PackingListResult,
+    en_list: PackingListResult,
+    weather: PackingWeatherContext | None = None,
+) -> PackingListResult:
+    return PackingListResult(
+        must_have=_merge_bilingual_packing_items(
+            ar_list.must_have,
+            en_list.must_have,
+            "must",
+        ),
+        recommended=_merge_bilingual_packing_items(
+            ar_list.recommended,
+            en_list.recommended,
+            "rec",
+        ),
+        optional=_merge_bilingual_packing_items(
+            ar_list.optional,
+            en_list.optional,
+            "opt",
+        ),
+        weather=weather,
+    )
+
+
+def _localized_packing_item(item: PackingItem, locale: str) -> PackingItem:
+    wants_ar = locale == "ar"
+    title = (
+        item.title_ar if wants_ar and item.title_ar else item.title_en or item.title
+    )
+    note = item.note_ar if wants_ar and item.note_ar else item.note_en or item.note
+    return item.model_copy(update={"title": title, "note": note})
+
+
+def _localized_packing_list(
+    packing: PackingListResult,
+    locale: str,
+) -> PackingListResult:
+    return PackingListResult(
+        must_have=[_localized_packing_item(item, locale) for item in packing.must_have],
+        recommended=[
+            _localized_packing_item(item, locale) for item in packing.recommended
+        ],
+        optional=[_localized_packing_item(item, locale) for item in packing.optional],
+        weather=packing.weather,
+    )
+
+
 @router.post(
     "/trips/{reservation_id}/packing-list",
     response_model=PackingListResult,
@@ -644,11 +892,11 @@ async def get_packing_list(
     locale = resolve_request_locale(request.headers.get("accept-language"))
     reservation, flight = await _load_reservation_with_flight(reservation_id, user, db)
 
-    cache_key = f"packing_list:{reservation_id}:{locale}"
+    cache_key = f"packing_list:{reservation_id}:bilingual"
     cached = await cache.get(cache_key)
     if cached is not None:
         logger.debug("packing_list.cache_hit", key=cache_key)
-        return PackingListResult(**cached)
+        return _localized_packing_list(PackingListResult(**cached), locale)
 
     dest_result = await db.execute(
         select(Airport).where(Airport.iata_code == flight.destination_iata)
@@ -668,7 +916,7 @@ async def get_packing_list(
     duration_days = max(1, (flight.arrival_at - flight.departure_at).days or 1)
     travel_dates = f"{flight.departure_at.strftime('%Y-%m-%d')} to {flight.arrival_at.strftime('%Y-%m-%d')}"
 
-    result = await generate_packing_list(
+    result_ar = await generate_packing_list(
         destination_city=dest_city,
         destination_country=dest_country,
         origin_country=origin_country,
@@ -676,17 +924,28 @@ async def get_packing_list(
         travel_dates=travel_dates,
         destination_latitude=dest_lat,
         departure_month=flight.departure_at.month,
-        locale=locale,
+        locale="ar",
     )
-    result.weather = await _build_packing_weather(
+    result_en = await generate_packing_list(
+        destination_city=dest_city,
+        destination_country=dest_country,
+        origin_country=origin_country,
+        trip_duration_days=duration_days,
+        travel_dates=travel_dates,
+        destination_latitude=dest_lat,
+        departure_month=flight.departure_at.month,
+        locale="en",
+    )
+    weather = await _build_packing_weather(
         dest_airport,
         dest_city,
         duration_days,
         flight.departure_at,
     )
+    result = _merge_bilingual_packing_lists(result_ar, result_en, weather)
 
     await cache.set(cache_key, result.model_dump(mode="json"), ttl_seconds=86400)
-    return result
+    return _localized_packing_list(result, locale)
 
 
 # ---------------------------------------------------------------------------
@@ -738,9 +997,12 @@ async def create_trip_todo(
         user_id=user.id,
         category=body.category,
         title=body.title,
+        source_key=body.source_key,
+        title_ar=body.title_ar,
+        title_en=body.title_en,
         priority=body.priority,
         due_date=body.due_date,
-        source="user",
+        source="ai" if body.category == "packing" and body.source_key else "user",
     )
     db.add(todo)
     await db.commit()
@@ -774,6 +1036,12 @@ async def update_trip_todo(
 
     if body.title is not None:
         todo.title = body.title
+    if body.source_key is not None:
+        todo.source_key = body.source_key
+    if body.title_ar is not None:
+        todo.title_ar = body.title_ar
+    if body.title_en is not None:
+        todo.title_en = body.title_en
     if body.category is not None:
         todo.category = body.category
     if body.priority is not None:
@@ -830,7 +1098,7 @@ async def populate_todos_from_packing_list(
     locale = resolve_request_locale(request.headers.get("accept-language"))
     reservation, flight = await _load_reservation_with_flight(reservation_id, user, db)
 
-    cache_key = f"packing_list:{reservation_id}:{locale}"
+    cache_key = f"packing_list:{reservation_id}:bilingual"
     cached = await cache.get(cache_key)
 
     if cached is not None:
@@ -852,7 +1120,7 @@ async def populate_todos_from_packing_list(
         duration_days = max(1, (flight.arrival_at - flight.departure_at).days or 1)
         travel_dates = f"{flight.departure_at.strftime('%Y-%m-%d')} to {flight.arrival_at.strftime('%Y-%m-%d')}"
 
-        packing = await generate_packing_list(
+        packing_ar = await generate_packing_list(
             destination_city=dest_city,
             destination_country=dest_country,
             origin_country=origin_country,
@@ -860,14 +1128,25 @@ async def populate_todos_from_packing_list(
             travel_dates=travel_dates,
             destination_latitude=dest_lat,
             departure_month=flight.departure_at.month,
-            locale=locale,
+            locale="ar",
         )
-        packing.weather = await _build_packing_weather(
+        packing_en = await generate_packing_list(
+            destination_city=dest_city,
+            destination_country=dest_country,
+            origin_country=origin_country,
+            trip_duration_days=duration_days,
+            travel_dates=travel_dates,
+            destination_latitude=dest_lat,
+            departure_month=flight.departure_at.month,
+            locale="en",
+        )
+        weather = await _build_packing_weather(
             dest_airport,
             dest_city,
             duration_days,
             flight.departure_at,
         )
+        packing = _merge_bilingual_packing_lists(packing_ar, packing_en, weather)
         await cache.set(cache_key, packing.model_dump(mode="json"), ttl_seconds=86400)
 
     created: list[TripTodo] = []
@@ -882,7 +1161,10 @@ async def populate_todos_from_packing_list(
                 reservation_id=reservation.id,
                 user_id=user.id,
                 category="packing",
-                title=item.title,
+                title=_localized_packing_item(item, locale).title,
+                source_key=item.key,
+                title_ar=item.title_ar,
+                title_en=item.title_en,
                 priority=priority_map[priority_key],
                 source="ai",
             )
@@ -919,7 +1201,9 @@ async def generate_timeline(
     cached = await cache.get(cache_key)
     if cached is not None:
         logger.debug("timeline.cache_hit", key=cache_key)
-        return TimelineResult(**cached)
+        cached_result = TimelineResult(**cached)
+        filtered_items = _filter_timeline_items(cached_result.items, locale=locale)
+        return TimelineResult(items=filtered_items)
 
     dest_result = await db.execute(
         select(Airport).where(Airport.iata_code == flight.destination_iata)
@@ -955,39 +1239,11 @@ async def generate_timeline(
         items = [TimelineItem(**i) for i in raw_items]
     except Exception:
         logger.exception("timeline.llm_failed, using defaults")
-        if locale == "ar":
-            items = [
-                TimelineItem(days_before=14, title="التحقق من صلاحية جواز السفر", description="تأكد من صلاحية 6 أشهر على الأقل", category="document"),
-                TimelineItem(days_before=7, title="بدء تجهيز الأساسيات", description="استخدم قائمة التعبئة الذكية", category="packing"),
-                TimelineItem(days_before=3, title="تأكيد الحجز", description="تحقق من حالة الرحلة", category="task"),
-                TimelineItem(days_before=1, title="شحن الأجهزة", description="الهاتف، الحاسوب، بنك الطاقة", category="task"),
-                TimelineItem(days_before=0, title="التوجه إلى المطار", description="راجع خطة المغادرة للتوقيت", category="task"),
-            ]
-        else:
-            items = [
-                TimelineItem(days_before=14, title="Check passport validity", description="Ensure 6+ months validity", category="document"),
-                TimelineItem(days_before=7, title="Start packing essentials", description="Use AI packing list", category="packing"),
-                TimelineItem(days_before=3, title="Confirm reservation", description="Check flight status", category="task"),
-                TimelineItem(days_before=1, title="Charge devices", description="Phone, laptop, power bank", category="task"),
-                TimelineItem(days_before=0, title="Head to airport", description="Check departure plan for timing", category="task"),
-            ]
+        items = _default_timeline_items(locale)
+
+    items = _filter_timeline_items(items, locale=locale)
 
     timeline = TimelineResult(items=items)
-
-    for item in items:
-        due = flight.departure_at.date() - timedelta(days=item.days_before)
-        db.add(
-            TripTodo(
-                reservation_id=reservation.id,
-                user_id=user.id,
-                category=item.category,
-                title=item.title,
-                priority="recommended",
-                due_date=due,
-                source="ai",
-            )
-        )
-    await db.commit()
 
     await cache.set(cache_key, timeline.model_dump(mode="json"), ttl_seconds=86400)
     return timeline

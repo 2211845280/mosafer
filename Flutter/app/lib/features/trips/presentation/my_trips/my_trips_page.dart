@@ -7,23 +7,25 @@ import '../../../../l10n/app_localizations.dart';
 import '../../domain/trip.dart';
 import '../active_trip_controller.dart';
 import 'my_trips_controller.dart';
+import '../../../../core/theme/app_theme_extension.dart';
 
 class MyTripsPage extends ConsumerWidget {
   const MyTripsPage({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final colors = context.colors;
     final l10n = AppLocalizations.of(context)!;
     final state = ref.watch(myTripsControllerProvider);
     final controller = ref.read(myTripsControllerProvider.notifier);
 
     return state.when(
-      loading: () => const Scaffold(
-        backgroundColor: _TripsColors.background,
+      loading: () => Scaffold(
+        backgroundColor: colors.background,
         body: Center(child: CircularProgressIndicator()),
       ),
       error: (error, _) => Scaffold(
-        backgroundColor: _TripsColors.background,
+        backgroundColor: colors.background,
         body: Center(
           child: Padding(
             padding: const EdgeInsets.all(24),
@@ -33,7 +35,7 @@ class MyTripsPage extends ConsumerWidget {
                 Text(
                   localizeUserFacingError(error, l10n),
                   textAlign: TextAlign.center,
-                  style: const TextStyle(color: _TripsColors.coral),
+                  style: TextStyle(color: colors.coral),
                 ),
                 const SizedBox(height: 16),
                 ElevatedButton(
@@ -48,7 +50,7 @@ class MyTripsPage extends ConsumerWidget {
       data: (state) {
         final trips = state.filteredTrips;
         return Scaffold(
-          backgroundColor: _TripsColors.background,
+          backgroundColor: colors.background,
           body: Stack(
             children: [
               CustomScrollView(
@@ -98,8 +100,8 @@ class MyTripsPage extends ConsumerWidget {
                 bottom: 104,
                 child: FloatingActionButton(
                   onPressed: () => context.goNamed('scan'),
-                  backgroundColor: _TripsColors.blue,
-                  foregroundColor: _TripsColors.background,
+                  backgroundColor: colors.primary,
+                  foregroundColor: colors.background,
                   elevation: 0,
                   shape: const CircleBorder(),
                   child: const Icon(Icons.add, size: 31),
@@ -121,15 +123,16 @@ class MyTripsPage extends ConsumerWidget {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) {
+        final dialogColors = dialogContext.colors;
         return AlertDialog(
-          backgroundColor: _TripsColors.card,
+          backgroundColor: dialogColors.card,
           title: Text(
             l10n.tripsDeleteConfirmTitle,
-            style: const TextStyle(color: _TripsColors.title),
+            style: TextStyle(color: dialogColors.title),
           ),
           content: Text(
             l10n.tripsDeleteConfirmBody,
-            style: const TextStyle(color: _TripsColors.muted),
+            style: TextStyle(color: dialogColors.muted),
           ),
           actions: [
             TextButton(
@@ -161,24 +164,25 @@ class _SearchField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return TextField(
       onChanged: onChanged,
-      cursorColor: _TripsColors.blue,
-      style: const TextStyle(color: _TripsColors.title, fontSize: 13),
+      cursorColor: colors.primary,
+      style: TextStyle(color: colors.title, fontSize: 13),
       decoration: InputDecoration(
         hintText: hintText,
-        hintStyle: const TextStyle(
-          color: _TripsColors.muted,
+        hintStyle: TextStyle(
+          color: colors.muted,
           fontSize: 12,
           fontWeight: FontWeight.w500,
         ),
-        prefixIcon: const Icon(
+        prefixIcon: Icon(
           Icons.search,
-          color: _TripsColors.muted,
+          color: colors.muted,
           size: 19,
         ),
         filled: true,
-        fillColor: _TripsColors.surface,
+        fillColor: colors.card,
         contentPadding: const EdgeInsets.symmetric(vertical: 13),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
@@ -190,7 +194,7 @@ class _SearchField extends StatelessWidget {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: _TripsColors.blue),
+          borderSide: BorderSide(color: colors.primary),
         ),
       ),
     );
@@ -214,11 +218,12 @@ class _TripsSegmentedControl extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Container(
       height: 42,
       padding: const EdgeInsets.all(5),
       decoration: BoxDecoration(
-        color: _TripsColors.surface,
+        color: colors.card,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
@@ -256,18 +261,19 @@ class _SegmentButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return TextButton(
       onPressed: onPressed,
       style: TextButton.styleFrom(
-        backgroundColor: isSelected ? _TripsColors.blue : Colors.transparent,
+        backgroundColor: isSelected ? colors.primary : Colors.transparent,
         foregroundColor: isSelected
-            ? _TripsColors.background
-            : _TripsColors.title,
+            ? colors.background
+            : colors.title,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(9)),
       ),
       child: Text(
         label,
-        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
       ),
     );
   }
@@ -281,11 +287,12 @@ class _TripCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final l10n = AppLocalizations.of(context)!;
     final isCompleted = trip.status == TripStatus.completed;
     final isExpired = trip.isExpired;
     final isDisabled = isCompleted || isExpired;
-    final foreground = isDisabled ? _TripsColors.disabledText : _TripsColors.title;
+    final foreground = isDisabled ? colors.disabledText : colors.title;
     final opacity = isExpired ? 0.4 : isCompleted ? 0.55 : 1.0;
 
     return Opacity(
@@ -343,7 +350,7 @@ class _TripCard extends StatelessWidget {
                     const SizedBox(height: 27),
                     _RouteSummary(trip: trip, foreground: foreground),
                     const SizedBox(height: 22),
-                    const Divider(color: _TripsColors.divider, height: 1),
+                    Divider(color: colors.divider, height: 1),
                     const SizedBox(height: 19),
                     _TripMetaRow(trip: trip, foreground: foreground),
                     const SizedBox(height: 19),
@@ -366,16 +373,17 @@ class _ExpiredPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: _TripsColors.completedPill,
+        color: colors.completedPill,
         borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
         label,
-        style: const TextStyle(
-          color: _TripsColors.disabledText,
+        style: TextStyle(
+          color: colors.disabledText,
           fontSize: 8,
           fontWeight: FontWeight.w900,
           letterSpacing: 1,
@@ -392,6 +400,7 @@ class _AirlineAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Container(
       width: 33,
       height: 33,
@@ -406,8 +415,8 @@ class _AirlineAvatar extends StatelessWidget {
       child: Center(
         child: Text(
           label,
-          style: const TextStyle(
-            color: _TripsColors.background,
+          style: TextStyle(
+            color: colors.background,
             fontSize: 10,
             fontWeight: FontWeight.w900,
           ),
@@ -424,6 +433,7 @@ class _StatusPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final l10n = AppLocalizations.of(context)!;
     final isConfirmed = status == TripStatus.confirmed;
 
@@ -431,14 +441,14 @@ class _StatusPill extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
         color: isConfirmed
-            ? _TripsColors.greenPill
-            : _TripsColors.completedPill,
+            ? colors.accent
+            : colors.completedPill,
         borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
         isConfirmed ? l10n.tripsConfirmed : l10n.tripsCompleted,
         style: TextStyle(
-          color: isConfirmed ? _TripsColors.green : _TripsColors.disabledText,
+          color: isConfirmed ? colors.onPrimary : colors.disabledText,
           fontSize: 8,
           fontWeight: FontWeight.w900,
           letterSpacing: 1,
@@ -456,6 +466,7 @@ class _RouteSummary extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Row(
       children: [
         _AirportBlock(
@@ -469,7 +480,7 @@ class _RouteSummary extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 9),
             child: Row(
               children: [
-                const Expanded(child: Divider(color: _TripsColors.divider)),
+                Expanded(child: Divider(color: colors.divider)),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 10),
                   child: Icon(
@@ -478,7 +489,7 @@ class _RouteSummary extends StatelessWidget {
                     size: 20,
                   ),
                 ),
-                const Expanded(child: Divider(color: _TripsColors.divider)),
+                Expanded(child: Divider(color: colors.divider)),
               ],
             ),
           ),
@@ -509,6 +520,7 @@ class _AirportBlock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Column(
       crossAxisAlignment: alignment,
       children: [
@@ -554,6 +566,7 @@ class _TripMetaRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final locale = Localizations.localeOf(context);
+    final l10n = AppLocalizations.of(context)!;
     return Row(
       children: [
         Expanded(
@@ -565,7 +578,7 @@ class _TripMetaRow extends StatelessWidget {
         ),
         _MetaItem(
           icon: Icons.chair_outlined,
-          label: trip.seat,
+          label: '${l10n.flightMetaSeat} ${trip.seat}',
           foreground: foreground,
         ),
       ],
@@ -586,10 +599,11 @@ class _MetaItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 14, color: _TripsColors.coral),
+        Icon(icon, size: 14, color: colors.coral),
         const SizedBox(width: 6),
         Text(
           label,
@@ -612,6 +626,7 @@ class _TripActionButton extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final colors = context.colors;
     final l10n = AppLocalizations.of(context)!;
     final isCompleted = trip.status == TripStatus.completed;
 
@@ -629,11 +644,11 @@ class _TripActionButton extends ConsumerWidget {
                 },
           style: ElevatedButton.styleFrom(
             backgroundColor: isDisabled
-                ? _TripsColors.inactiveButton
-                : _TripsColors.blue,
+                ? colors.inactiveButton
+                : colors.primary,
             foregroundColor: isDisabled
-                ? _TripsColors.disabledText
-                : _TripsColors.background,
+                ? colors.disabledText
+                : colors.background,
             elevation: 0,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(11),
@@ -641,28 +656,10 @@ class _TripActionButton extends ConsumerWidget {
           ),
           child: Text(
             isCompleted ? l10n.tripsViewHistory : l10n.tripsOpenTrip,
-            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900),
+            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900),
           ),
         ),
       ),
     );
   }
-}
-
-class _TripsColors {
-  _TripsColors._();
-
-  static const Color background = Color(0xFF061326);
-  static const Color surface = Color(0xFF101F36);
-  static const Color card = Color(0xFF101F35);
-  static const Color title = Color(0xFFD9E5FF);
-  static const Color muted = Color(0xFF70819D);
-  static const Color blue = Color(0xFF4A91F8);
-  static const Color coral = Color(0xFFFFA982);
-  static const Color green = Color(0xFF16D8A4);
-  static const Color greenPill = Color(0xFF063B3A);
-  static const Color completedPill = Color(0xFF1A263A);
-  static const Color disabledText = Color(0xFF7C8BA7);
-  static const Color divider = Color(0xFF203149);
-  static const Color inactiveButton = Color(0xFF263751);
 }

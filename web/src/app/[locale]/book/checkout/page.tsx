@@ -114,7 +114,7 @@ export default function BookCheckoutPage() {
         if (!signal?.cancelled) setSeatsLoading(false);
       }
     },
-    [locale, redirectToLogin, t],
+    [locale, redirectToLogin],
   );
 
   useEffect(() => {

@@ -37,6 +37,87 @@ class IndoorMapData {
     this.routePoints = const [],
   });
 
+  /// Curated IST layout used when the API is unreachable (Flutter-side fallback).
+  factory IndoorMapData.istOfflineFallback({String? gate, String? highlightCategory}) {
+    final normalizedGate = gate?.trim().toUpperCase();
+    return IndoorMapData(
+      airportIata: 'IST',
+      airportName: 'Istanbul Airport',
+      defaultLevel: '0',
+      levels: const [
+        IndoorLevel(id: '-1', label: 'Arrivals / Lower Level'),
+        IndoorLevel(id: '0', label: 'Main Terminal'),
+        IndoorLevel(id: '1', label: 'Departures / Gates'),
+      ],
+      features: const [
+        IndoorFeature(
+          id: 'gate-g12',
+          type: 'gate',
+          level: '1',
+          label: 'G12',
+          points: [
+            [860, 500],
+            [900, 500],
+            [900, 540],
+            [860, 540],
+            [860, 500],
+          ],
+        ),
+        IndoorFeature(
+          id: 'gate-g6',
+          type: 'gate',
+          level: '1',
+          label: 'G6',
+          points: [
+            [360, 500],
+            [400, 500],
+            [400, 540],
+            [360, 540],
+            [360, 500],
+          ],
+        ),
+      ],
+      pois: const [
+        IndoorPoi(
+          id: 'poi-g12',
+          type: 'gate',
+          level: '1',
+          label: 'G12',
+          x: 880,
+          y: 520,
+        ),
+        IndoorPoi(
+          id: 'poi-g6',
+          type: 'gate',
+          level: '1',
+          label: 'G6',
+          x: 380,
+          y: 520,
+        ),
+        IndoorPoi(
+          id: 'poi-coffee-g12',
+          type: 'coffee',
+          level: '1',
+          label: 'Starbucks Gate Area',
+          x: 760,
+          y: 400,
+        ),
+      ],
+      source: 'offline_fallback',
+      isFallback: true,
+      supported: true,
+      message: 'Using offline Istanbul Airport layout.',
+      highlightGate: normalizedGate,
+      highlightCategory: highlightCategory,
+      viewport: const IndoorMapViewport(
+        centerLat: 41.2622,
+        centerLng: 28.7425,
+        zoom: 17,
+        openLevelupLevel: '1',
+      ),
+    );
+  }
+
   factory IndoorMapData.fromJson(Map<String, dynamic> json) {
     return IndoorMapData(
       airportIata: json['airport_iata'] as String? ?? '',

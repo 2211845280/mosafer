@@ -9,6 +9,7 @@ import '../../../../l10n/app_localizations.dart';
 import '../active_trip_controller.dart';
 import '../my_trips/my_trips_controller.dart';
 import 'scan_controller.dart';
+import '../../../../core/theme/app_theme_extension.dart';
 
 class ScanPage extends ConsumerStatefulWidget {
   const ScanPage({super.key});
@@ -24,10 +25,11 @@ class _ScanPageState extends ConsumerState<ScanPage> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final l10n = AppLocalizations.of(context)!;
     final scanState = ref.watch(scanControllerProvider);
     return Scaffold(
-      backgroundColor: _ScanColors.background,
+      backgroundColor: colors.background,
       body: SafeArea(
         bottom: false,
         child: Column(
@@ -95,6 +97,8 @@ class _ScanPageState extends ConsumerState<ScanPage> {
       ref.read(activeTripProvider.notifier).state = trip;
       await ref.read(myTripsControllerProvider.notifier).loadTrips();
       if (!mounted) return;
+      await _showTicketAddedMessage();
+      if (!mounted) return;
       context.goNamed('dashboard');
       return;
     }
@@ -109,11 +113,13 @@ class _ScanPageState extends ConsumerState<ScanPage> {
     if (image == null) return;
     final trip = await ref
         .read(scanControllerProvider.notifier)
-        .scanImage(image.path);
+        .scanImage(image);
     if (trip != null && mounted) {
       ref.read(activeTripProvider.notifier).state = trip;
       await ref.read(myTripsControllerProvider.notifier).loadTrips();
       if (mounted) {
+        await _showTicketAddedMessage();
+        if (!mounted) return;
         context.goNamed('dashboard');
       }
       return;
@@ -136,12 +142,26 @@ class _ScanPageState extends ConsumerState<ScanPage> {
     ).showSnackBar(SnackBar(content: Text(message)));
   }
 
+  Future<void> _showTicketAddedMessage() async {
+    final l10n = AppLocalizations.of(context)!;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(l10n.scanTicketAddedSuccess),
+          duration: const Duration(milliseconds: 1600),
+        ),
+      );
+    await Future<void>.delayed(const Duration(milliseconds: 900));
+  }
+
   Future<void> _showQrPayloadSheet(BuildContext context, WidgetRef ref) async {
+    final colors = context.colors;
     final l10n = AppLocalizations.of(context)!;
     final controller = TextEditingController();
     final payload = await showModalBottomSheet<String>(
       context: context,
-      backgroundColor: _ScanColors.buttonShell,
+      backgroundColor: colors.buttonShell,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -159,8 +179,8 @@ class _ScanPageState extends ConsumerState<ScanPage> {
             children: [
               Text(
                 l10n.scanPastePayload,
-                style: const TextStyle(
-                  color: _ScanColors.title,
+                style: TextStyle(
+                  color: colors.title,
                   fontSize: 16,
                   fontWeight: FontWeight.w900,
                 ),
@@ -171,7 +191,7 @@ class _ScanPageState extends ConsumerState<ScanPage> {
                 autofocus: true,
                 minLines: 2,
                 maxLines: 4,
-                style: const TextStyle(color: _ScanColors.title),
+                style: TextStyle(color: colors.title),
                 decoration: InputDecoration(hintText: l10n.scanPayloadHint),
               ),
               const SizedBox(height: 14),
@@ -221,6 +241,7 @@ class _ScanAppBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Padding(
       padding: const EdgeInsets.fromLTRB(18, 8, 18, 0),
       child: Row(
@@ -228,14 +249,14 @@ class _ScanAppBar extends StatelessWidget {
           GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTap: () => context.goNamed('myTrips'),
-            child: const SizedBox(
+            child: SizedBox(
               width: 40,
               height: 36,
               child: Align(
                 alignment: AlignmentDirectional.centerStart,
                 child: Icon(
                   Icons.arrow_back,
-                  color: _ScanColors.title,
+                  color: colors.title,
                   size: 21,
                 ),
               ),
@@ -245,22 +266,22 @@ class _ScanAppBar extends StatelessWidget {
             child: Text(
               l10n.brandMosafer,
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: _ScanColors.title,
+              style: TextStyle(
+                color: colors.title,
                 fontSize: 16,
                 fontWeight: FontWeight.w900,
                 letterSpacing: -0.35,
               ),
             ),
           ),
-          const SizedBox(
+          SizedBox(
             width: 40,
             height: 36,
             child: Align(
               alignment: AlignmentDirectional.centerEnd,
               child: Icon(
                 Icons.help_outline,
-                color: _ScanColors.title,
+                color: colors.title,
                 size: 20,
               ),
             ),
@@ -286,11 +307,12 @@ class _ScanTabs extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Container(
       height: 43,
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: _ScanColors.tabBackground,
+        color: colors.tabBackground,
         borderRadius: BorderRadius.circular(22),
       ),
       child: Row(
@@ -328,20 +350,21 @@ class _ScanTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return InkWell(
       borderRadius: BorderRadius.circular(18),
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 180),
         decoration: BoxDecoration(
-          color: isSelected ? _ScanColors.blue : Colors.transparent,
+          color: isSelected ? colors.primary : Colors.transparent,
           borderRadius: BorderRadius.circular(18),
         ),
         child: Center(
           child: Text(
             label,
             style: TextStyle(
-              color: isSelected ? _ScanColors.background : _ScanColors.title,
+              color: isSelected ? colors.background : colors.title,
               fontSize: 12,
               fontWeight: FontWeight.w800,
             ),
@@ -365,29 +388,30 @@ class _UploadTicketPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Padding(
       padding: const EdgeInsets.fromLTRB(17, 0, 17, 24),
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.all(24),
         decoration: BoxDecoration(
-          color: _ScanColors.buttonShell,
+          color: colors.buttonShell,
           borderRadius: BorderRadius.circular(26),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(
+            Icon(
               Icons.image_search_outlined,
-              color: _ScanColors.blue,
+              color: colors.primary,
               size: 62,
             ),
             const SizedBox(height: 18),
             Text(
               l10n.scanUploadTitle,
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: _ScanColors.title,
+              style: TextStyle(
+                color: colors.title,
                 fontSize: 20,
                 fontWeight: FontWeight.w900,
               ),
@@ -396,8 +420,8 @@ class _UploadTicketPanel extends StatelessWidget {
             Text(
               l10n.scanUploadBody,
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: _ScanColors.muted,
+              style: TextStyle(
+                color: colors.muted,
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
                 height: 1.45,
@@ -429,26 +453,29 @@ class _CameraPreviewPlaceholder extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return DecoratedBox(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: [
-            Color(0xFF101B20),
-            Color(0xFF17232A),
-            Color(0xFF233242),
-            Color(0xFF080D14),
+            colors.scanGradientStart,
+            colors.scanGradientMid,
+            colors.scanGradientEnd,
+            colors.scanGradientBottom,
           ],
         ),
       ),
-      child: CustomPaint(painter: _BlurredLightsPainter()),
+      child: CustomPaint(painter: _BlurredLightsPainter(colors)),
     );
   }
 }
 
 class _BlurredLightsPainter extends CustomPainter {
-  const _BlurredLightsPainter();
+  const _BlurredLightsPainter(this.colors);
+
+  final AppThemeExtension colors;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -456,7 +483,7 @@ class _BlurredLightsPainter extends CustomPainter {
       ..shader =
           RadialGradient(
             colors: [
-              _ScanColors.blue.withValues(alpha: 0.58),
+              colors.primary.withValues(alpha: 0.58),
               Colors.transparent,
             ],
           ).createShader(
@@ -479,7 +506,7 @@ class _BlurredLightsPainter extends CustomPainter {
     for (final light in lights) {
       lightPaint.color = Colors.white.withValues(alpha: 0.2);
       canvas.drawCircle(light, 12, lightPaint);
-      lightPaint.color = _ScanColors.blue.withValues(alpha: 0.22);
+      lightPaint.color = colors.primary.withValues(alpha: 0.22);
       canvas.drawCircle(Offset(light.dx, light.dy + 105), 26, lightPaint);
     }
 
@@ -532,7 +559,7 @@ class _ScanOverlay extends StatelessWidget {
           child: Text(
             l10n.scanCenterQr,
             textAlign: TextAlign.center,
-            style: const TextStyle(
+            style: TextStyle(
               color: Colors.white,
               fontSize: 12,
               fontWeight: FontWeight.w700,
@@ -551,6 +578,7 @@ class _ScannerFrame extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return SizedBox(
       width: 222,
       height: 222,
@@ -564,7 +592,7 @@ class _ScannerFrame extends StatelessWidget {
                   end: Alignment.bottomCenter,
                   colors: [
                     Colors.transparent,
-                    _ScanColors.blue.withValues(alpha: 0.65),
+                    colors.primary.withValues(alpha: 0.65),
                     Colors.transparent,
                   ],
                   stops: const [0.27, 0.5, 0.73],
@@ -589,6 +617,7 @@ class _FrameCorner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final isLeft = alignment.x < 0;
     final isTop = alignment.y < 0;
 
@@ -598,7 +627,11 @@ class _FrameCorner extends StatelessWidget {
         width: 34,
         height: 34,
         child: CustomPaint(
-          painter: _CornerPainter(isLeft: isLeft, isTop: isTop),
+          painter: _CornerPainter(
+            isLeft: isLeft,
+            isTop: isTop,
+            colors: colors,
+          ),
         ),
       ),
     );
@@ -608,13 +641,18 @@ class _FrameCorner extends StatelessWidget {
 class _CornerPainter extends CustomPainter {
   final bool isLeft;
   final bool isTop;
+  final AppThemeExtension colors;
 
-  const _CornerPainter({required this.isLeft, required this.isTop});
+  const _CornerPainter({
+    required this.isLeft,
+    required this.isTop,
+    required this.colors,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = _ScanColors.frame
+      ..color = colors.frame
       ..strokeWidth = 3
       ..strokeCap = StrokeCap.square
       ..style = PaintingStyle.stroke;
@@ -645,10 +683,11 @@ class _ScanNowButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Container(
       padding: const EdgeInsets.all(6),
       decoration: BoxDecoration(
-        color: _ScanColors.buttonShell,
+        color: colors.buttonShell,
         borderRadius: BorderRadius.circular(18),
       ),
       child: SizedBox(
@@ -657,8 +696,8 @@ class _ScanNowButton extends StatelessWidget {
         child: ElevatedButton(
           onPressed: isLoading ? null : onPressed,
           style: ElevatedButton.styleFrom(
-            backgroundColor: _ScanColors.blue,
-            foregroundColor: _ScanColors.background,
+            backgroundColor: colors.primary,
+            foregroundColor: colors.background,
             elevation: 0,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(10),
@@ -672,7 +711,7 @@ class _ScanNowButton extends StatelessWidget {
                 )
               : Text(
                   l10n.scanScanNow,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w900,
                   ),
@@ -681,16 +720,4 @@ class _ScanNowButton extends StatelessWidget {
       ),
     );
   }
-}
-
-class _ScanColors {
-  _ScanColors._();
-
-  static const Color background = Color(0xFF061326);
-  static const Color title = Color(0xFFD5E4FF);
-  static const Color blue = Color(0xFF4A91F8);
-  static const Color muted = Color(0xFF8FA0BA);
-  static const Color tabBackground = Color(0xFF2B3B55);
-  static const Color frame = Color(0xFFBFD0FF);
-  static const Color buttonShell = Color(0xFF1D2D47);
 }

@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/constants/app_constants.dart';
 import '../../../core/network/api_client.dart';
+import '../../../core/theme/app_theme_extension.dart';
 
 const kGuestAvatarAsset = 'assets/images/profile/guest_avatar.png';
 const kProfileAvatarApiPath = '/users/me/avatar';
@@ -68,6 +69,7 @@ class ProfileGuestAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final image = ClipOval(
       child: Image.asset(
         kGuestAvatarAsset,
@@ -85,7 +87,7 @@ class ProfileGuestAvatar extends StatelessWidget {
       width: size,
       height: size,
       padding: const EdgeInsets.all(4),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         shape: BoxShape.circle,
         gradient: LinearGradient(
           begin: Alignment.topLeft,
@@ -185,6 +187,7 @@ class _ProfileAvatarImageState extends ConsumerState<ProfileAvatarImage> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final localPath = _localAvatarFilePath(widget.avatarPath);
     final hasLocalFile =
         !kIsWeb && localPath != null && File(localPath).existsSync();
@@ -244,7 +247,7 @@ class _ProfileAvatarImageState extends ConsumerState<ProfileAvatarImage> {
       width: widget.size,
       height: widget.size,
       padding: const EdgeInsets.all(4),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         shape: BoxShape.circle,
         gradient: LinearGradient(
           begin: Alignment.topLeft,

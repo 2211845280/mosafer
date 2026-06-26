@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../domain/indoor_map.dart';
 import 'indoor_geo_projector.dart';
+import '../../../../core/theme/app_theme_extension.dart';
 
 /// Markers and route polyline on top of OpenLevelUp (real OSM indoor map).
 class IndoorGeoOverlay extends StatefulWidget {
@@ -57,6 +58,7 @@ class _IndoorGeoOverlayState extends State<IndoorGeoOverlay>
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final viewport = widget.map.viewport;
     if (viewport == null) {
       return const SizedBox.shrink();
@@ -80,15 +82,6 @@ class _IndoorGeoOverlayState extends State<IndoorGeoOverlay>
             : <Offset>[];
 
         final markers = <_MapMarker>[
-          if (widget.map.userLocation?.hasGeo == true)
-            _MapMarker(
-              lat: widget.map.userLocation!.lat!,
-              lng: widget.map.userLocation!.lng!,
-              label: widget.map.userLocation!.label ?? 'You',
-              color: const Color(0xFF2CE59B),
-              icon: Icons.person_pin_circle,
-              size: 28,
-            ),
           if (widget.map.gateLocation?.hasGeo == true)
             _MapMarker(
               lat: widget.map.gateLocation!.lat!,
@@ -165,7 +158,7 @@ class _IndoorGeoOverlayState extends State<IndoorGeoOverlay>
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               child: Text(
                 marker.label,
-                style: const TextStyle(
+                style: TextStyle(
                   color: Color(0xFFD5E4FF),
                   fontSize: 9,
                   fontWeight: FontWeight.w800,

@@ -70,7 +70,7 @@ export function AdminDashboardClient({ isSuperAdmin }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [locale, t]);
+  }, [locale]);
 
   if (loading) {
     return <p className="text-muted">{t("loading")}…</p>;
@@ -88,7 +88,6 @@ export function AdminDashboardClient({ isSuperAdmin }: Props) {
     <div className="space-y-8">
       <div>
         <h1 className="text-2xl font-black text-foreground">{t("title")}</h1>
-        <p className="mt-1 text-sm text-muted">{t("dashboardSubtitle")}</p>
       </div>
 
       <DashboardKpiSection data={data} isSuperAdmin={isSuperAdmin} />

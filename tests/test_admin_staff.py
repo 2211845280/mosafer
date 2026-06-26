@@ -140,3 +140,45 @@ async def test_superadmin_staff_api(prepare_schema, client: AsyncClient, db_sess
     list_res = await client.get("/api/v1/admin/staff", headers=headers)
     assert list_res.status_code == 200
     assert any(row["email"] == "newadmin@example.com" for row in list_res.json())
+
+    staff_user_id = body["id"]
+
+    delete_res = await client.delete(
+        f"/api/v1/admin/staff/{staff_user_id}",
+        headers=headers,
+    )
+    assert delete_res.status_code == 200
+    assert delete_res.json()["message"] == "Admin staff deleted successfully"
+
+    list_after = await client.get("/api/v1/admin/staff", headers=headers)
+    assert list_after.status_code == 200
+    assert not any(row["email"] == "newadmin@example.com" for row in list_after.json())
+
+    self_delete = await client.delete(
+        f"/api/v1/admin/staff/{super_user.id}",
+        headers=headers,
+    )
+    assert self_delete.status_code == 400
+    assert self_delete.json()["detail"] == "You cannot delete your own account"
+
+    other_super = User(
+        email=f"super2-{uuid.uuid4().hex[:6]}@example.com",
+        password_hash=hash_password("SuperPass123!"),
+        role_id=super_role.id,
+        is_active=True,
+        is_email_verified=True,
+    )
+    db_session.add(other_super)
+    await db_session.flush()
+    db_session.add(Admin(user_id=other_super.id, full_name="Super Two", phone="n/a"))
+    await db_session.commit()
+
+    other_headers = {
+        "Authorization": f"Bearer {create_access_token({'sub': str(other_super.id)})}",
+    }
+    super_delete = await client.delete(
+        f"/api/v1/admin/staff/{super_user.id}",
+        headers=other_headers,
+    )
+    assert super_delete.status_code == 400
+    assert super_delete.json()["detail"] == "Superadmin account cannot be deleted"

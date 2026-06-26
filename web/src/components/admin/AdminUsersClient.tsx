@@ -85,7 +85,7 @@ export function AdminUsersClient() {
     return () => {
       cancelled = true;
     };
-  }, [locale, t]);
+  }, [locale]);
 
   const filteredRows = useMemo(() => {
     return rows.filter((u) => {

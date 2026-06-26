@@ -16,6 +16,11 @@ from app.schemas.departure_plan import WeatherCondition
 class PackingItem(BaseModel):
     title: str
     note: str = ""
+    key: str | None = None
+    title_ar: str | None = None
+    title_en: str | None = None
+    note_ar: str | None = None
+    note_en: str | None = None
 
 
 class PackingWeatherContext(BaseModel):

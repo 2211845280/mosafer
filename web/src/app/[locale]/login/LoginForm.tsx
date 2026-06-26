@@ -4,6 +4,13 @@ import { useRouter } from "@/i18n/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { FormEvent, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { PasswordInput } from "@/components/auth/PasswordInput";
+import { resolveAuthApiError } from "@/lib/auth-errors";
+import {
+  hasFieldErrors,
+  validateLogin,
+  type FieldErrors,
+} from "@/lib/auth-validation";
 
 export function LoginForm() {
   const t = useTranslations("auth");
@@ -16,11 +23,29 @@ export function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [loading, setLoading] = useState(false);
+
+  function clearFieldError(field: string) {
+    setFieldErrors((current) => {
+      if (!current[field]) return current;
+      const next = { ...current };
+      delete next[field];
+      return next;
+    });
+  }
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
+
+    const validationErrors = validateLogin(email, password, t);
+    if (hasFieldErrors(validationErrors)) {
+      setFieldErrors(validationErrors);
+      return;
+    }
+    setFieldErrors({});
+
     setLoading(true);
     try {
       const res = await fetch("/api/auth/login", {
@@ -34,15 +59,10 @@ export function LoginForm() {
       const data = (await res.json().catch(() => ({}))) as { detail?: string };
       if (!res.ok) {
         const detail = typeof data.detail === "string" ? data.detail : null;
-        if (detail === "Please verify your email before logging in") {
-          setError(t("emailNotVerified"));
-        } else {
-          setError(detail ?? "Login failed");
-        }
+        setError(resolveAuthApiError(detail, t, "login"));
         return;
       }
 
-      // Fetch profile to check if user is admin
       const sessionRes = await fetch("/api/auth/session", {
         headers: { "Accept-Language": locale },
       });
@@ -52,10 +72,8 @@ export function LoginForm() {
 
       const isAdmin = sessionData?.profile?.isAdmin === true;
       if (isAdmin) {
-        // Redirect admins to admin panel
         window.location.href = `/${locale}/admin`;
       } else {
-        // Regular users go to intended destination
         const dest = nextPath.startsWith("/") ? nextPath : `/${locale}`;
         window.location.href = dest;
       }
@@ -69,28 +87,49 @@ export function LoginForm() {
       <div className="auth-card">
         <h1 className="text-2xl font-extrabold text-foreground">{t("loginTitle")}</h1>
         <p className="mt-2 text-sm text-muted">{t("loginSubtitle")}</p>
-        <form className="mt-6 flex flex-col gap-4" onSubmit={(e) => void onSubmit(e)}>
+        <form
+          className="mt-6 flex flex-col gap-4"
+          noValidate
+          onSubmit={(e) => void onSubmit(e)}
+        >
           <label className="flex flex-col gap-2 text-xs font-bold uppercase text-muted">
             {t("email")}
             <input
               type="email"
-              required
               autoComplete="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="form-input"
+              onChange={(e) => {
+                setEmail(e.target.value);
+                clearFieldError("email");
+              }}
+              aria-invalid={Boolean(fieldErrors.email)}
+              className={
+                fieldErrors.email ? "form-input form-input-error" : "form-input"
+              }
             />
+            {fieldErrors.email ? (
+              <span className="form-field-error-text normal-case">
+                {fieldErrors.email}
+              </span>
+            ) : null}
           </label>
           <label className="flex flex-col gap-2 text-xs font-bold uppercase text-muted">
             {t("password")}
-            <input
-              type="password"
-              required
+            <PasswordInput
               autoComplete="current-password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="form-input"
+              invalid={Boolean(fieldErrors.password)}
+              onChange={(e) => {
+                setPassword(e.target.value);
+                clearFieldError("password");
+              }}
+              aria-invalid={Boolean(fieldErrors.password)}
             />
+            {fieldErrors.password ? (
+              <span className="form-field-error-text normal-case">
+                {fieldErrors.password}
+              </span>
+            ) : null}
           </label>
           <p className="text-end text-xs">
             <button

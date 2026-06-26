@@ -1,5 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 
+import '../../../../core/utils/qr_image_decoder.dart';
 import '../../data/trips_repository.dart';
 import '../../domain/trip.dart';
 
@@ -17,7 +19,7 @@ class ScanController extends StateNotifier<AsyncValue<Trip?>> {
     final normalized = payload.trim();
     if (normalized.isEmpty) {
       state = AsyncValue.error(
-        'Ticket QR payload is empty.',
+        'scan:invalid_ticket',
         StackTrace.current,
       );
       return null;
@@ -25,23 +27,47 @@ class ScanController extends StateNotifier<AsyncValue<Trip?>> {
 
     state = const AsyncValue.loading();
     final result = await _repository.scanQr(normalized);
-    return result.when(
-      success: (trip) {
-        state = AsyncValue.data(trip);
-        return trip;
-      },
-      failure: (error) {
+    return result.when<Future<Trip?>>(
+      success: _claimTrip,
+      failure: (error) async {
         state = AsyncValue.error(error, StackTrace.current);
         return null;
       },
     );
   }
 
-  Future<Trip?> scanImage(String imagePath) async {
+  Future<Trip?> scanImage(XFile image) async {
     state = const AsyncValue.loading();
-    final result = await _repository.scanTicketImage(imagePath);
-    return result.when(
-      success: (trip) {
+
+    final qrPayload = await extractQrPayloadFromImage(image);
+    if (qrPayload != null && qrPayload.trim().isNotEmpty) {
+      final qrResult = await _repository.scanQr(qrPayload.trim());
+      final tripFromQr = qrResult.dataOrNull;
+      if (tripFromQr != null) {
+        return _claimTrip(tripFromQr);
+      }
+    }
+
+    final result = await _repository.scanTicketImage(image);
+    return result.when<Future<Trip?>>(
+      success: _claimTrip,
+      failure: (error) async {
+        state = AsyncValue.error(error, StackTrace.current);
+        return null;
+      },
+    );
+  }
+
+  Future<Trip?> _claimTrip(Trip trip) async {
+    final ticketNumber = trip.ticketNumber?.trim();
+    if (ticketNumber == null || ticketNumber.isEmpty) {
+      state = AsyncValue.error('scan:invalid_ticket', StackTrace.current);
+      return null;
+    }
+
+    final claimResult = await _repository.claimTicket(ticketNumber);
+    return claimResult.when(
+      success: (_) {
         state = AsyncValue.data(trip);
         return trip;
       },

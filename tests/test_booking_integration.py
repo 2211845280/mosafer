@@ -194,6 +194,28 @@ async def test_mock_search_returns_dated_provider_flight_id(prepare_schema, clie
 
 
 @pytest.mark.asyncio
+async def test_mock_search_ist_lhr_demo_date(prepare_schema, client, authed_user):
+    """IST→LHR on a demo-window date returns paginated offers (web search scenario)."""
+    _, headers = authed_user
+    response = await client.get(
+        "/api/v1/flights/search",
+        params={
+            "origin_iata": "IST",
+            "destination_iata": "LHR",
+            "departure_date": "2026-07-15",
+            "adults": 1,
+        },
+        headers=headers,
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["total"] >= 1
+    assert len(body["items"]) >= 1
+    assert body["items"][0]["origin_iata"] == "IST"
+    assert body["items"][0]["destination_iata"] == "LHR"
+
+
+@pytest.mark.asyncio
 async def test_mock_search_empty_outside_demo_window(prepare_schema, client, authed_user):
     _, headers = authed_user
     response = await client.get(

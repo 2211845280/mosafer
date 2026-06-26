@@ -25,19 +25,39 @@ From `Flutter/app`:
 
 ```bash
 flutter pub get
-flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8001/api/v1
 ```
 
-Use `10.0.2.2` for the Android emulator. For a physical phone, replace it with your computer LAN IP:
+| Target | Command |
+|--------|---------|
+| **Physical Android phone** | `flutter run --dart-define=API_BASE_URL=http://YOUR_COMPUTER_IP:8001/api/v1` |
+| **Android emulator** | `flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8001/api/v1` |
+| **Chrome (UI testing)** | `flutter run -d chrome --dart-define=API_BASE_URL=http://localhost:8001/api/v1` |
+
+Replace `YOUR_COMPUTER_IP` with your PC LAN address from `ipconfig` (e.g. `192.168.1.106`). The phone and PC must be on the same Wi‑Fi.
+
+- **Physical phone / emulator:** Firebase push notifications are enabled.
+- **Chrome:** Firebase is skipped (web is not configured); login, booking, and in-app notifications via the API still work. Use `localhost` because the browser runs on the same machine as the API.
+
+Example physical device:
 
 ```bash
-flutter run --dart-define=API_BASE_URL=http://YOUR_COMPUTER_IP:8001/api/v1
+flutter run --dart-define=API_BASE_URL=http://192.168.1.106:8001/api/v1
 ```
 
-For web or desktop on the same machine:
+Example Chrome:
 
 ```bash
-flutter run --dart-define=API_BASE_URL=http://localhost:8001/api/v1
+flutter run -d chrome --dart-define=API_BASE_URL=http://localhost:8001/api/v1
+```
+
+## Booking Website (Explore tab)
+
+The **OPEN BOOKING WEBSITE** button opens the Next.js booking site in the device browser. Start the web app first (`npm run dev` from the repository `web/` folder). The app derives the web URL from `API_BASE_URL` (same host, port `3000`), e.g. `http://192.168.1.106:8001/api/v1` → `http://192.168.1.106:3000/en`.
+
+For production, pass an explicit base URL:
+
+```bash
+flutter run --dart-define=WEB_BASE_URL=https://yourdomain.com
 ```
 
 ## Developer Test Flow
@@ -50,6 +70,41 @@ flutter run --dart-define=API_BASE_URL=http://localhost:8001/api/v1
 6. Use Plan Departure to request departure timing and location-based stage detection.
 7. Use Trip Todos to load backend todos for the active reservation.
 8. Use Airport Experience once the location check reports the user is at the airport.
+
+## Test Departure & Trip Todo Notifications (real device)
+
+From the repository root, with `docker compose up -d` (API + worker + Redis + DB):
+
+1. Log into the Flutter app on your phone with the target account (e.g. `abdo@gmail.com`).
+2. Run (inside Docker so DB/Redis hostnames resolve):
+
+**Departure reminders** (`flight_departure_6h`, `home_departure_2h/30m/critical`):
+
+```bash
+docker compose exec api uv run python scripts/trigger_departure_notification_test.py --email abdo@gmail.com --type departure --tier all
+```
+
+**Trip todo reminders** (`trip_todo_14d` … `trip_todo_3h`):
+
+```bash
+docker compose exec api uv run python scripts/trigger_departure_notification_test.py --email abdo@gmail.com --type todo --tier 3d
+```
+
+Or on the host if `.env` uses `localhost` for Postgres/Redis:
+
+```bash
+uv run python scripts/trigger_departure_notification_test.py --email abdo@gmail.com --type departure --tier critical
+```
+
+3. Open the notifications screen in the app and pull to refresh after each tier.
+
+The script adjusts the active IST trip timing to the current moment, clears Redis dedup keys, and runs the matching worker immediately (cron runs every 15 minutes in production).
+
+Single departure tier: `--tier critical`, `30m`, `2h`, or `flight_6h`.
+
+Single todo tier: `--tier 14d`, `7d`, `3d`, `1d`, `6h`, or `3h`.
+
+Tap a notification to mark it read; swipe left to delete.
 
 ## Useful Commands
 

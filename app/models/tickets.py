@@ -32,6 +32,18 @@ class Ticket(Base):
         index=True,
     )
     ticket_number: Mapped[str] = mapped_column(String(32), unique=True, nullable=False, index=True)
+    ordered_by_user_id: Mapped[int | None] = mapped_column(
+        Integer,
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    assigned_to_user_id: Mapped[int | None] = mapped_column(
+        Integer,
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
     qr_code: Mapped[str] = mapped_column(String(512), nullable=False)
     qr_image_path: Mapped[str | None] = mapped_column(String(500), nullable=True)
     status: Mapped[str] = mapped_column(

@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import delete, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -11,6 +12,7 @@ from app.core.jwt import get_current_user
 from app.core.rbac import require_permission
 from app.db.database import get_db
 from app.models.admin import Admin
+from app.models.role_permissions import RolePermission
 from app.models.roles import Role
 from app.models.users import User
 from app.schemas.admin_staff import (
@@ -183,15 +185,27 @@ async def delete_staff(
         )
 
     admin_result = await db.execute(select(Admin).where(Admin.user_id == user.id))
-    if admin_result.scalar_one_or_none() is None:
+    admin = admin_result.scalar_one_or_none()
+    if admin is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Admin staff not found")
 
     role_id = role.id
-    await db.delete(user)
-    await db.flush()
-    if role.name.startswith("staff-"):
-        orphan_role = await db.get(Role, role_id)
-        if orphan_role is not None:
-            await db.delete(orphan_role)
-    await db.commit()
+    is_staff_role = role.name.startswith("staff-")
+    try:
+        if is_staff_role:
+            await db.execute(delete(RolePermission).where(RolePermission.role_id == role_id))
+        await db.delete(admin)
+        await db.delete(user)
+        await db.flush()
+        if is_staff_role:
+            orphan_role = await db.get(Role, role_id)
+            if orphan_role is not None:
+                await db.delete(orphan_role)
+        await db.commit()
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Could not delete admin staff due to related records",
+        ) from None
     return MessageResponse(message="Admin staff deleted successfully")

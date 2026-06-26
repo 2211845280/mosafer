@@ -5,7 +5,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../../../../core/services/google_directions_service.dart';
 import '../../../../core/utils/route_geometry.dart';
 import 'on_way_map_args.dart';
-import 'on_way_theme.dart';
+import '../../../../core/theme/app_theme_extension.dart';
 
 class OnWayRouteMap extends StatefulWidget {
   final OnWayMapArgs args;
@@ -205,6 +205,7 @@ class _OnWayRouteMapState extends State<OnWayRouteMap> {
   }
 
   Set<Polyline> _buildPolylines() {
+    final colors = context.colors;
     if (_routeAlternatives.isEmpty) {
       final polylinePoints = _polylinePoints;
       if (polylinePoints.length < 2) {
@@ -215,7 +216,7 @@ class _OnWayRouteMapState extends State<OnWayRouteMap> {
         Polyline(
           polylineId: const PolylineId('route'),
           points: polylinePoints,
-          color: widget.args.isTracking ? OnWayColors.salmon : OnWayColors.blue,
+          color: widget.args.isTracking ? colors.salmon : colors.primary,
           width: 5,
           geodesic: false,
           startCap: Cap.roundCap,
@@ -225,8 +226,7 @@ class _OnWayRouteMapState extends State<OnWayRouteMap> {
       };
     }
 
-    final activeColor =
-        widget.args.isTracking ? OnWayColors.salmon : OnWayColors.blue;
+    final activeColor = widget.args.isTracking ? colors.salmon : colors.primary;
     final mutedColor = activeColor.withValues(alpha: 0.35);
     final polylines = <Polyline>{};
 
@@ -305,12 +305,15 @@ class _OnWayRouteMapState extends State<OnWayRouteMap> {
   String _routeChipLabel(GoogleDirectionsRoute route, int displayIndex) {
     final distance = route.distanceKm.toStringAsFixed(1);
     final summary = route.summary?.trim();
-    final summarySuffix = summary == null || summary.isEmpty ? '' : ' · $summary';
+    final summarySuffix = summary == null || summary.isEmpty
+        ? ''
+        : ' · $summary';
     return 'Route $displayIndex · ${route.durationMinutes} min · $distance km$summarySuffix';
   }
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final args = widget.args;
     final origin = args.origin;
     final initialTarget = origin ?? args.airport;
@@ -369,7 +372,7 @@ class _OnWayRouteMapState extends State<OnWayRouteMap> {
           child: IgnorePointer(
             child: DecoratedBox(
               decoration: BoxDecoration(
-                color: OnWayColors.background.withValues(alpha: 0.35),
+                color: colors.background.withValues(alpha: 0.35),
                 borderRadius: widget.borderRadius,
               ),
               child: const Center(
@@ -402,30 +405,30 @@ class _OnWayRouteMapState extends State<OnWayRouteMap> {
             },
           ),
         ),
-      if (args.mapCaption != null)
-        Positioned(
-          left: 18,
-          right: 18,
-          bottom: 18,
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              color: OnWayColors.background.withValues(alpha: 0.82),
-              borderRadius: BorderRadius.circular(999),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              child: Text(
-                args.mapCaption!,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: OnWayColors.title,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-            ),
-          ),
-        ),
+      // if (args.mapCaption != null)
+      //   Positioned(
+      //     left: 18,
+      //     right: 18,
+      //     bottom: 18,
+      //     child: DecoratedBox(
+      //       decoration: BoxDecoration(
+      //         color: colors.background.withValues(alpha: 0.82),
+      //         borderRadius: BorderRadius.circular(999),
+      //       ),
+      //       child: Padding(
+      //         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      //         child: Text(
+      //           args.mapCaption!,
+      //           textAlign: TextAlign.center,
+      //           style: TextStyle(
+      //             color: colors.title,
+      //             fontSize: 12,
+      //             fontWeight: FontWeight.w800,
+      //           ),
+      //         ),
+      //       ),
+      //     ),
+      //   ),
     ];
 
     if (!_isLoadingRoute && args.mapCaption == null && !showRouteSelector) {
@@ -452,9 +455,10 @@ class _RouteSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: OnWayColors.background.withValues(alpha: 0.88),
+        color: colors.background.withValues(alpha: 0.88),
         borderRadius: BorderRadius.circular(16),
       ),
       child: SingleChildScrollView(
@@ -493,8 +497,9 @@ class _RouteChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Material(
-      color: selected ? OnWayColors.blue : OnWayColors.card,
+      color: selected ? colors.primary : colors.card,
       borderRadius: BorderRadius.circular(999),
       child: InkWell(
         onTap: onTap,
@@ -504,7 +509,7 @@ class _RouteChip extends StatelessWidget {
           child: Text(
             label,
             style: TextStyle(
-              color: selected ? OnWayColors.background : OnWayColors.title,
+              color: selected ? colors.background : colors.title,
               fontSize: 11,
               fontWeight: FontWeight.w800,
             ),

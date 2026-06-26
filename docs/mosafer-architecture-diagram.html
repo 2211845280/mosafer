@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mosafer Architecture</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "Segoe UI", Tahoma, Arial, sans-serif;
+      background: #f4f6fb;
+      padding: 28px;
+      color: #1a253c;
+    }
+    .page {
+      max-width: 1180px;
+      margin: 0 auto;
+      background: #fff;
+      border-radius: 18px;
+      box-shadow: 0 10px 40px rgba(0,0,0,.08);
+      padding: 28px 30px 34px;
+    }
+    h1 {
+      text-align: center;
+      font-size: 28px;
+      margin-bottom: 4px;
+      color: #0d1b33;
+    }
+    .subtitle {
+      text-align: center;
+      color: #5a6b85;
+      margin-bottom: 22px;
+      font-size: 14px;
+    }
+    .tier {
+      border-radius: 14px;
+      padding: 14px 16px 18px;
+      margin-bottom: 14px;
+      border: 2px solid;
+    }
+    .tier-title {
+      text-align: center;
+      font-weight: 800;
+      font-size: 18px;
+      margin-bottom: 12px;
+      letter-spacing: .3px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 12px;
+    }
+    .card {
+      background: rgba(255,255,255,.92);
+      border-radius: 12px;
+      padding: 12px 14px;
+      min-height: 148px;
+      border: 1px solid rgba(0,0,0,.06);
+    }
+    .card h3 {
+      font-size: 15px;
+      margin-bottom: 8px;
+      color: #10233f;
+      border-bottom: 2px solid rgba(0,0,0,.08);
+      padding-bottom: 6px;
+    }
+    .card ul {
+      list-style: none;
+      font-size: 12.5px;
+      line-height: 1.65;
+      color: #2d3f5c;
+    }
+    .card li::before { content: "• "; color: #4a91f8; font-weight: 700; }
+    .presentation { background: #e8f1ff; border-color: #4a91f8; }
+    .presentation .tier-title { color: #1f5fbf; }
+    .business { background: #e8f8ef; border-color: #2ea86a; }
+    .business .tier-title { color: #1d7a4b; }
+    .data { background: #f1e9ff; border-color: #8b5cf6; }
+    .data .tier-title { color: #6d3fc7; }
+    .infra {
+      display: grid;
+      grid-template-columns: 1.1fr 1.9fr;
+      gap: 12px;
+      margin-top: 6px;
+    }
+    .infra-box {
+      border-radius: 12px;
+      padding: 14px 16px;
+      border: 2px solid;
+    }
+    .infra-box h3 {
+      font-size: 15px;
+      margin-bottom: 8px;
+    }
+    .infra-box ul {
+      list-style: none;
+      font-size: 12.5px;
+      line-height: 1.7;
+      color: #2d3f5c;
+    }
+    .infra-box li::before { content: "→ "; color: #e67e22; font-weight: 700; }
+    .db { background: #fff4e8; border-color: #f39c12; }
+    .db h3 { color: #c76b00; }
+    .external { background: #fff8ef; border-color: #e67e22; }
+    .external h3 { color: #b45309; }
+    .note {
+      margin-top: 16px;
+      padding: 12px 14px;
+      background: #f8fafc;
+      border-right: 4px solid #4a91f8;
+      border-radius: 8px;
+      font-size: 12.5px;
+      line-height: 1.7;
+      color: #42556f;
+    }
+    .arrows {
+      text-align: center;
+      color: #7b8aa5;
+      font-size: 18px;
+      margin: 2px 0;
+    }
+    @media print {
+      body { background: #fff; padding: 0; }
+      .page { box-shadow: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <h1>Mosafer — Smart Travel Management Platform Architecture</h1>
+    <p class="subtitle">معمارية نظام مسافر (محدّثة وفق الكود الفعلي)</p>
+
+    <div class="tier presentation">
+      <div class="tier-title">Presentation Tier</div>
+      <div class="grid">
+        <div class="card">
+          <h3>Mobile App (Flutter)</h3>
+          <ul>
+            <li>Clean Architecture</li>
+            <li>Presentation: UI / Widgets</li>
+            <li>Riverpod + GoRouter</li>
+            <li>مسح QR / رفع التذكرة / رحلاتي</li>
+            <li>API Communication (Dio / HTTP)</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Web App (Next.js)</h3>
+          <ul>
+            <li>App Router + next-intl (ar/en)</li>
+            <li>حجز الرحلات + الدفع + التأكيد</li>
+            <li>لوحة إدارة (Admin Dashboard)</li>
+            <li>BFF Routes → FastAPI (cookies)</li>
+            <li>API Communication (HTTP)</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Backend API (FastAPI)</h3>
+          <ul>
+            <li>REST Controllers (Routers)</li>
+            <li>/api/v1 (+ /api/v2 health)</li>
+            <li>JWT Auth + RBAC Permissions</li>
+            <li>Request / Response Schemas</li>
+            <li>Middleware: CORS, Rate Limit, Security</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="arrows">⇅ ⇅ ⇅</div>
+
+    <div class="tier business">
+      <div class="tier-title">Business Tier</div>
+      <div class="grid">
+        <div class="card">
+          <h3>Mobile App (Flutter)</h3>
+          <ul>
+            <li>Domain Layer + Use Cases</li>
+            <li>إدارة الرحلة النشطة والمراحل</li>
+            <li>Claim التذكرة للمستفيدين</li>
+            <li>Controllers (Riverpod Notifiers)</li>
+            <li>State & Validation</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Web App (Next.js)</h3>
+          <ul>
+            <li>Checkout / Passengers / Payment Return</li>
+            <li>خدمات الحجز لكل ميزة</li>
+            <li>تحليلات الإدارة (Revenue / Profit)</li>
+            <li>قواعد التحقق من النماذج</li>
+            <li>Session عبر httpOnly cookies</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Backend (FastAPI)</h3>
+          <ul>
+            <li>Services Layer (Business Rules)</li>
+            <li>Booking / Tickets / Reservations</li>
+            <li>NotificationDispatcher</li>
+            <li>PaymentService (Mock أو Stripe)</li>
+            <li>AI Travel Agent (OpenAI)</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="arrows">⇅ ⇅ ⇅</div>
+
+    <div class="tier data">
+      <div class="tier-title">Data Tier</div>
+      <div class="grid">
+        <div class="card">
+          <h3>Mobile App (Flutter)</h3>
+          <ul>
+            <li>Repositories (Data Layer)</li>
+            <li>ApiClient + Interceptors</li>
+            <li>FlutterSecureStorage (JWT)</li>
+            <li>SharedPreferences (locale/theme)</li>
+            <li>تخزين محلي للرحلات المحذوفة</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Web App (Next.js)</h3>
+          <ul>
+            <li>API Routes كطبقة وصول</li>
+            <li>تكامل مع FastAPI لكل ميزة</li>
+            <li>Cookies: access_token / refresh_token</li>
+            <li>لا يوجد DB مباشر في الويب</li>
+            <li>Server + Client Components</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Backend (FastAPI)</h3>
+          <ul>
+            <li>SQLAlchemy Models (async)</li>
+            <li>Alembic Migrations</li>
+            <li>Pydantic Schemas</li>
+            <li>PostgreSQL Repositories</li>
+            <li>Redis Cache + Dedup Keys</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="infra">
+      <div class="infra-box db">
+        <h3>PostgreSQL Database</h3>
+        <ul>
+          <li>Primary Data Storage</li>
+          <li>Users / Tickets / Reservations</li>
+          <li>Payments / Notifications</li>
+          <li>Booking Passengers / Devices</li>
+        </ul>
+      </div>
+      <div class="infra-box external">
+        <h3>External Services & Integrations</h3>
+        <ul>
+          <li><strong>Mock Payment (افتراضي)</strong> — التطوير والاختبار</li>
+          <li><strong>Stripe (اختياري)</strong> — عند PAYMENT_PROVIDER=stripe</li>
+          <li>Firebase FCM — Push للموبايل</li>
+          <li>SMTP Email — Mailpit (dev) / Gmail (prod)</li>
+          <li>OpenAI API — نصائح السفر والـ AI Agent</li>
+          <li>Google Maps / Routes — خرائط ومسارات</li>
+          <li>Mock Flight / Weather / Maps — بيانات تطوير</li>
+          <li>Redis + ARQ Workers — مهام خلفية وإشعارات</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="note">
+      <strong>تصحيحات عن الصورة الأصلية:</strong>
+      الدفع ليس Stripe دائماً — النظام يستخدم <strong>Mock Payment</strong> افتراضياً وStripe فقط عند التفعيل.
+      البريد عبر <strong>SMTP</strong> وليس Resend.
+      أُضيف <strong>Redis + ARQ Workers</strong> و<strong>Next.js</strong> كويب فعلي.
+      الحجز والدفع من الويب؛ الموبايل يركز على إدارة الرحلة بعد الحجز.
+    </div>
+  </div>
+</body>
+</html>

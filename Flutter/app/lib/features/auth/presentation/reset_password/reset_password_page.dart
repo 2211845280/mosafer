@@ -5,6 +5,7 @@ import '../../../../core/utils/validators.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../core/localization/error_message_localizer.dart';
 import '../../data/auth_repository_impl.dart';
+import '../../../../core/theme/app_theme_extension.dart';
 
 class ResetPasswordPage extends ConsumerStatefulWidget {
   final String? token;
@@ -76,10 +77,11 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
-      backgroundColor: _AuthColors.midnight,
+      backgroundColor: colors.background,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -96,8 +98,8 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
                     Text(
                       l10n.resetPasswordSuccess,
                       textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        color: _AuthColors.blue,
+                      style: TextStyle(
+                        color: colors.primary,
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
                       ),
@@ -106,8 +108,8 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
                     ElevatedButton(
                       onPressed: () => context.goNamed('login'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: _AuthColors.blue,
-                        foregroundColor: _AuthColors.midnight,
+                        backgroundColor: colors.primary,
+                        foregroundColor: colors.background,
                       ),
                       child: Text(l10n.forgotPasswordBackToLogin),
                     ),
@@ -121,8 +123,8 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
                       const SizedBox(height: 24),
                       Text(
                         l10n.resetPasswordSubtitle,
-                        style: const TextStyle(
-                          color: _AuthColors.muted,
+                        style: TextStyle(
+                          color: colors.muted,
                           fontSize: 13,
                           height: 1.4,
                         ),
@@ -133,9 +135,10 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
                         obscureText: true,
                         validator: (v) => Validators.password(v, l10n),
                         textInputAction: TextInputAction.next,
-                        cursorColor: _AuthColors.blue,
-                        style: const TextStyle(color: Colors.white, fontSize: 14),
+                        cursorColor: colors.primary,
+                        style: TextStyle(color: Colors.white, fontSize: 14),
                         decoration: _inputDecoration(
+                          context,
                           label: l10n.registerPasswordLabel,
                           icon: Icons.lock_outline,
                         ),
@@ -151,9 +154,10 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
                         ),
                         textInputAction: TextInputAction.done,
                         onFieldSubmitted: (_) => _onSubmit(),
-                        cursorColor: _AuthColors.blue,
-                        style: const TextStyle(color: Colors.white, fontSize: 14),
+                        cursorColor: colors.primary,
+                        style: TextStyle(color: Colors.white, fontSize: 14),
                         decoration: _inputDecoration(
+                          context,
                           label: l10n.registerConfirmPasswordLabel,
                           icon: Icons.lock_outline,
                         ),
@@ -162,8 +166,8 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
                       if (_error != null) ...[
                         Text(
                           _error!,
-                          style: const TextStyle(
-                            color: _AuthColors.coral,
+                          style: TextStyle(
+                            color: colors.coral,
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
                           ),
@@ -176,8 +180,8 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
                         child: ElevatedButton(
                           onPressed: _isLoading ? null : _onSubmit,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: _AuthColors.blue,
-                            foregroundColor: _AuthColors.midnight,
+                            backgroundColor: colors.primary,
+                            foregroundColor: colors.background,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(13),
                             ),
@@ -190,7 +194,7 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
                                 )
                               : Text(
                                   l10n.resetPasswordSubmit,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontWeight: FontWeight.w800,
                                   ),
                                 ),
@@ -204,28 +208,22 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
     );
   }
 
-  InputDecoration _inputDecoration({
+  InputDecoration _inputDecoration(
+    BuildContext context, {
     required String label,
     required IconData icon,
   }) {
+    final colors = context.colors;
     return InputDecoration(
       labelText: label,
-      labelStyle: const TextStyle(color: _AuthColors.muted, fontSize: 10),
-      prefixIcon: Icon(icon, color: _AuthColors.blue, size: 19),
+      labelStyle: TextStyle(color: colors.muted, fontSize: 10),
+      prefixIcon: Icon(icon, color: colors.primary, size: 19),
       filled: true,
-      fillColor: _AuthColors.field,
+      fillColor: colors.field,
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(9),
         borderSide: BorderSide.none,
       ),
     );
   }
-}
-
-class _AuthColors {
-  static const Color midnight = Color(0xFF061326);
-  static const Color field = Color(0xFF0C1B31);
-  static const Color blue = Color(0xFF4A91F8);
-  static const Color muted = Color(0xFFB4C0D6);
-  static const Color coral = Color(0xFFFF8B6E);
 }

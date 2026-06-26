@@ -38,7 +38,8 @@ class AppRouter {
     debugLogDiagnostics: true,
     redirect: (context, state) {
       final location = state.uri.path;
-      final isAuthRoute = location == '/login' ||
+      final isAuthRoute =
+          location == '/login' ||
           location == '/register' ||
           location == '/forgot-password' ||
           location == '/reset-password';
@@ -203,6 +204,16 @@ class _SplashPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    final width = MediaQuery.sizeOf(context).width;
+    return Scaffold(
+      backgroundColor: const Color(0xFF1A253C),
+      body: Center(
+        child: Image.asset(
+          'assets/images/brand/mosafer_logo.png',
+          fit: BoxFit.contain,
+          width: width * 0.42,
+        ),
+      ),
+    );
   }
 }

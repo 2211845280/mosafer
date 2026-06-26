@@ -69,7 +69,7 @@ export function RevenueAnalyticsClient() {
     return () => {
       cancelled = true;
     };
-  }, [locale, t]);
+  }, [locale]);
 
   const chartData = useMemo(
     () =>

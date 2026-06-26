@@ -120,7 +120,12 @@ async def search_flights(
         f":{departure_date}:{adults}"
     )
 
-    cached = await cache.get(cache_key)
+    cached = None
+    try:
+        cached = await cache.get(cache_key)
+    except Exception as exc:
+        logger.warning("flight_search.cache_get_failed", key=cache_key, error=str(exc))
+
     if cached is not None:
         logger.debug("flight_search.cache_hit", key=cache_key)
         all_offers = [FlightOfferRead(**item) for item in cached]
@@ -137,11 +142,14 @@ async def search_flights(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail="Invalid departure_date format. Expected YYYY-MM-DD",
             ) from None
-        await cache.set(
-            cache_key,
-            [o.model_dump(mode="json") for o in all_offers],
-            ttl_seconds=600,
-        )
+        try:
+            await cache.set(
+                cache_key,
+                [o.model_dump(mode="json") for o in all_offers],
+                ttl_seconds=600,
+            )
+        except Exception as exc:
+            logger.warning("flight_search.cache_set_failed", key=cache_key, error=str(exc))
 
     total = len(all_offers)
     page = all_offers[skip : skip + limit]

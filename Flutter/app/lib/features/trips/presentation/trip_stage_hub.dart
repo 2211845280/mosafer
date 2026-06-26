@@ -6,8 +6,7 @@ import '../../explore/presentation/explore_page.dart';
 import 'airport_experience/airport_experience_page.dart';
 import 'on_way/on_way_page.dart';
 import 'trip_stage_tabs.dart';
-
-const _hubBackground = Color(0xFF061326);
+import '../../../core/theme/app_theme_extension.dart';
 
 class TripStageHub extends ConsumerStatefulWidget {
   final int initialPage;
@@ -70,8 +69,9 @@ class _TripStageHubState extends ConsumerState<TripStageHub> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Scaffold(
-      backgroundColor: _hubBackground,
+      backgroundColor: colors.background,
       body: Column(
         children: [
           Padding(
@@ -115,6 +115,7 @@ class _KeepAliveStagePageState extends State<_KeepAliveStagePage>
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     super.build(context);
     return widget.child;
   }

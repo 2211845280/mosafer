@@ -35,6 +35,18 @@ class BookingPassenger(Base):
     passport_issuing_country: Mapped[str] = mapped_column(String(3), nullable=False)
     seat: Mapped[str | None] = mapped_column(String(8), nullable=True)
     passenger_ticket_number: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    ordered_by_user_id: Mapped[int | None] = mapped_column(
+        Integer,
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    assigned_to_user_id: Mapped[int | None] = mapped_column(
+        Integer,
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
     qr_code: Mapped[str | None] = mapped_column(String(512), nullable=True)
     qr_image_path: Mapped[str | None] = mapped_column(String(500), nullable=True)
     created_at: Mapped[datetime] = mapped_column(

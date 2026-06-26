@@ -94,9 +94,14 @@ function NavBrandBlock({
       <span className="text-lg font-extrabold tracking-tight text-foreground">
         {tRoot("brand")}
       </span>
-      <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/20 text-sm">
-        ✈
-      </span>
+      <img
+        src="/brand/mosafer-logo.png"
+        alt=""
+        width={32}
+        height={32}
+        className="h-8 w-8 object-contain"
+        decoding="async"
+      />
     </Link>
   );
 

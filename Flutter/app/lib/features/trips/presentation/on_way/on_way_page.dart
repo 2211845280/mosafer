@@ -5,11 +5,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
+import '../../../../core/debug/screenshot_mode.dart';
 import '../../../../core/network/api_client.dart';
 import '../../../../core/services/google_directions_service.dart';
 import '../../../../core/services/location_service.dart';
 import '../../../../core/services/maps_service.dart';
-import '../../../../core/utils/departure_plan_formatters.dart';
 import '../../../../core/models/flight_weather.dart';
 import '../../../../core/models/home_address.dart';
 import '../../../../core/services/home_address_controller.dart';
@@ -23,7 +23,7 @@ import 'on_way_airport_lookup.dart';
 import 'on_way_googleMap.dart';
 import 'on_way_map_args.dart';
 import 'on_way_route_map.dart';
-import 'on_way_theme.dart';
+import '../../../../core/theme/app_theme_extension.dart';
 
 class OnWayPage extends ConsumerStatefulWidget {
   final bool embedded;
@@ -45,7 +45,6 @@ class _OnWayPageState extends ConsumerState<OnWayPage> {
   AirportPoint? _routeAirport;
   double? _routeDistanceKm;
   int? _routeEtaMinutes;
-  String? _trafficLevel;
   DateTime? _lastRouteRefresh;
   bool _isTracking = false;
   bool _usingManualOrigin = false;
@@ -53,7 +52,6 @@ class _OnWayPageState extends ConsumerState<OnWayPage> {
   FlightWeatherForecast? _originWeather;
   FlightWeatherForecast? _destinationWeather;
   int? _weatherBufferMinutes;
-  String? _message;
 
   @override
   void initState() {
@@ -79,9 +77,7 @@ class _OnWayPageState extends ConsumerState<OnWayPage> {
         ? l10n.onWayManualOriginActive
         : (_currentPosition != null
               ? l10n.onWayLiveConnected
-              : (_routeOrigin != null
-                    ? l10n.onWayDemoOriginActive
-                    : l10n.onWayPressStart));
+              : (_routeOrigin != null ? null : l10n.onWayPressStart));
 
     return OnWayMapArgs.fromPageState(
       fromCode: ref.read(activeTripProvider)?.fromCode,
@@ -105,6 +101,7 @@ class _OnWayPageState extends ConsumerState<OnWayPage> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final l10n = AppLocalizations.of(context)!;
     final trip = ref.watch(activeTripProvider);
     final homeAddress = ref.watch(homeAddressControllerProvider);
@@ -128,8 +125,8 @@ class _OnWayPageState extends ConsumerState<OnWayPage> {
             children: [
               Text(
                 l10n.onWayTitle,
-                style: const TextStyle(
-                  color: OnWayColors.title,
+                style: TextStyle(
+                  color: colors.title,
                   fontSize: 28,
                   fontWeight: FontWeight.w900,
                   letterSpacing: -0.8,
@@ -142,8 +139,8 @@ class _OnWayPageState extends ConsumerState<OnWayPage> {
                     : (_currentPosition == null && _routeOrigin != null
                           ? l10n.onWayDemoSubtitle(airport.code)
                           : l10n.onWaySubtitle(airport.code)),
-                style: const TextStyle(
-                  color: OnWayColors.muted,
+                style: TextStyle(
+                  color: colors.muted,
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
                 ),
@@ -164,7 +161,7 @@ class _OnWayPageState extends ConsumerState<OnWayPage> {
               Container(
                 height: 330,
                 decoration: BoxDecoration(
-                  color: OnWayColors.card,
+                  color: colors.card,
                   borderRadius: BorderRadius.circular(28),
                 ),
                 child: Stack(
@@ -189,17 +186,40 @@ class _OnWayPageState extends ConsumerState<OnWayPage> {
                     Positioned(
                       left: 16,
                       right: 16,
-                      bottom: 56,
+                      bottom: 5,
                       child: Row(
                         children: [
-                          IconButton.filled(
-                            onPressed: _openExternalDirections,
-                            style: IconButton.styleFrom(
-                              backgroundColor: OnWayColors.card,
-                              foregroundColor: OnWayColors.title,
+                          Expanded(
+                            child: SizedBox(
+                              height: 46,
+                              child: ElevatedButton(
+                                onPressed: _openExternalDirections,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: colors.card,
+                                  foregroundColor: colors.title,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(30),
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const Icon(Icons.open_in_new, size: 18),
+                                    const SizedBox(width: 2),
+                                    Flexible(
+                                      child: Text(
+                                        l10n.onWayOpenInMaps,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
                             ),
-                            tooltip: l10n.onWayOpenInMaps,
-                            icon: const Icon(Icons.open_in_new, size: 20),
                           ),
                           const SizedBox(width: 8),
                           Expanded(
@@ -208,8 +228,8 @@ class _OnWayPageState extends ConsumerState<OnWayPage> {
                               child: ElevatedButton(
                                 onPressed: () => _openFullScreenMap(mapArgs),
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: OnWayColors.card,
-                                  foregroundColor: OnWayColors.title,
+                                  backgroundColor: colors.primary,
+                                  foregroundColor: colors.onPrimary,
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(30),
                                   ),
@@ -217,12 +237,12 @@ class _OnWayPageState extends ConsumerState<OnWayPage> {
                                 child: Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    const Icon(Icons.fullscreen, size: 20),
-                                    const SizedBox(width: 8),
+                                    const Icon(Icons.fullscreen, size: 18),
+                                    const SizedBox(width: 2),
                                     Text(
-                                      l10n.onWayOpenInMaps,
+                                      l10n.onWayExpandMap,
                                       style: const TextStyle(
-                                        fontSize: 14,
+                                        fontSize: 12,
                                         fontWeight: FontWeight.w700,
                                       ),
                                     ),
@@ -238,12 +258,10 @@ class _OnWayPageState extends ConsumerState<OnWayPage> {
                 ),
               ),
               const SizedBox(height: 18),
+              //here
               _RouteStatsCard(
                 distanceKm: _routeDistanceKm ?? distanceKm,
                 etaMinutes: _routeEtaMinutes,
-                trafficLevel: _trafficLevel,
-                isTracking: _isTracking,
-                message: _message,
               ),
               if (_originWeather != null || _destinationWeather != null) ...[
                 const SizedBox(height: 18),
@@ -254,10 +272,10 @@ class _OnWayPageState extends ConsumerState<OnWayPage> {
                   originLabel: trip?.fromCity ?? mapAirport.code,
                   destinationLabel: trip?.toCity ?? trip?.toCode ?? '--',
                   weatherBufferMinutes: _weatherBufferMinutes,
-                  cardColor: OnWayColors.card,
-                  titleColor: OnWayColors.title,
-                  mutedColor: OnWayColors.muted,
-                  iconBackground: OnWayColors.iconBackground,
+                  cardColor: colors.card,
+                  titleColor: colors.title,
+                  mutedColor: colors.muted,
+                  iconBackground: colors.iconBackground,
                 ),
               ],
             ],
@@ -266,41 +284,31 @@ class _OnWayPageState extends ConsumerState<OnWayPage> {
       ],
     );
 
-    final startButton = SafeArea(
-      top: false,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 96),
-        child: SizedBox(
-          height: 54,
-          child: ElevatedButton.icon(
-            onPressed: _isTracking ? null : _startNavigation,
-            icon: const Icon(Icons.navigation),
-            label: Text(
-              _isTracking
-                  ? l10n.onWayTrackingStarted
-                  : l10n.onWayStartNavigation,
-            ),
-          ),
-        ),
-      ),
-    );
+    // final startButton = SafeArea(
+    //   top: false,
+    //   child: Padding(
+    //     padding: const EdgeInsets.fromLTRB(16, 0, 16, 96),
+    //     child: SizedBox(
+    //       height: 54,
+    //       child: ElevatedButton.icon(
+    //         onPressed: () => _openFullScreenMap(mapArgs),
+    //         // icon: const Icon(Icons.fullscreen),
+    //         label: Text(l10n.onWayExpandMap),
+    //       ),
+    //     ),
+    //   ),
+    // );
 
     if (widget.embedded) {
       return ColoredBox(
-        color: OnWayColors.background,
-        child: Column(
-          children: [
-            Expanded(child: scrollContent),
-            startButton,
-          ],
-        ),
+        color: colors.background,
+        child: Column(children: [Expanded(child: scrollContent)]),
       );
     }
 
     return Scaffold(
-      backgroundColor: OnWayColors.background,
+      backgroundColor: colors.background,
       body: SafeArea(bottom: false, child: scrollContent),
-      bottomNavigationBar: startButton,
     );
   }
 
@@ -328,16 +336,47 @@ class _OnWayPageState extends ConsumerState<OnWayPage> {
       }
     });
 
-    await _refreshRouteFromCoordinates(
-      resolved.lat,
-      resolved.lng,
-      force: true,
-    );
+    await _refreshRouteFromCoordinates(resolved.lat, resolved.lng, force: true);
   }
 
   Future<void> _loadInitialRoute() async {
+    if (kScreenshotMode) {
+      await _applyScreenshotDemoRoute();
+      return;
+    }
     await ref.read(homeAddressControllerProvider.notifier).ensureLoaded();
     await _reloadOriginAndRoute();
+  }
+
+  Future<void> _applyScreenshotDemoRoute() async {
+    if (!mounted) return;
+    final now = DateTime.now();
+    setState(() {
+      _currentPosition = Position(
+        latitude: 32.8872,
+        longitude: 13.1913,
+        timestamp: now,
+        accuracy: 8,
+        altitude: 0,
+        altitudeAccuracy: 0,
+        heading: 0,
+        headingAccuracy: 0,
+        speed: 0,
+        speedAccuracy: 0,
+      );
+      _routeOrigin = const LatLng(32.8872, 13.1913);
+      _routeAirport = const AirportPoint('MJI', 32.8941, 13.2760);
+      _routeDistanceKm = 9.0;
+      _routeEtaMinutes = 10;
+      _routePoints = const [
+        LatLng(32.8872, 13.1913),
+        LatLng(32.8905, 13.2340),
+        LatLng(32.8941, 13.2760),
+      ];
+      _usingManualOrigin = false;
+      _isTracking = false;
+      _lastRouteRefresh = now;
+    });
   }
 
   Future<void> _openExternalDirections() async {
@@ -352,70 +391,9 @@ class _OnWayPageState extends ConsumerState<OnWayPage> {
       originLng: _currentPosition?.longitude ?? origin?.longitude,
     );
     if (!mounted || opened) return;
-    setState(() => _message = l10n.onWayLocationUnavailable);
-  }
-
-  Future<void> _startNavigation() async {
-    final homeAddress = ref.read(homeAddressControllerProvider);
-    if (homeAddress.isUsableManualOrigin) {
-      await _reloadOriginAndRoute();
-      if (!mounted) return;
-      setState(() {
-        _isTracking = true;
-        _message = AppLocalizations.of(context)!.onWayManualOriginActive;
-      });
-      return;
-    }
-
-    final firstPosition = await _locationService.currentPosition();
-    if (!mounted) return;
-    final l10n = AppLocalizations.of(context)!;
-    if (firstPosition == null) {
-      setState(() {
-        _routeOrigin = demoOriginLatLng;
-        _message = l10n.onWayDemoOriginActive;
-      });
-      await _refreshRouteFromCoordinates(
-        demoOriginLatLng.latitude,
-        demoOriginLatLng.longitude,
-        force: true,
-      );
-      return;
-    }
-
-    setState(() {
-      _currentPosition = firstPosition;
-      _routeOrigin = LatLng(firstPosition.latitude, firstPosition.longitude);
-      _isTracking = true;
-      _usingManualOrigin = false;
-      _message = l10n.onWayTrackingActive;
-    });
-    await _refreshRoute(firstPosition, force: true);
-
-    _positionSubscription?.cancel();
-    _positionSubscription =
-        Geolocator.getPositionStream(
-          locationSettings: const LocationSettings(
-            accuracy: LocationAccuracy.high,
-            distanceFilter: 10,
-          ),
-        ).listen((position) {
-          if (mounted) {
-            setState(() {
-              _currentPosition = position;
-              _routeOrigin = LatLng(position.latitude, position.longitude);
-            });
-            _refreshRoute(position);
-          }
-        });
-  }
-
-  Future<void> _refreshRoute(Position position, {bool force = false}) async {
-    await _refreshRouteFromCoordinates(
-      position.latitude,
-      position.longitude,
-      force: force,
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(l10n.onWayLocationUnavailable)));
   }
 
   Future<void> _refreshRouteFromCoordinates(
@@ -458,10 +436,10 @@ class _OnWayPageState extends ConsumerState<OnWayPage> {
           _routeOrigin = LatLng(originLat, originLng);
           _routeDistanceKm = (data['distance_km'] as num?)?.toDouble();
           _routeEtaMinutes = (data['travel_minutes'] as num?)?.round();
-          _trafficLevel = data['traffic_level'] as String?;
           _originWeather = parseFlightWeather(data['weather']);
           _destinationWeather = parseFlightWeather(data['destination_weather']);
-          _weatherBufferMinutes = (data['weather_buffer_minutes'] as num?)?.round();
+          _weatherBufferMinutes = (data['weather_buffer_minutes'] as num?)
+              ?.round();
           if (airportLat != null && airportLng != null) {
             _routeAirport = AirportPoint(trip.fromCode, airportLat, airportLng);
           }
@@ -494,6 +472,7 @@ class _DepartureOriginCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final subtitle = usingManualOrigin
         ? (originLabel ?? homeAddress.address ?? l10n.onWaySavedAddressReady)
         : l10n.onWayUseCurrentLocationHint;
@@ -501,16 +480,16 @@ class _DepartureOriginCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: OnWayColors.card,
+        color: colors.card,
         borderRadius: BorderRadius.circular(18),
       ),
       child: Row(
         children: [
           CircleAvatar(
-            backgroundColor: OnWayColors.iconBackground,
+            backgroundColor: colors.iconBackground,
             child: Icon(
               usingManualOrigin ? Icons.home_outlined : Icons.my_location,
-              color: OnWayColors.title,
+              color: colors.title,
             ),
           ),
           const SizedBox(width: 12),
@@ -520,8 +499,8 @@ class _DepartureOriginCard extends StatelessWidget {
               children: [
                 Text(
                   l10n.onWayDepartureFrom,
-                  style: const TextStyle(
-                    color: OnWayColors.muted,
+                  style: TextStyle(
+                    color: colors.muted,
                     fontSize: 11,
                     fontWeight: FontWeight.w800,
                   ),
@@ -531,8 +510,8 @@ class _DepartureOriginCard extends StatelessWidget {
                   subtitle,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: OnWayColors.title,
+                  style: TextStyle(
+                    color: colors.title,
                     fontSize: 14,
                     fontWeight: FontWeight.w800,
                   ),
@@ -550,20 +529,12 @@ class _DepartureOriginCard extends StatelessWidget {
 class _RouteStatsCard extends StatelessWidget {
   final double? distanceKm;
   final int? etaMinutes;
-  final String? trafficLevel;
-  final bool isTracking;
-  final String? message;
 
-  const _RouteStatsCard({
-    required this.distanceKm,
-    required this.etaMinutes,
-    required this.trafficLevel,
-    required this.isTracking,
-    required this.message,
-  });
+  const _RouteStatsCard({required this.distanceKm, required this.etaMinutes});
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final l10n = AppLocalizations.of(context)!;
     final computedEta =
         etaMinutes ??
@@ -571,7 +542,7 @@ class _RouteStatsCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: OnWayColors.card,
+        color: colors.card,
         borderRadius: BorderRadius.circular(20),
       ),
       child: Column(
@@ -591,37 +562,6 @@ class _RouteStatsCard extends StatelessWidget {
                 ? '--'
                 : '$computedEta ${l10n.planDepartureUnitMinutes}',
           ),
-          const SizedBox(height: 14),
-          _StatRow(
-            icon: Icons.traffic,
-            label: l10n.onWayTraffic,
-            value: trafficLevel == null
-                ? '--'
-                : trafficLevelLabel(l10n, trafficLevel),
-            valueColor: trafficLevel == null
-                ? null
-                : trafficLevelColor(trafficLevel),
-          ),
-          const SizedBox(height: 14),
-          _StatRow(
-            icon: isTracking ? Icons.gps_fixed : Icons.gps_not_fixed,
-            label: l10n.onWayTracking,
-            value: isTracking
-                ? l10n.onWayTrackingActiveState
-                : l10n.onWayTrackingNotStarted,
-          ),
-          if (message != null) ...[
-            const SizedBox(height: 14),
-            Text(
-              message!,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: OnWayColors.muted,
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ],
         ],
       ),
     );
@@ -632,29 +572,28 @@ class _StatRow extends StatelessWidget {
   final IconData icon;
   final String label;
   final String value;
-  final Color? valueColor;
 
   const _StatRow({
     required this.icon,
     required this.label,
     required this.value,
-    this.valueColor,
   });
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Row(
       children: [
         CircleAvatar(
-          backgroundColor: OnWayColors.iconBackground,
-          child: Icon(icon, color: OnWayColors.title, size: 20),
+          backgroundColor: colors.iconBackground,
+          child: Icon(icon, color: colors.title, size: 20),
         ),
         const SizedBox(width: 14),
         Expanded(
           child: Text(
             label,
-            style: const TextStyle(
-              color: OnWayColors.muted,
+            style: TextStyle(
+              color: colors.muted,
               fontSize: 12,
               fontWeight: FontWeight.w800,
             ),
@@ -663,7 +602,7 @@ class _StatRow extends StatelessWidget {
         Text(
           value,
           style: TextStyle(
-            color: valueColor ?? OnWayColors.title,
+            color: colors.title,
             fontSize: 15,
             fontWeight: FontWeight.w900,
           ),

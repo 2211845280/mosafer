@@ -17,6 +17,7 @@ class Trip {
   final DateTime? departureAt;
   final DateTime? arrivalAt;
   final String flightNumber;
+  final String? ticketNumber;
 
   const Trip({
     this.reservationId = 0,
@@ -32,6 +33,7 @@ class Trip {
     this.departureAt,
     this.arrivalAt,
     this.flightNumber = '',
+    this.ticketNumber,
   });
 
   factory Trip.fromReservationJson(Map<String, dynamic> json) {
@@ -53,13 +55,14 @@ class Trip {
       toCode: flight['destination_iata'] as String? ?? '---',
       toCity: flight['destination_iata'] as String? ?? 'Destination',
       dateTime: _formatDateTime(departure),
-      seat: 'Seat ${json['seat'] as String? ?? '--'}',
+      seat: json['seat'] as String? ?? '--',
       status: status == 'completed' || status == 'cancelled' || status == 'canceled'
           ? TripStatus.completed
           : TripStatus.confirmed,
       departureAt: departure,
       arrivalAt: arrival,
       flightNumber: number,
+      ticketNumber: json['ticket_number'] as String?,
     );
   }
 
@@ -81,11 +84,12 @@ class Trip {
       toCode: flight['destination_iata'] as String? ?? '---',
       toCity: flight['destination_iata'] as String? ?? 'Destination',
       dateTime: _formatDateTime(departure),
-      seat: 'Seat ${flight['seat'] as String? ?? '--'}',
+      seat: flight['seat'] as String? ?? '--',
       status: TripStatus.confirmed,
       departureAt: departure,
       arrivalAt: arrival,
       flightNumber: number,
+      ticketNumber: json['ticket_number'] as String?,
     );
   }
 
@@ -113,6 +117,7 @@ class Trip {
       departureAt: DateTime.tryParse(json['departureAt'] as String? ?? ''),
       arrivalAt: DateTime.tryParse(json['arrivalAt'] as String? ?? ''),
       flightNumber: json['flightNumber'] as String? ?? '',
+      ticketNumber: json['ticketNumber'] as String?,
     );
   }
 
@@ -131,6 +136,7 @@ class Trip {
       'departureAt': departureAt?.toIso8601String(),
       'arrivalAt': arrivalAt?.toIso8601String(),
       'flightNumber': flightNumber,
+      'ticketNumber': ticketNumber,
     };
   }
 
@@ -148,6 +154,7 @@ class Trip {
     DateTime? departureAt,
     DateTime? arrivalAt,
     String? flightNumber,
+    String? ticketNumber,
   }) {
     return Trip(
       reservationId: reservationId ?? this.reservationId,
@@ -163,6 +170,7 @@ class Trip {
       departureAt: departureAt ?? this.departureAt,
       arrivalAt: arrivalAt ?? this.arrivalAt,
       flightNumber: flightNumber ?? this.flightNumber,
+      ticketNumber: ticketNumber ?? this.ticketNumber,
     );
   }
 

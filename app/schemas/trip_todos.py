@@ -12,6 +12,9 @@ class TripTodoCreate(BaseModel):
     title: str
     priority: str = "recommended"
     due_date: date | None = None
+    source_key: str | None = None
+    title_ar: str | None = None
+    title_en: str | None = None
 
 
 class TripTodoUpdate(BaseModel):
@@ -20,6 +23,9 @@ class TripTodoUpdate(BaseModel):
     priority: str | None = None
     is_completed: bool | None = None
     due_date: date | None = None
+    source_key: str | None = None
+    title_ar: str | None = None
+    title_en: str | None = None
 
 
 class TripTodoRead(BaseModel):
@@ -30,6 +36,9 @@ class TripTodoRead(BaseModel):
     user_id: int
     category: str
     title: str
+    source_key: str | None = None
+    title_ar: str | None = None
+    title_en: str | None = None
     priority: str
     is_completed: bool
     due_date: date | None = None

@@ -71,7 +71,7 @@ export function ProfitAnalyticsClient() {
     return () => {
       cancelled = true;
     };
-  }, [locale, t]);
+  }, [locale]);
 
   const profitChartData = useMemo(
     () =>

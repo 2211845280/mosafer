@@ -1,14 +1,46 @@
+import '../../../l10n/app_localizations.dart';
+
 class PackingItem {
+  final String key;
   final String title;
   final String note;
+  final String titleAr;
+  final String titleEn;
+  final String noteAr;
+  final String noteEn;
 
-  const PackingItem({required this.title, this.note = ''});
+  const PackingItem({
+    required this.title,
+    this.key = '',
+    this.note = '',
+    this.titleAr = '',
+    this.titleEn = '',
+    this.noteAr = '',
+    this.noteEn = '',
+  });
 
   factory PackingItem.fromJson(Map<String, dynamic> json) {
     return PackingItem(
+      key: json['key'] as String? ?? '',
       title: json['title'] as String? ?? '',
       note: json['note'] as String? ?? '',
+      titleAr: json['title_ar'] as String? ?? '',
+      titleEn: json['title_en'] as String? ?? '',
+      noteAr: json['note_ar'] as String? ?? '',
+      noteEn: json['note_en'] as String? ?? '',
     );
+  }
+
+  String stableKey(String fallback) => key.trim().isEmpty ? fallback : key;
+
+  String titleFor(AppLocalizations l10n) {
+    final localized = l10n.localeName.startsWith('ar') ? titleAr : titleEn;
+    return localized.trim().isEmpty ? title : localized;
+  }
+
+  String noteFor(AppLocalizations l10n) {
+    final localized = l10n.localeName.startsWith('ar') ? noteAr : noteEn;
+    return localized.trim().isEmpty ? note : localized;
   }
 }
 

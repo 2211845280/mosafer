@@ -51,7 +51,7 @@ class AuthRepositoryImpl implements AuthRepository {
         data: {'name': fullName, 'email': email, 'password': password},
         options: Options(extra: {'skipAuth': true}),
       );
-      return login(email: email, password: password);
+      return const Success<void>(null);
     } catch (e) {
       return Failure<void>(_errorMessage(e));
     }

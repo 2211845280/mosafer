@@ -12,7 +12,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get appTitle => 'Mosafer';
 
   @override
-  String get brandMosafer => 'MOSAFER';
+  String get brandMosafer => 'Mosafer';
 
   @override
   String get navFlights => 'FLIGHTS';
@@ -54,10 +54,20 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsNotificationsSection => 'NOTIFICATION SETTINGS';
 
   @override
+  String get settingsDisplaySection => 'DISPLAY SETTINGS';
+
+  @override
+  String get settingsThemeTileTitle => 'Dark mode';
+
+  @override
+  String get settingsThemeTileSubtitle =>
+      'Switch between light and dark appearance';
+
+  @override
   String get settingsAccountSection => 'ACCOUNT';
 
   @override
-  String get settingsNotificationTileTitle => 'Notification Setting';
+  String get settingsNotificationTileTitle => 'Allow notifications';
 
   @override
   String get settingsNotificationTileSubtitle => 'Stay updated on your flights';
@@ -182,7 +192,8 @@ class AppLocalizationsEn extends AppLocalizations {
       'Please accept the Terms of Service and Privacy Policy.';
 
   @override
-  String get registerAccountCreated => 'Account created successfully!';
+  String get registerAccountCreated =>
+      'Registration successful. Please verify your email.';
 
   @override
   String get registerCreateAccount => 'Create Account';
@@ -275,6 +286,67 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get errorUnableUpdatePassword => 'Unable to update password';
+
+  @override
+  String get errorSeatAlreadyTaken => 'This seat is already taken';
+
+  @override
+  String get errorSeatNoLongerAvailable => 'This seat is no longer available';
+
+  @override
+  String get errorSeatNotInBooking => 'Seat is not part of this booking';
+
+  @override
+  String get errorDuplicateSeats =>
+      'Duplicate seat numbers in the same booking';
+
+  @override
+  String get errorInvalidSeatFormat =>
+      'Invalid seat format (use row 1-99 and letter A-F, e.g. 12A)';
+
+  @override
+  String get errorCheckoutExpired => 'Checkout session expired';
+
+  @override
+  String get errorPassengerDetailsSubmitted =>
+      'Passenger details already submitted';
+
+  @override
+  String get errorReservationNotFound => 'Reservation not found';
+
+  @override
+  String get errorNotYourReservation => 'Not your reservation';
+
+  @override
+  String get errorAlreadyCancelled => 'Already cancelled';
+
+  @override
+  String get errorCannotCancelPastFlight => 'Cannot cancel a past flight';
+
+  @override
+  String get errorDuplicatePassports =>
+      'Duplicate passport numbers in the same booking';
+
+  @override
+  String get errorInvalidCredentials => 'Email or password is incorrect';
+
+  @override
+  String get errorEmailNotVerified =>
+      'Please verify your email before logging in.';
+
+  @override
+  String get errorAccountDisabled => 'Account is disabled.';
+
+  @override
+  String get errorServerUnavailable =>
+      'Could not reach the server. Ensure the API is running.';
+
+  @override
+  String get errorEmailAlreadyExists =>
+      'An account with this email already exists';
+
+  @override
+  String get errorCurrentPasswordIncorrect => 'Current password is incorrect';
 
   @override
   String get flightsTitle => 'Flights';
@@ -461,7 +533,32 @@ class AppLocalizationsEn extends AppLocalizations {
   String get validateTicket => 'Validate Ticket';
 
   @override
+  String get scanTicketAddedSuccess => 'Ticket added successfully.';
+
+  @override
   String get scanValidateTicketError => 'Unable to validate ticket.';
+
+  @override
+  String get scanNoQrInImage => 'No QR code was found in this image.';
+
+  @override
+  String get scanTicketNotFound =>
+      'No matching ticket was found in our records.';
+
+  @override
+  String get scanTicketInvalid =>
+      'This ticket is not valid or could not be read.';
+
+  @override
+  String get scanTicketExpired => 'This ticket has expired.';
+
+  @override
+  String get scanTicketAlreadyAssigned =>
+      'This ticket is already linked to another account.';
+
+  @override
+  String get scanImageUploadError =>
+      'Could not upload the ticket image. Please try again.';
 
   @override
   String get scanTabScanQr => 'Scan QR';
@@ -493,6 +590,15 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get notificationsNoYet => 'No notifications yet.';
+
+  @override
+  String get notificationsDeleteConfirm => 'Delete this notification?';
+
+  @override
+  String get notificationsDelete => 'Delete';
+
+  @override
+  String get notificationsCancel => 'Cancel';
 
   @override
   String get notificationsToday => 'TODAY';
@@ -577,6 +683,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get onWayOpenInMaps => 'Open in Google Maps';
 
   @override
+  String get onWayExpandMap => 'Expand map';
+
+  @override
   String get planDepartureTravelTime => 'Road duration';
 
   @override
@@ -599,7 +708,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String onWayDemoSubtitle(String airportCode) {
-    return 'Demo route from Taksim Square to $airportCode airport';
+    return 'Route from Taksim Square to $airportCode airport';
   }
 
   @override
@@ -1246,6 +1355,169 @@ class AppLocalizationsEn extends AppLocalizations {
   String get timelineDay1 => 'D-1';
 
   @override
+  String get timelineDay0 => 'Flight day';
+
+  @override
+  String get timelineHourBefore => '1h before';
+
+  @override
+  String timelineHoursBefore(int hours) {
+    return '${hours}h before';
+  }
+
+  @override
+  String get todoResearchHealthRequirements => 'Research Health Requirements';
+
+  @override
+  String get todoCreatePackingList => 'Create Packing List';
+
+  @override
+  String get todoChargeDevices => 'Charge Devices';
+
+  @override
+  String get todoHeadToAirport => 'Head to Airport';
+
+  @override
+  String get todoReviewDeparturePlan => 'Review Departure Plan';
+
+  @override
+  String get todoVisaTravelDocuments => 'Check Visa and Travel Documents';
+
+  @override
+  String get todoHealthVaccinations => 'Health Check and Vaccinations';
+
+  @override
+  String get todoConfirmTransportArrangements =>
+      'Confirm Transport Arrangements';
+
+  @override
+  String get todoConfirmFlightTickets => 'Confirm Flight Tickets';
+
+  @override
+  String get packingItemMedications => 'Medications';
+
+  @override
+  String get packingItemWalkingShoes => 'Comfortable Walking Shoes';
+
+  @override
+  String get packingItemWaterBottle => 'Reusable Water Bottle';
+
+  @override
+  String get packingItemTravelPillow => 'Travel Pillow';
+
+  @override
+  String get notificationPaymentSuccessful => 'Payment Successful';
+
+  @override
+  String notificationPaymentSuccessfulBody(String amount, String currency) {
+    return 'Your payment of $amount $currency has been processed.';
+  }
+
+  @override
+  String get notificationPaymentFailed => 'Payment Failed';
+
+  @override
+  String get notificationPaymentFailedBody =>
+      'Your payment could not be processed.';
+
+  @override
+  String get notificationPaymentRefunded => 'Payment Refunded';
+
+  @override
+  String notificationPaymentRefundedBody(String amount, String currency) {
+    return 'Your payment of $amount $currency has been refunded.';
+  }
+
+  @override
+  String get notificationFullRefund => 'Full Refund';
+
+  @override
+  String notificationFullRefundBody(String amount, String currency) {
+    return 'A full refund of $amount $currency has been issued.';
+  }
+
+  @override
+  String get notificationPartialRefund => 'Partial Refund';
+
+  @override
+  String notificationPartialRefundBody(String amount, String currency) {
+    return 'A partial refund of $amount $currency has been issued.';
+  }
+
+  @override
+  String get notificationBookingCanceled => 'Booking Canceled';
+
+  @override
+  String get notificationBookingCanceledBody =>
+      'Your flight booking has been canceled.';
+
+  @override
+  String notificationDepartureUrgent(String flight) {
+    return 'Leave now! – $flight';
+  }
+
+  @override
+  String notificationDepartureWarning(String flight) {
+    return 'You should leave soon – $flight';
+  }
+
+  @override
+  String notificationDepartureReminder(String flight) {
+    return 'Gentle reminder – $flight';
+  }
+
+  @override
+  String notificationDepartureBody(
+    String flight,
+    String departureTime,
+    String leaveTime,
+    int travelMinutes,
+    int bufferMinutes,
+  ) {
+    return 'Your flight $flight departs at $departureTime. Recommended departure: $leaveTime ($travelMinutes min travel, $bufferMinutes min weather buffer).';
+  }
+
+  @override
+  String get notificationTripTodoTitle => 'Trip tasks reminder';
+
+  @override
+  String notificationTripTodoEmptyBody(String flight) {
+    return 'Please fill in your trip task list for $flight.';
+  }
+
+  @override
+  String notificationTripTodoIncompleteBody(String flight) {
+    return 'Please complete your trip tasks for $flight.';
+  }
+
+  @override
+  String get notificationDepartureScheduleTitle => 'Departure time reminder';
+
+  @override
+  String notificationFlightDeparture6hBody(String flight) {
+    return 'Your flight $flight departs in 6 hours.';
+  }
+
+  @override
+  String notificationHomeDeparture2hBody(String flight) {
+    return 'Leave home for the airport in 2 hours ($flight).';
+  }
+
+  @override
+  String notificationHomeDeparture30mBody(String flight) {
+    return 'Leave home in 30 minutes ($flight).';
+  }
+
+  @override
+  String get notificationHomeDepartureCriticalTitle =>
+      'Critical departure time';
+
+  @override
+  String notificationHomeDepartureCriticalBody(String flight) {
+    return 'Leave home for the airport now ($flight).';
+  }
+
+  @override
   String get timelineBadgeDocument => 'DOCUMENT';
 
   @override
@@ -1287,4 +1559,23 @@ class AppLocalizationsEn extends AppLocalizations {
   String packingItemsAddedToTodos(int count) {
     return '$count packing items added to todos.';
   }
+
+  @override
+  String get todosSelectPacking => 'Select tasks to delete';
+
+  @override
+  String get todosCancelSelection => 'Cancel selection';
+
+  @override
+  String todosDeleteSelected(int count) {
+    return 'Delete selected ($count)';
+  }
+
+  @override
+  String todosDeletedCount(int count) {
+    return '$count tasks deleted';
+  }
+
+  @override
+  String get todoConfirmBookingDetails => 'Confirm Booking Details';
 }

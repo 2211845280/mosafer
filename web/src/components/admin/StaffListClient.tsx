@@ -43,6 +43,7 @@ export function StaffListClient({ currentUserId, isSuperAdmin }: Props) {
   const [viewPermissionsStaff, setViewPermissionsStaff] = useState<StaffRow | null>(null);
   const [editPermissionsStaff, setEditPermissionsStaff] = useState<StaffRow | null>(null);
   const [deleteStaff, setDeleteStaff] = useState<StaffRow | null>(null);
+  const [deleteSuccess, setDeleteSuccess] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -50,6 +51,7 @@ export function StaffListClient({ currentUserId, isSuperAdmin }: Props) {
     try {
       const res = await fetch("/api/admin/staff", {
         headers: { "Accept-Language": locale },
+        cache: "no-store",
       });
       if (!res.ok) {
         setErr(t("staffLoadError"));
@@ -61,7 +63,7 @@ export function StaffListClient({ currentUserId, isSuperAdmin }: Props) {
     } finally {
       setLoading(false);
     }
-  }, [locale, t]);
+  }, [locale]);
 
   useEffect(() => {
     void load();
@@ -88,6 +90,11 @@ export function StaffListClient({ currentUserId, isSuperAdmin }: Props) {
       <div>
         <h1 className="text-2xl font-black text-foreground">{t("staffTitle")}</h1>
         <p className="mt-1 text-sm text-muted">{t("staffSubtitle")}</p>
+        {deleteSuccess && (
+          <p className="mt-3 text-sm font-semibold text-primary" role="status">
+            {deleteSuccess}
+          </p>
+        )}
       </div>
 
       <div className="mt-6 rounded-card border border-border-subtle bg-card p-6">
@@ -220,9 +227,13 @@ export function StaffListClient({ currentUserId, isSuperAdmin }: Props) {
         <StaffDeleteDialog
           staffId={deleteStaff.id}
           staffName={deleteStaff.full_name}
-          open
+          open={true}
           onClose={() => setDeleteStaff(null)}
-          onDeleted={() => void load()}
+          onDeleted={(staffId) => {
+            setStaff((prev) => prev.filter((row) => row.id !== staffId));
+            setDeleteSuccess(t("staffDeleteSuccess"));
+            void load();
+          }}
         />
       )}
     </div>

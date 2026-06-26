@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../domain/indoor_map.dart';
+import '../../../../core/theme/app_theme_extension.dart';
 
 class IndoorMapPainter extends CustomPainter {
   final List<IndoorFeature> features;
@@ -81,6 +82,7 @@ class IndoorMapPainter extends CustomPainter {
     }
 
     for (final poi in pois) {
+      if (poi.type == 'you') continue;
       _drawPoi(canvas, poi, scaleX, scaleY);
     }
   }

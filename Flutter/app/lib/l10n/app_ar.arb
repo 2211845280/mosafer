@@ -1,7 +1,7 @@
 {
   "@@locale": "ar",
   "appTitle": "مسافر",
-  "brandMosafer": "MOSAFER",
+  "brandMosafer": "مسافر",
   "navFlights": "الرحلات",
   "navMyTrips": "رحلاتي",
   "navProfile": "الحساب",
@@ -15,8 +15,11 @@
   "seeAll": "عرض الكل",
   "settingsTitle": "الإعدادات",
   "settingsNotificationsSection": "إعدادات الإشعارات",
+  "settingsDisplaySection": "إعدادات العرض",
+  "settingsThemeTileTitle": "الوضع الداكن",
+  "settingsThemeTileSubtitle": "التبديل بين الوضع الفاتح والداكن",
   "settingsAccountSection": "الحساب",
-  "settingsNotificationTileTitle": "إشعارات الرحلة",
+  "settingsNotificationTileTitle": "السماح بوصول الإشعارات",
   "settingsNotificationTileSubtitle": "تلقَّ تحديثات رحلتك في الوقت المناسب",
   "settingsChangePassword": "تغيير كلمة المرور",
   "settingsSwitchAccount": "تبديل الحساب",
@@ -56,7 +59,7 @@
   "registerPasswordLabel": "كلمة المرور",
   "registerConfirmPasswordLabel": "تأكيد كلمة المرور",
   "registerTermsNotAccepted": "يرجى الموافقة على شروط الاستخدام وسياسة الخصوصية.",
-  "registerAccountCreated": "تم إنشاء الحساب بنجاح!",
+  "registerAccountCreated": "تم التسجيل بنجاح. يرجى تأكيد بريدك الإلكتروني.",
   "registerCreateAccount": "إنشاء حساب",
   "registerAlreadyHaveAccount": "لديك حساب بالفعل؟ ",
   "registerLogIn": "سجّل الدخول",
@@ -85,6 +88,24 @@
   "errorNoInternet": "لا يوجد اتصال بالإنترنت. تحقق من الشبكة وحاول مجدداً.",
   "errorUnauthorized": "انتهت الجلسة. سجّل الدخول من جديد.",
   "errorUnableUpdatePassword": "تعذّر تحديث كلمة المرور",
+  "errorSeatAlreadyTaken": "المقعد محجوز بالفعل",
+  "errorSeatNoLongerAvailable": "المقعد لم يعد متاحاً",
+  "errorSeatNotInBooking": "المقعد غير مضمّن في هذا الحجز",
+  "errorDuplicateSeats": "أرقام مقاعد مكررة في نفس الحجز",
+  "errorInvalidSeatFormat": "صيغة المقعد غير صالحة (مثال: 12A)",
+  "errorCheckoutExpired": "انتهت صلاحية جلسة الحجز",
+  "errorPassengerDetailsSubmitted": "تم إرسال بيانات المسافر مسبقاً",
+  "errorReservationNotFound": "لم يُعثر على الحجز",
+  "errorNotYourReservation": "هذا الحجز لا يخصك",
+  "errorAlreadyCancelled": "تم إلغاء الحجز مسبقاً",
+  "errorCannotCancelPastFlight": "لا يمكن إلغاء رحلة منتهية",
+  "errorDuplicatePassports": "أرقام جوازات مكررة في نفس الحجز",
+  "errorInvalidCredentials": "البريد الإلكتروني أو كلمة المرور غير صحيحة",
+  "errorEmailNotVerified": "يرجى تأكيد بريدك الإلكتروني قبل تسجيل الدخول.",
+  "errorAccountDisabled": "الحساب معطّل.",
+  "errorServerUnavailable": "تعذّر الاتصال بالخادم. تأكد من تشغيل الـ API.",
+  "errorEmailAlreadyExists": "يوجد حساب بهذا البريد مسبقاً",
+  "errorCurrentPasswordIncorrect": "كلمة المرور الحالية غير صحيحة",
   "flightsTitle": "الرحلات",
   "flightsIntro": "يربط مسافر حجزك ورمز تذكرتك وتخطيط المغادرة وتجربة المطار وقائمة التجهيز والمهام والإشعارات في مساعد سفر واحد.",
   "bookingHowTitle": "كيفية الحجز",
@@ -114,7 +135,7 @@
   "departurePlan": "خطة المغادرة",
   "packingList": "قائمة التجهيز",
   "timeline": "الجدول الزمني",
-  "todosLabel": "المهام",
+  "todosLabel": "قائمة المهام",
   "attachmentsSection": "المرفقات",
   "twoFiles": "ملفان",
   "uploadAttachment": "رفع مرفق",
@@ -143,7 +164,14 @@
   "scanPastePayload": "الصق محتوى رمز التذكرة",
   "scanPayloadHint": "نص الرمز أو رقم التذكرة",
   "validateTicket": "التحقق من التذكرة",
+  "scanTicketAddedSuccess": "تم إضافة التذكرة.",
   "scanValidateTicketError": "تعذّر التحقق من التذكرة.",
+  "scanNoQrInImage": "لم يُعثر على رمز QR في هذه الصورة.",
+  "scanTicketNotFound": "لم نعثر على التذكرة في سجلاتنا.",
+  "scanTicketInvalid": "التذكرة غير صالحة أو تعذّر قراءتها.",
+  "scanTicketExpired": "انتهت صلاحية هذه التذكرة.",
+  "scanTicketAlreadyAssigned": "هذه التذكرة مرتبطة بحساب آخر بالفعل.",
+  "scanImageUploadError": "تعذّر رفع صورة التذكرة. حاول مرة أخرى.",
   "scanTabScanQr": "مسح الرمز",
   "scanTabUploadImage": "رفع صورة",
   "scanUploadTitle": "رفع صورة التذكرة",
@@ -154,6 +182,9 @@
   "scanScanNow": "مسح الآن",
   "notificationsReadAll": "تعيين الكل كمقروء",
   "notificationsNoYet": "لا توجد إشعارات بعد.",
+  "notificationsDeleteConfirm": "حذف هذا الإشعار؟",
+  "notificationsDelete": "حذف",
+  "notificationsCancel": "إلغاء",
   "notificationsToday": "اليوم",
   "notificationsEarlier": "سابقاً",
   "timeAgoNow": "الآن",
@@ -188,6 +219,7 @@
   "trafficHeavy": "ازدحام شديد",
   "onWayTraffic": "الازدحام",
   "onWayOpenInMaps": "فتح في خرائط Google",
+  "onWayExpandMap": "توسيع الخريطة",
   "planDepartureTravelTime": "مدة الطريق",
   "planDepartureBuffer": "هامش الأمان",
   "planDepartureNoTrainsInCountry": "لا يوجد قطارات داخل هذه البلد",
@@ -199,7 +231,7 @@
       "airportCode": {"type": "String"}
     }
   },
-  "onWayDemoSubtitle": "مسار تجريبي من ميدان تقسيم إلى مطار {airportCode}",
+  "onWayDemoSubtitle": "من ميدان تقسيم إلى مطار {airportCode}",
   "@onWayDemoSubtitle": {
     "placeholders": {
       "airportCode": {"type": "String"}
@@ -494,6 +526,130 @@
   "timelineDay14": "قبل 14 يوماً",
   "timelineDay7": "قبل 7 أيام",
   "timelineDay1": "قبل يوم",
+  "timelineDay0": "يوم الرحلة",
+  "timelineHourBefore": "قبل ساعة",
+  "timelineHoursBefore": "قبل {hours} ساعة",
+  "@timelineHoursBefore": {
+    "placeholders": {
+      "hours": {"type": "int"}
+    }
+  },
+  "todoResearchHealthRequirements": "البحث عن متطلبات الصحة",
+  "todoCreatePackingList": "إنشاء قائمة التجهيز",
+  "todoChargeDevices": "شحن الأجهزة",
+  "todoHeadToAirport": "التوجه إلى المطار",
+  "todoReviewDeparturePlan": "مراجعة خطة المغادرة",
+  "todoVisaTravelDocuments": "فحص التأشيرة ووثائق السفر",
+  "todoHealthVaccinations": "الفحص الصحي والتطعيمات",
+  "todoConfirmTransportArrangements": "تأكيد ترتيبات النقل",
+  "todoConfirmFlightTickets": "تأكيد تذاكر الطيران",
+  "packingItemMedications": "الأدوية",
+  "packingItemWalkingShoes": "حذاء مريح للمشي",
+  "packingItemWaterBottle": "زجاجة ماء قابلة لإعادة الاستخدام",
+  "packingItemTravelPillow": "وسادة سفر",
+  "notificationPaymentSuccessful": "تم الدفع بنجاح",
+  "notificationPaymentSuccessfulBody": "تمت معالجة دفعتك بمبلغ {amount} {currency}.",
+  "@notificationPaymentSuccessfulBody": {
+    "placeholders": {
+      "amount": {"type": "String"},
+      "currency": {"type": "String"}
+    }
+  },
+  "notificationPaymentFailed": "فشل الدفع",
+  "notificationPaymentFailedBody": "تعذّر معالجة دفعتك.",
+  "notificationPaymentRefunded": "تم استرداد الدفع",
+  "notificationPaymentRefundedBody": "تم استرداد {amount} {currency} إلى حسابك.",
+  "@notificationPaymentRefundedBody": {
+    "placeholders": {
+      "amount": {"type": "String"},
+      "currency": {"type": "String"}
+    }
+  },
+  "notificationFullRefund": "استرداد كامل",
+  "notificationFullRefundBody": "تم استرداد {amount} {currency} بالكامل.",
+  "@notificationFullRefundBody": {
+    "placeholders": {
+      "amount": {"type": "String"},
+      "currency": {"type": "String"}
+    }
+  },
+  "notificationPartialRefund": "استرداد جزئي",
+  "notificationPartialRefundBody": "تم استرداد {amount} {currency} جزئياً.",
+  "@notificationPartialRefundBody": {
+    "placeholders": {
+      "amount": {"type": "String"},
+      "currency": {"type": "String"}
+    }
+  },
+  "notificationBookingCanceled": "تم إلغاء الحجز",
+  "notificationBookingCanceledBody": "تم إلغاء حجز رحلتك.",
+  "notificationDepartureUrgent": "انطلق الآن! – {flight}",
+  "@notificationDepartureUrgent": {
+    "placeholders": {
+      "flight": {"type": "String"}
+    }
+  },
+  "notificationDepartureWarning": "يجب أن تنطلق قريباً – {flight}",
+  "@notificationDepartureWarning": {
+    "placeholders": {
+      "flight": {"type": "String"}
+    }
+  },
+  "notificationDepartureReminder": "تذكير لطيف – {flight}",
+  "@notificationDepartureReminder": {
+    "placeholders": {
+      "flight": {"type": "String"}
+    }
+  },
+  "notificationDepartureBody": "رحلتك {flight} تغادر الساعة {departureTime}. المغادرة الموصى بها: {leaveTime} ({travelMinutes} دقيقة سفر، {bufferMinutes} دقيقة احتياط للطقس).",
+  "@notificationDepartureBody": {
+    "placeholders": {
+      "flight": {"type": "String"},
+      "departureTime": {"type": "String"},
+      "leaveTime": {"type": "String"},
+      "travelMinutes": {"type": "int"},
+      "bufferMinutes": {"type": "int"}
+    }
+  },
+  "notificationTripTodoTitle": "تذكير بمهام الرحلة",
+  "notificationTripTodoEmptyBody": "عليك تعبئة قائمة مهام الرحلة {flight}.",
+  "@notificationTripTodoEmptyBody": {
+    "placeholders": {
+      "flight": {"type": "String"}
+    }
+  },
+  "notificationTripTodoIncompleteBody": "عليك إكمال مهام الرحلة {flight}.",
+  "@notificationTripTodoIncompleteBody": {
+    "placeholders": {
+      "flight": {"type": "String"}
+    }
+  },
+  "notificationDepartureScheduleTitle": "تذكير بموعد المغادرة",
+  "notificationFlightDeparture6hBody": "تبقى على موعد رحلتك {flight} 6 ساعات.",
+  "@notificationFlightDeparture6hBody": {
+    "placeholders": {
+      "flight": {"type": "String"}
+    }
+  },
+  "notificationHomeDeparture2hBody": "تبقى على موعد المغادرة من المنزل نحو المطار ساعتين ({flight}).",
+  "@notificationHomeDeparture2hBody": {
+    "placeholders": {
+      "flight": {"type": "String"}
+    }
+  },
+  "notificationHomeDeparture30mBody": "تبقى على المغادرة من المنزل نصف ساعة ({flight}).",
+  "@notificationHomeDeparture30mBody": {
+    "placeholders": {
+      "flight": {"type": "String"}
+    }
+  },
+  "notificationHomeDepartureCriticalTitle": "موعد المغادرة الحاسم",
+  "notificationHomeDepartureCriticalBody": "يجب المغادرة حالاً من المنزل نحو المطار ({flight}).",
+  "@notificationHomeDepartureCriticalBody": {
+    "placeholders": {
+      "flight": {"type": "String"}
+    }
+  },
   "timelineBadgeDocument": "وثائق",
   "timelineBadgeTask": "مهمة",
   "timelineBadgePacking": "تجهيز",
@@ -516,5 +672,20 @@
     "placeholders": {
       "count": {"type": "int"}
     }
-  }
+  },
+  "todosSelectPacking": "تحديد مهام لحذفها",
+  "todosCancelSelection": "إلغاء التحديد",
+  "todosDeleteSelected": "حذف المحدد ({count})",
+  "@todosDeleteSelected": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "todosDeletedCount": "تم حذف {count} مهمة",
+  "@todosDeletedCount": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "todoConfirmBookingDetails": "تأكيد بيانات الحجز"
 }

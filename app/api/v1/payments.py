@@ -18,6 +18,7 @@ from app.models.checkout_sessions import CheckoutSession, CheckoutSessionStatus
 from app.models.payments import Payment
 from app.models.reservations import Reservation, ReservationStatus
 from app.models.tickets import Ticket, TicketStatus
+from app.models.user_preferences import UserPreference
 from app.models.users import User
 from app.schemas.payments import (
     PaymentConfigResponse,
@@ -30,6 +31,11 @@ from app.schemas.payments import (
 )
 from app.services.booking_reference import generate_pnr
 from app.services.notification_dispatcher import NotificationDispatcher
+from app.services.notification_copy import (
+    payment_failed_copy,
+    payment_refunded_copy,
+    payment_success_copy,
+)
 from app.services.checkout_session_service import materialize_paid_reservation
 from app.services.payment_service import active_payment_provider, get_payment_service
 
@@ -37,6 +43,14 @@ logger = structlog.get_logger(__name__)
 
 router = APIRouter()
 _dispatcher = NotificationDispatcher()
+
+
+async def _user_locale(db: AsyncSession, user_id: int) -> str:
+    result = await db.execute(
+        select(UserPreference.language).where(UserPreference.user_id == user_id)
+    )
+    language = result.scalar_one_or_none()
+    return language if language else "en"
 
 
 async def _load_owned_payment(
@@ -101,11 +115,13 @@ async def _apply_payment_status(
             activate_ticket_after_passenger_details(reservation)
 
         if reservation is not None:
+            locale = await _user_locale(db, payment.user_id)
+            title, body = payment_success_copy(locale, payment.amount, payment.currency)
             await _dispatcher.dispatch(
                 user_id=payment.user_id,
                 event_type="payment_success",
-                title="Payment Successful",
-                body=f"Your payment of {payment.amount} {payment.currency} has been processed.",
+                title=title,
+                body=body,
                 data={"payment_id": str(payment.id)},
                 db=db,
             )
@@ -127,11 +143,13 @@ async def _apply_payment_status(
             if ticket is not None:
                 ticket.status = TicketStatus.CANCELED.value
 
+        locale = await _user_locale(db, payment.user_id)
+        title, body = payment_failed_copy(locale)
         await _dispatcher.dispatch(
             user_id=payment.user_id,
             event_type="payment_failed",
-            title="Payment Failed",
-            body="Your payment could not be processed.",
+            title=title,
+            body=body,
             data={"payment_id": str(payment.id)},
             db=db,
         )
@@ -380,11 +398,13 @@ async def refund_payment(
         if ticket is not None:
             ticket.status = TicketStatus.CANCELED.value
 
+    locale = await _user_locale(db, payment.user_id)
+    title, body = payment_refunded_copy(locale, payment.amount, payment.currency)
     await _dispatcher.dispatch(
         user_id=payment.user_id,
         event_type="payment_refunded",
-        title="Payment Refunded",
-        body=f"Your payment of {payment.amount} {payment.currency} has been refunded.",
+        title=title,
+        body=body,
         data={"payment_id": str(payment.id)},
         db=db,
     )

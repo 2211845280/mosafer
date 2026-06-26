@@ -6,6 +6,7 @@ import '../../../../l10n/app_localizations.dart';
 import '../../../../core/localization/error_message_localizer.dart';
 import '../auth_session_reset.dart';
 import 'login_controller.dart';
+import '../../../../core/theme/app_theme_extension.dart';
 
 class LoginPage extends ConsumerStatefulWidget {
   const LoginPage({super.key});
@@ -23,7 +24,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _prepareSwitchAccount());
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => _prepareSwitchAccount(),
+    );
   }
 
   Future<void> _prepareSwitchAccount() async {
@@ -65,11 +68,12 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final loginState = ref.watch(loginControllerProvider);
     final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
-      backgroundColor: _LoginColors.midnight,
+      backgroundColor: colors.background,
       body: Stack(
         children: [
           const Positioned.fill(child: _LoginBackdrop()),
@@ -118,8 +122,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                           if (loginState.hasError) ...[
                             Text(
                               localizeUserFacingError(loginState.error!, l10n),
-                              style: const TextStyle(
-                                color: _LoginColors.coral,
+                              style: TextStyle(
+                                color: colors.coral,
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
                               ),
@@ -156,27 +160,22 @@ class _LoginBrand extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Column(
       children: [
-        Container(
-          width: 52,
-          height: 52,
-          decoration: BoxDecoration(
-            color: _LoginColors.field.withValues(alpha: 0.82),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
-          ),
-          child: const Icon(
-            Icons.travel_explore,
-            color: _LoginColors.blue,
-            size: 29,
+        ClipRRect(
+          borderRadius: BorderRadius.circular(18),
+          child: Image.asset(
+            'assets/images/brand/mosafer_logo.png',
+            height: 78,
+            fit: BoxFit.contain,
           ),
         ),
         const SizedBox(height: 14),
         Text(
           l10n.brandMosafer,
           textAlign: TextAlign.center,
-          style: const TextStyle(
+          style: TextStyle(
             color: Colors.white,
             fontSize: 29,
             fontWeight: FontWeight.w900,
@@ -188,8 +187,8 @@ class _LoginBrand extends StatelessWidget {
         Text(
           l10n.loginTagline,
           textAlign: TextAlign.center,
-          style: const TextStyle(
-            color: _LoginColors.ice,
+          style: TextStyle(
+            color: colors.ice,
             fontSize: 12,
             fontWeight: FontWeight.w500,
             letterSpacing: 0.35,
@@ -242,6 +241,7 @@ class _DesignedTextFieldState extends State<_DesignedTextField> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -252,8 +252,8 @@ class _DesignedTextFieldState extends State<_DesignedTextField> {
               Expanded(
                 child: Text(
                   widget.label,
-                  style: const TextStyle(
-                    color: _LoginColors.muted,
+                  style: TextStyle(
+                    color: colors.muted,
                     fontSize: 10,
                     fontWeight: FontWeight.w800,
                     letterSpacing: 1.05,
@@ -265,8 +265,8 @@ class _DesignedTextFieldState extends State<_DesignedTextField> {
                   onTap: widget.onTrailingTap,
                   child: Text(
                     widget.trailingLabel!,
-                    style: const TextStyle(
-                      color: _LoginColors.coral,
+                    style: TextStyle(
+                      color: colors.coral,
                       fontSize: 9,
                       fontWeight: FontWeight.w900,
                       letterSpacing: 0.6,
@@ -283,20 +283,20 @@ class _DesignedTextFieldState extends State<_DesignedTextField> {
           keyboardType: widget.keyboardType,
           textInputAction: widget.textInputAction,
           onFieldSubmitted: widget.onSubmitted,
-          cursorColor: _LoginColors.blue,
-          style: const TextStyle(
+          cursorColor: colors.primary,
+          style: TextStyle(
             color: Colors.white,
             fontSize: 14,
             fontWeight: FontWeight.w500,
           ),
           decoration: InputDecoration(
             hintText: widget.hint,
-            hintStyle: const TextStyle(
-              color: _LoginColors.hint,
+            hintStyle: TextStyle(
+              color: colors.hint,
               fontSize: 14,
               fontWeight: FontWeight.w500,
             ),
-            prefixIcon: Icon(widget.icon, color: _LoginColors.blue, size: 19),
+            prefixIcon: Icon(widget.icon, color: colors.primary, size: 19),
             suffixIcon: widget.obscureText
                 ? IconButton(
                     onPressed: () {
@@ -306,13 +306,13 @@ class _DesignedTextFieldState extends State<_DesignedTextField> {
                       _isObscured
                           ? Icons.visibility_outlined
                           : Icons.visibility_off_outlined,
-                      color: _LoginColors.muted,
+                      color: colors.muted,
                       size: 18,
                     ),
                   )
                 : null,
             filled: true,
-            fillColor: _LoginColors.field,
+            fillColor: colors.field,
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 14,
               vertical: 15,
@@ -327,15 +327,15 @@ class _DesignedTextFieldState extends State<_DesignedTextField> {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(9),
-              borderSide: const BorderSide(color: _LoginColors.blue, width: 1),
+              borderSide: BorderSide(color: colors.primary, width: 1),
             ),
             errorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(9),
-              borderSide: const BorderSide(color: _LoginColors.coral, width: 1),
+              borderSide: BorderSide(color: colors.coral, width: 1),
             ),
             focusedErrorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(9),
-              borderSide: const BorderSide(color: _LoginColors.coral, width: 1),
+              borderSide: BorderSide(color: colors.coral, width: 1),
             ),
           ),
         ),
@@ -357,17 +357,18 @@ class _LoginButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return DecoratedBox(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(13),
         border: Border.all(
-          color: _LoginColors.blue.withValues(alpha: 0.75),
+          color: colors.primary.withValues(alpha: 0.75),
           width: 1,
           strokeAlign: BorderSide.strokeAlignOutside,
         ),
         boxShadow: [
           BoxShadow(
-            color: _LoginColors.blue.withValues(alpha: 0.26),
+            color: colors.primary.withValues(alpha: 0.26),
             blurRadius: 18,
             offset: const Offset(0, 8),
           ),
@@ -378,29 +379,26 @@ class _LoginButton extends StatelessWidget {
         child: ElevatedButton(
           onPressed: isLoading ? null : onPressed,
           style: ElevatedButton.styleFrom(
-            backgroundColor: _LoginColors.blue,
-            disabledBackgroundColor: _LoginColors.blue.withValues(alpha: 0.6),
-            foregroundColor: _LoginColors.midnight,
+            backgroundColor: colors.primary,
+            disabledBackgroundColor: colors.primary.withValues(alpha: 0.6),
+            foregroundColor: colors.background,
             elevation: 0,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(13),
             ),
           ),
           child: isLoading
-              ? const SizedBox(
+              ? SizedBox(
                   width: 18,
                   height: 18,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
-                    color: _LoginColors.midnight,
+                    color: colors.background,
                   ),
                 )
               : Text(
                   l10n.loginButton,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w800,
-                  ),
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800),
                 ),
         ),
       ),
@@ -415,12 +413,13 @@ class _RegisterPrompt extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Text(
           l10n.loginNewToVoyage,
-          style: const TextStyle(
+          style: TextStyle(
             color: Colors.white,
             fontSize: 12,
             fontWeight: FontWeight.w500,
@@ -431,18 +430,18 @@ class _RegisterPrompt extends StatelessWidget {
             context.goNamed('register');
           },
           style: TextButton.styleFrom(
-            foregroundColor: _LoginColors.coral,
+            foregroundColor: colors.coral,
             minimumSize: Size.zero,
             padding: EdgeInsets.zero,
             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
           ),
           child: Text(
             l10n.loginRegisterNow,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w900,
               decoration: TextDecoration.underline,
-              decorationColor: _LoginColors.coral,
+              decorationColor: colors.coral,
             ),
           ),
         ),
@@ -456,8 +455,9 @@ class _LoginBackdrop extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return DecoratedBox(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
@@ -556,16 +556,4 @@ class _MountainPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
-
-class _LoginColors {
-  _LoginColors._();
-
-  static const Color midnight = Color(0xFF061326);
-  static const Color field = Color(0xFF0C1B31);
-  static const Color blue = Color(0xFF4A91F8);
-  static const Color ice = Color(0xFFE4ECFF);
-  static const Color muted = Color(0xFFB4C0D6);
-  static const Color hint = Color(0xFF586983);
-  static const Color coral = Color(0xFFFF8B6E);
 }

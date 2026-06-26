@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/constants/app_constants.dart';
 import '../core/localization/locale_providers.dart';
 import '../core/theme/app_theme.dart';
+import '../core/theme/theme_mode_provider.dart';
 import '../l10n/app_localizations.dart';
 import 'router/app_router.dart';
 
@@ -14,6 +15,7 @@ class App extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final locale = ref.watch(appLocaleProvider);
+    final themeMode = ref.watch(appThemeModeProvider);
     return MaterialApp.router(
       title: AppConstants.appName,
       locale: locale,
@@ -25,9 +27,9 @@ class App extends ConsumerWidget {
       ],
       supportedLocales: AppLocalizations.supportedLocales,
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.themeFor(locale),
-      darkTheme: AppTheme.themeFor(locale),
-      themeMode: ThemeMode.dark,
+      theme: AppTheme.themeFor(locale, Brightness.light),
+      darkTheme: AppTheme.themeFor(locale, Brightness.dark),
+      themeMode: themeMode,
       routerConfig: ref.watch(appRouterProvider),
     );
   }
